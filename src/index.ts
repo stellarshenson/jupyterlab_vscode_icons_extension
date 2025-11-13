@@ -378,10 +378,21 @@ const plugin: JupyterFrontEndPlugin<void> = {
     // Function to inject CSS that overrides Jupytext icons
     const injectIconOverrideCSS = () => {
 
-      // Get icons: Python (VSCode), Markdown (JupyterLab native), Claude (VSCode)
+      // Get icons: Python (VSCode), Markdown (JupyterLab native), Claude (VSCode), README (custom)
       const pythonIcon = createLabIcon('file-type-python');
       const claudeIcon = createLabIcon('file-type-claude');
       const markdownSvg = markdownIcon.svgstr;
+
+      // Custom README icon (purple filled circle with bold lowercase i - transparent cutout)
+      const readmeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+        <defs>
+          <mask id="readme-mask">
+            <circle cx="16" cy="16" r="12" fill="white"/>
+            <text x="16" y="22" font-size="20" font-weight="900" text-anchor="middle" fill="black" stroke="black" stroke-width="0.7" font-family="'Courier New', Courier, monospace">i</text>
+          </mask>
+        </defs>
+        <circle cx="16" cy="16" r="12" fill="#9826c8" mask="url(#readme-mask)"/>
+      </svg>`;
 
       // Get SVG content
       const pythonSvg = pythonIcon.svgstr;
@@ -391,6 +402,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const pythonDataUri = `data:image/svg+xml;base64,${btoa(pythonSvg)}`;
       const markdownDataUri = `data:image/svg+xml;base64,${btoa(markdownSvg)}`;
       const claudeDataUri = `data:image/svg+xml;base64,${btoa(claudeSvg)}`;
+      const readmeDataUri = `data:image/svg+xml;base64,${btoa(readmeSvg)}`;
 
       // Inject CSS that overrides icons for .py and .md files
       // Note: Jupytext marks .py and .md files as type="notebook", so we need to
@@ -430,7 +442,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           background-position: center;
         }
 
-        /* Override CLAUDE.md file icon with VSCode Claude icon */
+        /* Override CLAUDE.md file icon with VSCode Claude icon (purple tint) */
         .jp-DirListing-item[data-file-type="notebook"][data-claude-md] .jp-DirListing-itemIcon svg,
         .jp-DirListing-item[data-file-type="notebook"][data-claude-md] .jp-DirListing-itemIcon img {
           display: none !important;
@@ -441,6 +453,23 @@ const plugin: JupyterFrontEndPlugin<void> = {
           width: 18px;
           height: 18px;
           background-image: url('${claudeDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+          filter: hue-rotate(270deg) saturate(1.5) brightness(1.1);
+        }
+
+        /* Override README.md file icon with custom info icon */
+        .jp-DirListing-item[data-file-type="notebook"][data-readme-md] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-file-type="notebook"][data-readme-md] .jp-DirListing-itemIcon img {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-file-type="notebook"][data-readme-md] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: 20px;
+          height: 20px;
+          background-image: url('${readmeDataUri}');
           background-size: contain;
           background-repeat: no-repeat;
           background-position: center;
@@ -480,6 +509,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
             const name = nameSpan.textContent.trim();
             if (name === 'CLAUDE.md') {
               item.setAttribute('data-claude-md', 'true');
+            } else if (name === 'README.md') {
+              item.setAttribute('data-readme-md', 'true');
             } else if (name.endsWith('.py')) {
               item.setAttribute('data-jupytext-py', 'true');
             } else if (name.endsWith('.md')) {
@@ -639,6 +670,27 @@ const plugin: JupyterFrontEndPlugin<void> = {
       } else {
         console.error('[VSCode Icons] Failed to create CLAUDE.md icon');
       }
+
+      // Register README.md with custom purple filled info icon
+      const readmeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+        <circle cx="16" cy="16" r="11" fill="#9826c8"/>
+        <text x="16" y="22" font-size="18" font-weight="bold" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif">i</text>
+      </svg>`;
+
+      const readmeIcon = new LabIcon({
+        name: 'readme-icon',
+        svgstr: readmeSvg
+      });
+
+      docRegistry.addFileType({
+        name: 'vscode-readme',
+        displayName: 'README',
+        pattern: '^README\\.md$',
+        fileFormat: 'text',
+        contentType: 'file',
+        icon: readmeIcon
+      });
+      console.log('[VSCode Icons] README.md file type registered with pattern: ^README\\.md$');
     };
 
     // Debounce timer for settings change alert
