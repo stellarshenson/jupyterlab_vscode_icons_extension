@@ -1,0 +1,16 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v4.5.0
+_src_path: https://github.com/jupyterlab/extension-template
+author_email: konrad.jelen@gmail.com
+author_name: Stellars Henson
+has_ai_rules: false
+has_binder: false
+has_settings: false
+kind: frontend
+labextension_name: jupyterlab_vscode_icons_extension
+project_short_description: Jupyterlab extension with a shameless rip-off of the vscode-icons
+    into our beloved environment
+python_name: jupyterlab_vscode_icons_extension
+repository: ''
+test: true
+

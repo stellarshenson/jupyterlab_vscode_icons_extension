@@ -1,0 +1,46 @@
+{
+  "jupyter.lab.setting-icon": "ui-components:settings",
+  "jupyter.lab.setting-icon-label": "VSCode Icons",
+  "title": "VSCode Icons Extension",
+  "description": "Configure which icon groups to display in the file browser",
+  "type": "object",
+  "properties": {
+    "enableLanguageIcons": {
+      "type": "boolean",
+      "title": "Programming Language Icons",
+      "description": "Enable icons for programming languages (Python, JavaScript, TypeScript, Java, C/C++, Rust, Go, Ruby, PHP, etc.)",
+      "default": true
+    },
+    "enableWebIcons": {
+      "type": "boolean",
+      "title": "Web Development Icons",
+      "description": "Enable icons for web files (HTML, CSS, SCSS, SASS, LESS, Vue, Svelte)",
+      "default": true
+    },
+    "enableDataIcons": {
+      "type": "boolean",
+      "title": "Data Format Icons",
+      "description": "Enable icons for data files (JSON, YAML, TOML, XML, CSV)",
+      "default": true
+    },
+    "enableConfigIcons": {
+      "type": "boolean",
+      "title": "Configuration File Icons",
+      "description": "Enable icons for config files (Dockerfile, .gitignore, package.json, requirements.txt, Makefile, etc.)",
+      "default": true
+    },
+    "enableDocIcons": {
+      "type": "boolean",
+      "title": "Documentation Icons",
+      "description": "Enable icons for documentation files (Markdown, RST, TXT, PDF)",
+      "default": true
+    },
+    "enableImageIcons": {
+      "type": "boolean",
+      "title": "Image File Icons",
+      "description": "Enable icons for image files (PNG, JPG, SVG, etc.)",
+      "default": true
+    }
+  },
+  "additionalProperties": false
+}

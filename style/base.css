@@ -1,0 +1,45 @@
+/*
+ * VSCode Icons Extension Styles
+ * Shameless ripoff of VSCode icons for JupyterLab file browser
+ */
+
+/* Icon container */
+.jp-vscode-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+/* SVG icon styling */
+.jp-vscode-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Ensure icons don't interfere with file browser layout */
+.jp-DirListing-item .jp-DirListing-itemIcon {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 4px;
+}
+
+/* Icon size adjustments for different contexts */
+.jp-DirListing-item[data-file-type='file'] .jp-vscode-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.jp-DirListing-item[data-file-type='notebook'] .jp-vscode-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Ensure proper spacing in breadcrumbs and other locations */
+.jp-BreadCrumbs .jp-vscode-icon {
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
+}
