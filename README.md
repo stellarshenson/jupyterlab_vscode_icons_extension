@@ -13,6 +13,8 @@ This extension brings 1414 beautiful file type icons from the vscode-icons proje
 
 ## Features
 
+![VSCode Icons in JupyterLab](.resources/screenshot-icons.png)
+
 - 1414 file type icons covering virtually every language, framework, and config file you can think of
 - Automatic icon detection based on file extensions and names
 - Zero configuration required - just install and enjoy
