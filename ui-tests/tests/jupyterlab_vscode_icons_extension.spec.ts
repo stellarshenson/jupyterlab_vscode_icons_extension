@@ -1,25 +1,29 @@
 import { expect, test } from '@jupyterlab/galata';
 
-/**
- * Don't load JupyterLab webpage before running the tests.
- * This is required to ensure we capture all log messages.
- */
-test.use({ autoGoto: false });
-
-test('should emit an activation console message', async ({ page }) => {
-  const logs: string[] = [];
-
-  page.on('console', message => {
-    logs.push(message.text());
-  });
-
+test('should load the extension', async ({ page }) => {
+  // Wait for JupyterLab to load
   await page.goto();
 
-  expect(
-    logs.filter(
-      s =>
-        s ===
-        'JupyterLab extension jupyterlab_vscode_icons_extension is activated!'
-    )
-  ).toHaveLength(1);
+  // Check that the extension is registered by verifying custom file types exist
+  const isExtensionLoaded = await page.evaluate(() => {
+    // Access JupyterLab's application instance
+    const app = (window as any).jupyterapp;
+    if (!app) {
+      return false;
+    }
+
+    // Check if our custom file types are registered
+    const docRegistry = app.docRegistry;
+    if (!docRegistry) {
+      return false;
+    }
+
+    // Look for one of our registered file types (vscode-file-type-python)
+    const fileTypes = Array.from(docRegistry.fileTypes());
+    return fileTypes.some(
+      (ft: any) => ft.name && ft.name.startsWith('vscode-file-type-')
+    );
+  });
+
+  expect(isExtensionLoaded).toBe(true);
 });

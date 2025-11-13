@@ -160,7 +160,12 @@ const fileTypeConfigs: IFileTypeConfig[] = [
     group: 'enableLanguageIcons'
   },
   {
-    extensions: ['.bat', '.cmd', '.ps1'],
+    extensions: ['.bat', '.cmd'],
+    iconName: 'file-type-shell',
+    group: 'enableLanguageIcons'
+  },
+  {
+    extensions: ['.ps1'],
     iconName: 'file-type-powershell',
     group: 'enableLanguageIcons'
   },
@@ -231,14 +236,14 @@ const fileTypeConfigs: IFileTypeConfig[] = [
 
   // Documentation
   {
-    extensions: ['.md'],
-    iconName: 'file-type-markdown',
+    pattern: '^CLAUDE\\.md$',
+    extensions: [],
+    iconName: 'file-type-claude',
     group: 'enableDocIcons'
   },
   {
-    pattern: 'CLAUDE\\.md$',
-    extensions: [],
-    iconName: 'file-type-claude',
+    extensions: ['.md'],
+    iconName: 'file-type-markdown',
     group: 'enableDocIcons'
   },
   {
@@ -437,23 +442,24 @@ const plugin: JupyterFrontEndPlugin<void> = {
           filter: brightness(0.85) saturate(0.85);
         }
 
-        /* Color shell script icons - pale red for Linux shells */
-        .jp-DirListing-item[data-file-type="vscode-file-type-shell"] .jp-DirListing-itemIcon svg {
-          filter: hue-rotate(340deg) saturate(0.6) brightness(1.1);
+        /* Color shell script icons - pale red for Linux shells (.sh, .bash, .zsh) */
+        .jp-DirListing-item[data-shell-type="linux"] .jp-DirListing-itemIcon svg {
+          filter: hue-rotate(320deg) saturate(0.8) brightness(1.0);
         }
 
-        /* Color shell script icons - pale blue for Windows shells */
-        .jp-DirListing-item[data-file-type="vscode-file-type-powershell"] .jp-DirListing-itemIcon svg {
-          filter: hue-rotate(180deg) saturate(0.5) brightness(1.2);
+        /* Color shell script icons - pale blue for Windows shells (.bat, .cmd) */
+        .jp-DirListing-item[data-shell-type="windows"] .jp-DirListing-itemIcon svg {
+          filter: hue-rotate(180deg) saturate(0.6) brightness(1.2);
         }
       `;
 
-      // Add a MutationObserver to mark .py and .md files in the file browser
-      const markJupytextFiles = () => {
-        const items = document.querySelectorAll(
+      // Add a MutationObserver to mark special files in the file browser
+      const markSpecialFiles = () => {
+        // Mark Jupytext files (.py and .md notebooks)
+        const notebookItems = document.querySelectorAll(
           '.jp-DirListing-item[data-file-type="notebook"]'
         );
-        items.forEach(item => {
+        notebookItems.forEach(item => {
           const nameSpan = item.querySelector(
             '.jp-DirListing-itemText'
           ) as HTMLElement;
@@ -466,11 +472,29 @@ const plugin: JupyterFrontEndPlugin<void> = {
             }
           }
         });
+
+        // Mark shell script files for different coloring
+        const shellItems = document.querySelectorAll(
+          '.jp-DirListing-item[data-file-type="vscode-file-type-shell"]'
+        );
+        shellItems.forEach(item => {
+          const nameSpan = item.querySelector(
+            '.jp-DirListing-itemText'
+          ) as HTMLElement;
+          if (nameSpan && nameSpan.textContent) {
+            const name = nameSpan.textContent.trim();
+            if (name.endsWith('.sh') || name.endsWith('.bash') || name.endsWith('.zsh')) {
+              item.setAttribute('data-shell-type', 'linux');
+            } else if (name.endsWith('.bat') || name.endsWith('.cmd')) {
+              item.setAttribute('data-shell-type', 'windows');
+            }
+          }
+        });
       };
 
       // Watch for changes in the file browser
       const observer = new MutationObserver(() => {
-        markJupytextFiles();
+        markSpecialFiles();
       });
 
       // Start observing when the file browser is ready
@@ -481,7 +505,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             childList: true,
             subtree: true
           });
-          markJupytextFiles();
+          markSpecialFiles();
         }
       }, 1000);
 
