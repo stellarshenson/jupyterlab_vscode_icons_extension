@@ -236,12 +236,6 @@ const fileTypeConfigs: IFileTypeConfig[] = [
 
   // Documentation
   {
-    pattern: '^CLAUDE\\.md$',
-    extensions: [],
-    iconName: 'file-type-claude',
-    group: 'enableDocIcons'
-  },
-  {
     extensions: ['.md'],
     iconName: 'file-type-markdown',
     group: 'enableDocIcons'
@@ -384,16 +378,19 @@ const plugin: JupyterFrontEndPlugin<void> = {
     // Function to inject CSS that overrides Jupytext icons
     const injectIconOverrideCSS = () => {
 
-      // Get icons: Python (VSCode), Markdown (JupyterLab native)
+      // Get icons: Python (VSCode), Markdown (JupyterLab native), Claude (VSCode)
       const pythonIcon = createLabIcon('file-type-python');
+      const claudeIcon = createLabIcon('file-type-claude');
       const markdownSvg = markdownIcon.svgstr;
 
       // Get SVG content
       const pythonSvg = pythonIcon.svgstr;
+      const claudeSvg = claudeIcon.svgstr;
 
       // Create base64 encoded data URIs
       const pythonDataUri = `data:image/svg+xml;base64,${btoa(pythonSvg)}`;
       const markdownDataUri = `data:image/svg+xml;base64,${btoa(markdownSvg)}`;
+      const claudeDataUri = `data:image/svg+xml;base64,${btoa(claudeSvg)}`;
 
       // Inject CSS that overrides icons for .py and .md files
       // Note: Jupytext marks .py and .md files as type="notebook", so we need to
@@ -432,6 +429,22 @@ const plugin: JupyterFrontEndPlugin<void> = {
           background-repeat: no-repeat;
           background-position: center;
         }
+
+        /* Override CLAUDE.md file icon with VSCode Claude icon */
+        .jp-DirListing-item[data-file-type="notebook"][data-claude-md] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-file-type="notebook"][data-claude-md] .jp-DirListing-itemIcon img {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-file-type="notebook"][data-claude-md] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: 18px;
+          height: 18px;
+          background-image: url('${claudeDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
       `;
 
       // Add CSS to make JavaScript icons less bright
@@ -442,9 +455,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
           filter: brightness(0.85) saturate(0.85);
         }
 
-        /* Color shell script icons - pale red for Linux shells (.sh, .bash, .zsh) */
+        /* Color shell script icons - pale red for Linux shells (.sh, .bash, .zsh) with inverted colors */
         .jp-DirListing-item[data-shell-type="linux"] .jp-DirListing-itemIcon svg {
-          filter: hue-rotate(320deg) saturate(0.8) brightness(1.0);
+          filter: invert(1) hue-rotate(130deg) saturate(0.8) brightness(0.9);
         }
 
         /* Color shell script icons - pale blue for Windows shells (.bat, .cmd) */
@@ -455,7 +468,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       // Add a MutationObserver to mark special files in the file browser
       const markSpecialFiles = () => {
-        // Mark Jupytext files (.py and .md notebooks)
+        // Mark Jupytext files (.py and .md notebooks) and CLAUDE.md
         const notebookItems = document.querySelectorAll(
           '.jp-DirListing-item[data-file-type="notebook"]'
         );
@@ -465,7 +478,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
           ) as HTMLElement;
           if (nameSpan && nameSpan.textContent) {
             const name = nameSpan.textContent.trim();
-            if (name.endsWith('.py')) {
+            if (name === 'CLAUDE.md') {
+              item.setAttribute('data-claude-md', 'true');
+            } else if (name.endsWith('.py')) {
               item.setAttribute('data-jupytext-py', 'true');
             } else if (name.endsWith('.md')) {
               item.setAttribute('data-jupytext-md', 'true');
@@ -606,6 +621,24 @@ const plugin: JupyterFrontEndPlugin<void> = {
         contentType: 'file',
         icon: licenseIcon
       });
+
+      // Register CLAUDE.md with Claude icon (always register, not conditional on settings)
+      const claudeIcon = createLabIcon('file-type-claude');
+      console.log('[VSCode Icons] CLAUDE.md icon created:', !!claudeIcon);
+      if (claudeIcon) {
+        console.log('[VSCode Icons] CLAUDE.md icon svgstr length:', claudeIcon.svgstr?.length || 0);
+        docRegistry.addFileType({
+          name: 'vscode-claude-md',
+          displayName: 'Claude Configuration',
+          pattern: '^CLAUDE\\.md$',
+          fileFormat: 'text',
+          contentType: 'file',
+          icon: claudeIcon
+        });
+        console.log('[VSCode Icons] CLAUDE.md file type registered with pattern: ^CLAUDE\\.md$');
+      } else {
+        console.error('[VSCode Icons] Failed to create CLAUDE.md icon');
+      }
     };
 
     // Debounce timer for settings change alert
