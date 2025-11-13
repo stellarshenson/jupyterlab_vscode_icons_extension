@@ -26,6 +26,13 @@
   margin-right: 4px;
 }
 
+/* Ensure proper spacing in breadcrumbs and other locations */
+.jp-BreadCrumbs .jp-vscode-icon {
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
+}
+
 /* Icon size adjustments for different contexts */
 .jp-DirListing-item[data-file-type='file'] .jp-vscode-icon {
   width: 18px;
@@ -35,11 +42,4 @@
 .jp-DirListing-item[data-file-type='notebook'] .jp-vscode-icon {
   width: 18px;
   height: 18px;
-}
-
-/* Ensure proper spacing in breadcrumbs and other locations */
-.jp-BreadCrumbs .jp-vscode-icon {
-  width: 14px;
-  height: 14px;
-  margin-right: 4px;
 }

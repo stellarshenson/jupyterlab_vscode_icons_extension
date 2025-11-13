@@ -13,11 +13,22 @@ function getIconSVG(iconName) {
   if (icon && icon.parent) {
     console.log('Has parent:', icon.parent);
     const parentIcon = icons[icon.parent];
-    console.log('Parent body length:', parentIcon && parentIcon.body ? parentIcon.body.length : 'no body');
-    return (parentIcon && parentIcon.body) || (icons['default-file'] && icons['default-file'].body) || '';
+    console.log(
+      'Parent body length:',
+      parentIcon && parentIcon.body ? parentIcon.body.length : 'no body'
+    );
+    return (
+      (parentIcon && parentIcon.body) ||
+      (icons['default-file'] && icons['default-file'].body) ||
+      ''
+    );
   }
 
-  return (icon && icon.body) || (icons['default-file'] && icons['default-file'].body) || '';
+  return (
+    (icon && icon.body) ||
+    (icons['default-file'] && icons['default-file'].body) ||
+    ''
+  );
 }
 
 const result = getIconSVG('file-type-makefile');

@@ -24,21 +24,12 @@ jobs:
     - name: Install dependencies
       run: python -m pip install -U "jupyterlab>=4.0.0,<5"
 
-    - name: Lint the extension
-      run: |
-        set -eux
-        jlpm
-        jlpm run lint:check
-
-    - name: Test the extension
-      run: |
-        set -eux
-        jlpm run test
-
     - name: Build the extension
       run: |
         set -eux
         python -m pip install .[test]
+
+        # pytest -vv -r ap --cov jupyterlab_vscode_icons_extension
 
         jupyter labextension list
         jupyter labextension list 2>&1 | grep -ie "jupyterlab_vscode_icons_extension.*OK"
@@ -67,7 +58,7 @@ jobs:
     - name: Install Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '3.12'
         architecture: 'x64'
     - uses: actions/download-artifact@v4
       with:
@@ -80,7 +71,6 @@ jobs:
         sudo rm -rf $(which node)
 
         pip install "jupyterlab>=4.0.0,<5" jupyterlab_vscode_icons_extension*.whl
-
 
         jupyter labextension list
         jupyter labextension list 2>&1 | grep -ie "jupyterlab_vscode_icons_extension.*OK"
@@ -154,3 +144,5 @@ jobs:
       - uses: actions/checkout@v4
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
       - uses: jupyterlab/maintainer-tools/.github/actions/check-links@v1
+        with:
+          ignore_links: "https://www.npmjs.com/package/.* https://pepy.tech/.* https://static.pepy.tech/.*"

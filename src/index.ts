@@ -3,13 +3,13 @@ import {
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
-import { LabIcon } from '@jupyterlab/ui-components';
+import { LabIcon, markdownIcon } from '@jupyterlab/ui-components';
 import { getIconSVG } from './icons';
 
 const PLUGIN_ID = 'jupyterlab_vscode_icons_extension:plugin';
 
 // Icon groups for settings
-interface IconSettings {
+interface IIconSettings {
   enableLanguageIcons: boolean;
   enableWebIcons: boolean;
   enableDataIcons: boolean;
@@ -34,15 +34,15 @@ function createLabIcon(iconName: string): LabIcon {
 /**
  * File type registration configuration
  */
-interface FileTypeConfig {
+interface IFileTypeConfig {
   extensions: string[];
   pattern?: string;
   iconName: string;
-  group: keyof IconSettings;
+  group: keyof IIconSettings;
 }
 
 // Comprehensive file type configurations grouped by category
-const fileTypeConfigs: FileTypeConfig[] = [
+const fileTypeConfigs: IFileTypeConfig[] = [
   // Programming Languages
   {
     extensions: ['.js', '.mjs', '.cjs'],
@@ -155,8 +155,13 @@ const fileTypeConfigs: FileTypeConfig[] = [
     group: 'enableLanguageIcons'
   },
   {
-    extensions: ['.sh', '.bash', '.zsh', '.bat', '.cmd', '.ps1'],
+    extensions: ['.sh', '.bash', '.zsh'],
     iconName: 'file-type-shell',
+    group: 'enableLanguageIcons'
+  },
+  {
+    extensions: ['.bat', '.cmd', '.ps1'],
+    iconName: 'file-type-powershell',
     group: 'enableLanguageIcons'
   },
   {
@@ -209,16 +214,6 @@ const fileTypeConfigs: FileTypeConfig[] = [
 
   // Data Formats
   {
-    extensions: ['.json'],
-    iconName: 'file-type-json',
-    group: 'enableDataIcons'
-  },
-  {
-    extensions: ['.yaml', '.yml'],
-    iconName: 'file-type-yaml',
-    group: 'enableDataIcons'
-  },
-  {
     extensions: ['.toml'],
     iconName: 'file-type-toml',
     group: 'enableDataIcons'
@@ -238,6 +233,12 @@ const fileTypeConfigs: FileTypeConfig[] = [
   {
     extensions: ['.md'],
     iconName: 'file-type-markdown',
+    group: 'enableDocIcons'
+  },
+  {
+    pattern: 'CLAUDE\\.md$',
+    extensions: [],
+    iconName: 'file-type-claude',
     group: 'enableDocIcons'
   },
   {
@@ -322,7 +323,7 @@ const fileTypeConfigs: FileTypeConfig[] = [
   {
     pattern: '^pyproject\\.toml$',
     extensions: [],
-    iconName: 'file-type-python',
+    iconName: 'file-type-toml',
     group: 'enableConfigIcons'
   },
   {
@@ -341,18 +342,6 @@ const fileTypeConfigs: FileTypeConfig[] = [
     pattern: '^Gemfile$',
     extensions: [],
     iconName: 'file-type-ruby',
-    group: 'enableConfigIcons'
-  },
-  {
-    pattern: '^(Makefile|makefile|GNUmakefile|makefile\\..*|Makefile\\..*)$',
-    extensions: ['.mk', '.mak', '.make'],
-    iconName: 'file-type-makefile',
-    group: 'enableConfigIcons'
-  },
-  {
-    pattern: '^(LICENSE|LICENCE|LICENSE\\..*|LICENCE\\..*)$',
-    extensions: [],
-    iconName: 'file-type-license',
     group: 'enableConfigIcons'
   },
 
@@ -385,14 +374,135 @@ const plugin: JupyterFrontEndPlugin<void> = {
     app: JupyterFrontEnd,
     settingRegistry: ISettingRegistry | null
   ) => {
-    console.log(
-      'JupyterLab VSCode Icons Extension activated - shameless ripoff mode engaged!'
-    );
-
     const { docRegistry } = app;
 
+    // Function to inject CSS that overrides Jupytext icons
+    const injectIconOverrideCSS = () => {
+
+      // Get icons: Python (VSCode), Markdown (JupyterLab native)
+      const pythonIcon = createLabIcon('file-type-python');
+      const markdownSvg = markdownIcon.svgstr;
+
+      // Get SVG content
+      const pythonSvg = pythonIcon.svgstr;
+
+      // Create base64 encoded data URIs
+      const pythonDataUri = `data:image/svg+xml;base64,${btoa(pythonSvg)}`;
+      const markdownDataUri = `data:image/svg+xml;base64,${btoa(markdownSvg)}`;
+
+      // Inject CSS that overrides icons for .py and .md files
+      // Note: Jupytext marks .py and .md files as type="notebook", so we need to
+      // use JavaScript to detect and mark these files for CSS targeting
+      const style = document.createElement('style');
+      style.id = 'vscode-icons-jupytext-override';
+      style.textContent = `
+        /* Override Python file icons (.py files shown as notebooks by Jupytext) */
+        .jp-DirListing-item[data-file-type="notebook"][data-jupytext-py] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-file-type="notebook"][data-jupytext-py] .jp-DirListing-itemIcon img {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-file-type="notebook"][data-jupytext-py] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: 18px;
+          height: 18px;
+          background-image: url('${pythonDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
+
+        /* Override Markdown file icons (.md files shown as notebooks by Jupytext) with JupyterLab native markdown icon */
+        .jp-DirListing-item[data-file-type="notebook"][data-jupytext-md] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-file-type="notebook"][data-jupytext-md] .jp-DirListing-itemIcon img {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-file-type="notebook"][data-jupytext-md] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: 18px;
+          height: 18px;
+          background-image: url('${markdownDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
+      `;
+
+      // Add CSS to make JavaScript icons less bright
+      style.textContent += `
+        /* Reduce brightness of JavaScript icons */
+        .jp-DirListing-item[data-file-type*="js"] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-file-type="vscode-file-type-js-official"] .jp-DirListing-itemIcon svg {
+          filter: brightness(0.85) saturate(0.85);
+        }
+
+        /* Color shell script icons - pale red for Linux shells */
+        .jp-DirListing-item[data-file-type="vscode-file-type-shell"] .jp-DirListing-itemIcon svg {
+          filter: hue-rotate(340deg) saturate(0.6) brightness(1.1);
+        }
+
+        /* Color shell script icons - pale blue for Windows shells */
+        .jp-DirListing-item[data-file-type="vscode-file-type-powershell"] .jp-DirListing-itemIcon svg {
+          filter: hue-rotate(180deg) saturate(0.5) brightness(1.2);
+        }
+      `;
+
+      // Add a MutationObserver to mark .py and .md files in the file browser
+      const markJupytextFiles = () => {
+        const items = document.querySelectorAll(
+          '.jp-DirListing-item[data-file-type="notebook"]'
+        );
+        items.forEach(item => {
+          const nameSpan = item.querySelector(
+            '.jp-DirListing-itemText'
+          ) as HTMLElement;
+          if (nameSpan && nameSpan.textContent) {
+            const name = nameSpan.textContent.trim();
+            if (name.endsWith('.py')) {
+              item.setAttribute('data-jupytext-py', 'true');
+            } else if (name.endsWith('.md')) {
+              item.setAttribute('data-jupytext-md', 'true');
+            }
+          }
+        });
+      };
+
+      // Watch for changes in the file browser
+      const observer = new MutationObserver(() => {
+        markJupytextFiles();
+      });
+
+      // Start observing when the file browser is ready
+      setTimeout(() => {
+        const fileBrowser = document.querySelector('.jp-DirListing-content');
+        if (fileBrowser) {
+          observer.observe(fileBrowser, {
+            childList: true,
+            subtree: true
+          });
+          markJupytextFiles();
+        }
+      }, 1000);
+
+      // Remove existing override style if present
+      const existing = document.getElementById(
+        'vscode-icons-jupytext-override'
+      );
+      if (existing) {
+        existing.remove();
+      }
+
+      document.head.appendChild(style);
+    };
+
+    // Wait for DOM to be ready, then inject CSS
+    app.started.then(() => {
+      setTimeout(injectIconOverrideCSS, 500);
+    });
+
     // Default settings
-    let settings: IconSettings = {
+    const settings: IIconSettings = {
       enableLanguageIcons: true,
       enableWebIcons: true,
       enableDataIcons: true,
@@ -411,10 +521,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
 
         const icon = createLabIcon(config.iconName);
+        const fileTypeName = `vscode-${config.iconName}`;
 
         // Register file type
         const fileTypeOptions: any = {
-          name: `vscode-${config.iconName}`,
+          name: fileTypeName,
           icon: icon,
           fileFormat: 'text',
           contentType: 'file'
@@ -430,7 +541,51 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         docRegistry.addFileType(fileTypeOptions);
       });
+
+      // Register Makefile with custom icon (separate from main icon loop)
+      const makefileSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <text x="12" y="18" font-size="20" font-weight="900" text-anchor="middle" fill="#d84a4a" font-family="Arial, sans-serif">M</text>
+      </svg>`;
+
+      const makefileIcon = new LabIcon({
+        name: 'makefile-icon',
+        svgstr: makefileSvg
+      });
+
+      docRegistry.addFileType({
+        name: 'vscode-makefile',
+        displayName: 'Makefile',
+        mimeTypes: ['text/x-makefile'],
+        extensions: ['.mk', '.mak', '.make'],
+        pattern: '^(Makefile|makefile|GNUmakefile|makefile\\..*|Makefile\\..*)',
+        fileFormat: 'text',
+        contentType: 'file',
+        icon: makefileIcon
+      });
+
+      // Register LICENSE with custom copyright icon (C in circle)
+      const licenseSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+        <circle cx="16" cy="16" r="11" fill="none" stroke="#4a90e2" stroke-width="3"/>
+        <path fill="#4a90e2" stroke="#4a90e2" stroke-width="0.5" d="M19 19.5c-0.8 0.8-2 1.3-3.2 1.3c-2.5 0-4.5-2-4.5-4.5s2-4.5 4.5-4.5c1.2 0 2.3 0.5 3.2 1.3l1.2-1.2c-1.1-1.1-2.6-1.8-4.3-1.8c-3.4 0-6.2 2.8-6.2 6.2s2.8 6.2 6.2 6.2c1.7 0 3.2-0.7 4.3-1.8L19 19.5z"/>
+      </svg>`;
+
+      const licenseIcon = new LabIcon({
+        name: 'license-icon',
+        svgstr: licenseSvg
+      });
+
+      docRegistry.addFileType({
+        name: 'vscode-license',
+        displayName: 'License',
+        pattern: '^(LICENSE|LICENCE|LICENSE\\..*|LICENCE\\..*)$',
+        fileFormat: 'text',
+        contentType: 'file',
+        icon: licenseIcon
+      });
     };
+
+    // Debounce timer for settings change alert
+    let settingsChangeTimeout: any = null;
 
     // Load settings
     if (settingRegistry) {
@@ -441,11 +596,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
           Object.keys(settings).forEach(key => {
             const value = loadedSettings.get(key).composite;
             if (typeof value === 'boolean') {
-              settings[key as keyof IconSettings] = value;
+              settings[key as keyof IIconSettings] = value;
             }
           });
 
-          console.log('VSCode Icons settings loaded:', settings);
           registerFileTypes();
 
           // Listen for settings changes
@@ -453,15 +607,22 @@ const plugin: JupyterFrontEndPlugin<void> = {
             Object.keys(settings).forEach(key => {
               const value = loadedSettings.get(key).composite;
               if (typeof value === 'boolean') {
-                settings[key as keyof IconSettings] = value;
+                settings[key as keyof IIconSettings] = value;
               }
             });
 
-            console.log('VSCode Icons settings changed:', settings);
-            // Note: Changing icons requires a JupyterLab refresh
-            alert(
-              'VSCode Icons settings changed. Please refresh the page to apply changes.'
-            );
+
+            // Debounce the alert to show only once when multiple settings change
+            if (settingsChangeTimeout) {
+              clearTimeout(settingsChangeTimeout);
+            }
+
+            settingsChangeTimeout = setTimeout(() => {
+              alert(
+                'VSCode Icons settings changed. Please refresh the page to apply changes.'
+              );
+              settingsChangeTimeout = null;
+            }, 500);
           });
         })
         .catch(reason => {

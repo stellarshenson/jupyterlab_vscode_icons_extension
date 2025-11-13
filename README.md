@@ -1,6 +1,11 @@
 # JupyterLab VSCode Icons Extension
 
-[![Github Actions Status](/workflows/Build/badge.svg)](/actions/workflows/build.yml)
+[![GitHub Actions](https://github.com/stellarshenson/jupyterlab_vscode_icons_extension/actions/workflows/build.yml/badge.svg)](https://github.com/stellarshenson/jupyterlab_vscode_icons_extension/actions/workflows/build.yml)
+[![npm version](https://img.shields.io/npm/v/jupyterlab_vscode_icons_extension.svg)](https://www.npmjs.com/package/jupyterlab_vscode_icons_extension)
+[![PyPI version](https://img.shields.io/pypi/v/jupyterlab-vscode-icons-extension.svg)](https://pypi.org/project/jupyterlab-vscode-icons-extension/)
+[![Total PyPI downloads](https://static.pepy.tech/badge/jupyterlab-vscode-icons-extension)](https://pepy.tech/project/jupyterlab-vscode-icons-extension)
+[![JupyterLab 4](https://img.shields.io/badge/JupyterLab-4-orange.svg)](https://jupyterlab.readthedocs.io/en/stable/)
+[![Brought To You By KOLOMOLO](https://img.shields.io/badge/Brought%20To%20You%20By-KOLOMOLO-00ffff?style=flat)](https://kolomolo.com)
 
 A shameless, unapologetic, and utterly brazen ripoff of the excellent VSCode file icons for JupyterLab. Because why should VS Code users have all the fun?
 
@@ -12,6 +17,7 @@ This extension brings 1414 beautiful file type icons from the vscode-icons proje
 - Automatic icon detection based on file extensions and names
 - Zero configuration required - just install and enjoy
 - Lightweight integration using Iconify's JSON icon format
+- Compatible with Jupytext - properly displays Python and Markdown icons for .py and .md notebook files
 - No folders (we left those alone... for now)
 
 ## Requirements

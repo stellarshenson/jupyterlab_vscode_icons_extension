@@ -10,6 +10,7 @@ This file extends workspace-level configuration with project-specific rules.
 **jupyterlab_vscode_icons_extension** is a JupyterLab 4.x extension that brings VSCode-style file icons to the JupyterLab file browser.
 
 **Technology Stack**:
+
 - JupyterLab 4.0+
 - TypeScript 5.8
 - CSS modules for styling
@@ -17,6 +18,7 @@ This file extends workspace-level configuration with project-specific rules.
 - Playwright/Galata for integration testing
 
 **Project Structure**:
+
 - `src/` - TypeScript source code
 - `style/` - CSS styling and icon assets
 - `lib/` - Compiled JavaScript output
@@ -24,6 +26,7 @@ This file extends workspace-level configuration with project-specific rules.
 - `ui-tests/` - Playwright integration tests
 
 **Development Commands**:
+
 - `jlpm build` - Build development version
 - `jlpm build:prod` - Build production version
 - `jlpm watch` - Watch mode for development
@@ -31,6 +34,7 @@ This file extends workspace-level configuration with project-specific rules.
 - `jupyter labextension develop . --overwrite` - Link extension for development
 
 **Package Naming**:
+
 - Python package: `jupyterlab_vscode_icons_extension`
 - NPM package: `jupyterlab_vscode_icons_extension`
 - Extension ID: `jupyterlab_vscode_icons_extension`
@@ -38,6 +42,7 @@ This file extends workspace-level configuration with project-specific rules.
 ## Git Commit Standards
 
 Follow conventional commit format without Claude co-authoring:
+
 - `feat: add new icon mappings`
 - `fix: correct icon display for markdown files`
 - `chore: update dependencies`

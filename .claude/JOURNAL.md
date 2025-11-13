@@ -3,3 +3,75 @@
 This journal tracks substantive work on documents, diagrams, and documentation content.
 
 ---
+
+1. **Task - Project initialization**: Created project-specific CLAUDE.md configuration and journal tracking system<br>
+   **Result**: Added `.claude/CLAUDE.md` with JupyterLab 4.x extension context, TypeScript 5.8 stack, development commands, and package naming conventions; initialized `.claude/JOURNAL.md` for tracking substantive work
+
+2. **Task - VSCode icons integration**: Integrated @iconify-json/vscode-icons package (1414 icons) into JupyterLab extension using proper docRegistry API<br>
+   **Result**: Installed @iconify-json/vscode-icons npm package; created `src/icons.ts` with extension-to-icon mappings and SVG resolution utilities; implemented `src/index.ts` with `docRegistry.addFileType()` and `LabIcon` creation from Iconify JSON data; replaced initial DOM manipulation approach with proper JupyterLab file type registration
+
+3. **Task - Icon alias resolution**: Fixed icon resolution for aliased icons in Iconify data structure<br>
+   **Result**: Updated `getIconSVG()` function in `src/icons.ts` to check aliases first, then resolve parent icon references; handles two-level indirection where alias points to parent icon, and parent icon may reference another parent
+
+4. **Task - Settings system implementation**: Added configurable icon groups with toggle controls via JupyterLab settings<br>
+   **Result**: Created `schema/plugin.json` with 6 boolean settings (enableLanguageIcons, enableWebIcons, enableDataIcons, enableConfigIcons, enableDocIcons, enableImageIcons); implemented settings integration with ISettingRegistry in `src/index.ts`; added file type grouping by category in fileTypeConfigs array; implemented dynamic registration based on enabled groups
+
+5. **Task - File type coverage expansion**: Added comprehensive file type support including shell scripts, git files, package managers, and build tools<br>
+   **Result**: Added .bat, .cmd, .ps1 (Windows shell scripts) to shell icon group; added .vbs, .vbe (VBA scripts) with VBA icon; added pattern matching for .git, .gitignore, .gitmodules, .gitattributes files; added LICENSE file variants pattern; added .lnk (Windows shortcuts); added package manager configs (package.json, yarn.lock, requirements.txt, Cargo.toml, Gemfile); added Dockerfile and .dockerignore pattern matching
+
+6. **Task - README documentation**: Updated README with shameless VSCode-icons ripoff theme and configuration instructions<br>
+   **Result**: Rewrote README.md with humorous "shameless ripoff" messaging; added Features section listing 6 icon groups; added Configuration section explaining settings toggles; added proper attribution to vscode-icons project and Iconify; removed development sections per user request
+
+7. **Task - Makefile icon implementation**: Added custom Makefile support with red "M" icon using pattern from jupyterlab*makefile_file_type_extension, removed JSON/YAML from VSCode icon configs to preserve JupyterLab defaults<br>
+   **Result**: Implemented separate Makefile file type registration with custom SVG icon (red "M" text); added mimeTypes ['text/x-makefile'] and comprehensive pattern matching (Makefile, makefile, GNUmakefile, makefile.*, Makefile.\_); registered icon with name "makefile-icon"; removed JSON and YAML from fileTypeConfigs to allow JupyterLab native icons for these formats
+
+8. **Task - TOML icon correction**: Fixed pyproject.toml displaying Python icon instead of TOML icon<br>
+   **Result**: Changed iconName from 'file-type-python' to 'file-type-toml' in line 315 of `src/index.ts`; pyproject.toml now displays gray "T" icon instead of blue/yellow Python logo; version updated to 1.0.13
+
+9. **Task - Jupytext icon override attempt via docRegistry**: Attempted to override Jupytext's notebook icons for .py and .md files using docRegistry.addFileType with override parameter<br>
+   **Result**: Failed - re-registering file types with same names ('python', 'markdown') and ['notebook'] override parameter had no effect; Jupytext's icons remained dominant; discovered that file type icon property is read-only, preventing direct assignment like `(pyTypes[0] as any).icon = pythonIcon`
+
+10. **Task - Jupytext icon override attempt via file type removal**: Attempted to remove Jupytext's python and markdown file types from registry to allow VSCode icons to take precedence<br>
+    **Result**: Failed - removing file types from `docRegistry._fileTypes` array caused "File Type markdown not found" errors; other parts of Jupytext still referenced these file types; approach abandoned as too brittle and error-prone
+
+11. **Task - Jupytext icon override attempt via direct icon modification**: Attempted to modify file type objects' icon properties directly after registration<br>
+    **Result**: Failed - while console logs showed icon properties were being modified in the file type objects, the file browser UI did not refresh to reflect changes; file browser had already rendered with cached icon references; modifying objects post-render doesn't trigger UI updates in JupyterLab's rendering pipeline
+
+12. **Task - Jupytext icon override attempt via CSS with wrong selectors**: Attempted CSS override targeting `data-file-type="python"` and `data-file-type="markdown"` attributes<br>
+    **Result**: Failed - CSS selectors targeted wrong attributes; actual DOM inspection revealed files had `data-file-type="notebook"` not "python" or "markdown"; prompted deep investigation into why file type attribute was set to "notebook" for .py/.md files
+
+13. **Task - LICENSE custom copyright icon**: Designed and implemented custom copyright icon for LICENSE files to replace default key icon<br>
+    **Result**: Created custom SVG with blue circle outline and C character path in `src/index.ts` (lines 506-524); registered separate file type 'vscode-license' with pattern matching for LICENSE, LICENCE, and their variants with extensions; icon centered properly with file browser alignment; replaces "corny" key icon from vscode-icons set; version updated through 1.0.14-1.0.17 with centering adjustments
+
+14. **Task - Settings schema configuration**: Fixed 404 error when loading extension settings schema<br>
+    **Result**: Added `schemaDir: "schema"` to package.json jupyterlab configuration section (line 100); JupyterLab now correctly locates schema/plugin.json file in installed labextension; settings panel loads without errors; version updated to 1.0.19
+
+15. **Task - Settings alert debouncing**: Fixed multiple alert popups when resetting all settings to defaults<br>
+    **Result**: Implemented debounce timer (500ms) in settings change handler (lines 527-567 in `src/index.ts`); when multiple settings change rapidly (like resetting 6 boolean toggles), timer clears and resets on each change; single alert appears 500ms after last change; prevents alert spam when batch-updating settings; version updated to 1.0.20
+
+16. **Task - Jupytext icon override deep source investigation**: Conducted comprehensive source code analysis to understand root cause of icon override failure<br>
+    **Result**: **Investigation Process** - Cloned jupytext repository to `/tmp/jupytext`; analyzed `packages/jupyterlab-jupytext-extension/src/tokens.ts` showing FILE_TYPES array includes 'python' and 'markdown' (lines 30-38); analyzed `packages/jupyterlab-jupytext-extension/src/factory.ts` showing NotebookWidgetFactory creation with fileTypes parameter including python and markdown (lines 42, 56-59). Cloned jupyterlab repository to `/tmp/jupyterlab`; analyzed `packages/docregistry/src/registry.ts` revealing critical `getFileTypeForModel()` function (lines 666-704) with special case handling for `model.type === 'notebook'` that returns notebook file type regardless of file extension; analyzed `packages/filebrowser/src/listing.ts` showing file browser rendering that extracts icon from fileType and sets `data-file-type` attribute from `fileType.name` (lines 3281, 3393). **Root Cause Discovery** - Jupytext server extension modifies file contents API responses to mark .py and .md files with `model.type = 'notebook'` (not 'file'); when JupyterLab's `getFileTypeForModel()` sees `model.type === 'notebook'`, it immediately returns the notebook file type with `name: "notebook"` without checking file extension; file browser renders these files with `data-file-type="notebook"` attribute; this server-side type override happens before client-side file type resolution, making conventional file type registration approaches ineffective. **Key Insight** - The issue occurs at the file model level (server-side), not at the file type registration level (client-side); any solution must work around the already-rendered DOM with `data-file-type="notebook"` attribute rather than trying to change the file type assignment itself
+
+17. **Task - Jupytext icon override final solution**: Implemented DOM-based icon override for Python files using CSS injection and MutationObserver to show VSCode Python icon instead of Jupytext notebook icon<br>
+    **Result**: **The Problem** - Jupytext server marks .py files with `model.type = 'notebook'`; JupyterLab's `getFileTypeForModel()` sees this and returns notebook file type; file browser renders with `data-file-type="notebook"` attribute; conventional file type registration cannot override this because the type assignment happens server-side before client-side rendering. **The Solution** - Created `injectIconOverrideCSS()` function (lines 372-468 in `src/index.ts`) that works at DOM/CSS layer. **How It Works** - (1) JavaScript detects .py files: MutationObserver watches file browser for changes; when it finds items with `data-file-type="notebook"`, it checks filenames; adds `data-jupytext-py="true"` attribute to .py files. (2) CSS hides Jupytext icon and shows VSCode icon: Targets `[data-file-type="notebook"][data-jupytext-py]` selector; hides existing notebook icon with `display: none !important`; injects VSCode Python icon via `::before` pseudo-element with base64-encoded SVG data URI. **Why This Works** - Operates at presentation layer (DOM/CSS), not data layer (file types); doesn't conflict with Jupytext's server-side `model.type` assignment; doesn't break Jupytext notebook functionality; survives file browser navigation through MutationObserver. **Markdown Files** - User prefers JupyterLab/Jupytext default markdown icon over VSCode markdown icon; no override applied to .md files; they keep notebook icon. **Version** - Python icon override in 1.0.21; markdown preference in 1.0.23
+
+18. **Task - Markdown icon with JupyterLab native icon**: Updated solution to override Jupytext notebook icon for markdown files with JupyterLab's native markdown icon (not VSCode's)<br>
+    **Result**: User requested original JupyterLab markdown icon (not Jupytext notebook icon, not VSCode markdown icon); imported `markdownIcon` from `@jupyterlab/ui-components`; updated `injectIconOverrideCSS()` function to handle both Python and Markdown files; Python files get VSCode Python icon; Markdown files get JupyterLab native markdown icon; both override Jupytext's notebook icon using same CSS + MutationObserver pattern; version updated to 1.0.25
+
+19. **Task - JavaScript icon brightness adjustment**: Reduced brightness of JavaScript file icons using CSS filters<br>
+    **Result**: Added CSS filter to JavaScript icons (`brightness(0.85) saturate(0.85)`) to make them less bright; applied to all JavaScript file types (.js, .mjs, .cjs) via data-file-type selectors; version updated to 1.0.26; tagged as STABLE_1.0.26
+
+20. **Task - LICENSE icon emboldening**: Made LICENSE file icon more prominent with thicker strokes<br>
+    **Result**: Increased circle stroke-width from 2 to 3; added subtle stroke (stroke-width: 0.5) to C path for better definition; version 1.0.26
+
+21. **Task - README badges and GitHub workflows update**: Updated README with comprehensive badge set and synchronized GitHub Actions workflows with reference repository<br>
+    **Result**: Added 6 badges to README (GitHub Actions, npm version, PyPI version, PyPI downloads, JupyterLab 4 compatibility, KOLOMOLO branding); updated all 6 workflow files (.github/workflows/) based on reference repository jupyterlab_makefile_file_type_extension; added link checker ignore patterns for badge URLs (`ignore_links: "https://www.npmjs.com/package/.* https://pepy.tech/.* https://static.pepy.tech/.*"`); code formatting with Prettier and ESLint applied to all TypeScript and CSS files; renamed interfaces to follow TypeScript conventions (IconSettings -> IIconSettings, FileTypeConfig -> IFileTypeConfig); fixed CSS selector ordering in style/base.css; version 1.0.26
+
+22. **Task - Shell script icon colorization**: Applied color filters to differentiate Linux and Windows shell script icons<br>
+    **Result**: Separated shell file configuration - Linux shells (.sh, .bash, .zsh) use 'file-type-shell' icon with pale red filter (`hue-rotate(340deg) saturate(0.6) brightness(1.1)`); Windows shells (.bat, .cmd, .ps1) use 'file-type-powershell' icon with pale blue filter (`hue-rotate(180deg) saturate(0.5) brightness(1.2)`); CSS filters added to injectIconOverrideCSS function; version updated to 1.0.28; tagged as STABLE_1.0.28
+
+23. **Task - Claude icon for CLAUDE.md files**: Added special icon support for CLAUDE.md configuration files<br>
+    **Result**: Added pattern-based file type registration for `CLAUDE\\.md$` using vscode-icons 'file-type-claude' icon; pattern matches CLAUDE.md in any directory (uses basename matching); placed in enableDocIcons group after markdown registration; CLAUDE.md files display Claude branding icon instead of generic markdown icon; version 1.0.29
+
+24. **Task - Code cleanup and repository configuration**: Removed debug console.log statements and configured package.json for GitHub workflows<br>
+    **Result**: Removed 5 console.log statements from `src/index.ts` (activation message, CSS injection logs, file type registration logs, settings loading logs); added repository URL, homepage, and bugs URL to package.json for GitHub Actions compatibility; fixed CSS selector specificity order in style/base.css (moved `.jp-BreadCrumbs` before higher-specificity selectors); added Jupytext compatibility note to README.md features list; version 1.0.29

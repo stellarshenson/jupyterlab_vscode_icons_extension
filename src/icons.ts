@@ -4,7 +4,7 @@
 
 import iconsData from '@iconify-json/vscode-icons/icons.json';
 
-interface IconMapping {
+interface IIconMapping {
   [key: string]: string;
 }
 
@@ -12,7 +12,7 @@ interface IconMapping {
  * Map file extensions to vscode icon names
  * Based on common file type associations
  */
-export const extensionToIcon: IconMapping = {
+export const extensionToIcon: IIconMapping = {
   // Programming languages
   js: 'file-type-js-official',
   jsx: 'file-type-reactjs',
@@ -108,19 +108,14 @@ export const extensionToIcon: IconMapping = {
   'requirements.txt': 'file-type-python',
   'pyproject.toml': 'file-type-python',
   'setup.py': 'file-type-python',
-  'Pipfile': 'file-type-python',
+  Pipfile: 'file-type-python',
   'Cargo.toml': 'file-type-rust',
   'Cargo.lock': 'file-type-rust',
-  'Gemfile': 'file-type-ruby',
+  Gemfile: 'file-type-ruby',
   'pom.xml': 'file-type-maven',
   'build.gradle': 'file-type-gradle',
 
   // Build tools
-  makefile: 'file-type-makefile',
-  Makefile: 'file-type-makefile',
-  mk: 'file-type-makefile',
-  mak: 'file-type-makefile',
-  make: 'file-type-makefile',
   LICENSE: 'file-type-license',
   LICENCE: 'file-type-license',
   license: 'file-type-license',
@@ -133,7 +128,7 @@ export const extensionToIcon: IconMapping = {
   'gitlab-ci.yml': 'file-type-gitlab',
   '.travis.yml': 'file-type-travis',
   'circle.yml': 'file-type-circleci',
-  'Jenkinsfile': 'file-type-jenkins',
+  Jenkinsfile: 'file-type-jenkins',
 
   // Images
   png: 'file-type-image',
