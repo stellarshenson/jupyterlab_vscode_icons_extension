@@ -107,3 +107,6 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 34. **Task - Hidden items opacity adjustment**: Corrected hidden folder/file opacity implementation using data-is-dot attribute selector and CSS file placement<br>
     **Result**: Changed from `.jp-mod-hidden` class selector to `[data-is-dot]` attribute selector which correctly targets items starting with dot; moved opacity rule from JavaScript-injected CSS to style/base.css for proper loading; set opacity to 55% (changed from percentage to decimal format, then back to 55% at user request); applies to all hidden items (files and folders starting with .); shell script icon brightness increased from 0.9 to 1.1 for better visibility; version 1.0.48
+
+35. **Task - Icon centering and shell script color adjustment**: Fixed horizontal centering for all file browser icons and adjusted shell script icon color from purple to orange<br>
+    **Result**: Added `justify-content: center;` to `.jp-DirListing-item .jp-DirListing-itemIcon` in style/base.css for proper horizontal alignment of all icons including custom README.md icon; adjusted shell script icon hue-rotate from 30deg to 350deg (equivalent to -10deg) to shift color from purple back to orange/red; increased saturation from 0.8 to 1.2 and brightness to 1.4 for better visibility; version 1.0.52

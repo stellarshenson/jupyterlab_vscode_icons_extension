@@ -403,9 +403,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
         <path fill="url(#py-y)" d="M55,110c26,0,26-10,26-12V85H54v-4h37c8,0,18-5,18-26 0-23-11-27-16-27h-9v13c0,6-3,16-16,16H42c-4,0-15,2-15,14v24c0,3,0,14,28,14zM70,101c-3,0-5-2-5-5s2-5,5-5 5,2,5,5S73,101,70,101z"/>
       </svg>`;
 
-      // Custom README icon (info icon from info2.svg - color #8f4397, slightly darker)
+      // Custom README icon (info icon - centered, color #8f4397)
       const readmeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-        <path fill="#8f4397" d="m 9.5247234,12.218859 v 75.35612 a 2.9104166,2.9104166 45 0 0 2.9104166,2.910417 l 76.222217,0 a 2.9104166,2.9104166 135 0 0 2.910417,-2.910417 V 12.218859 A 2.9104166,2.9104166 45 0 0 88.657357,9.3084428 H 12.43514 A 2.9104166,2.9104166 135 0 0 9.5247234,12.218859 Z m 37.0053096,8.347863 h 7.83503 a 2.9104166,2.9104166 45 0 1 2.910417,2.910417 v 5.502919 a 2.9104166,2.9104166 135 0 1 -2.910417,2.910417 h -7.83503 a 2.9104166,2.9104166 45 0 1 -2.910417,-2.910417 v -5.502919 a 2.9104166,2.9104166 135 0 1 2.910417,-2.910417 z m -6.168542,18.949514 h 15.147096 a 2.9104166,2.9104166 45 0 1 2.910417,2.910417 v 23.572299 a 2.9104166,2.9104166 45 0 0 2.910417,2.910417 h 4.740796 a 2.9104166,2.9104166 45 0 1 2.910417,2.910417 v 3.979719 a 2.9104166,2.9104166 135 0 1 -2.910417,2.910417 l -26.767059,0 a 2.9104166,2.9104166 45 0 1 -2.910417,-2.910417 v -4.508886 a 2.9104166,2.9104166 135 0 1 2.910417,-2.910417 h 4.439788 a 2.9104166,2.9104166 135 0 0 2.910417,-2.910417 V 52.890044 A 2.9104166,2.9104166 45 0 0 43.742946,49.979627 H 40.361491 A 2.9104166,2.9104166 45 0 1 37.451074,47.06921 v -4.642557 a 2.9104166,2.9104166 135 0 1 2.910417,-2.910417 z"/>
+        <path fill="#8f4397" d="M 6,12 v 76 a 3,3 0 0 0 3,3 h 82 a 3,3 0 0 0 3,-3 V 12 A 3,3 0 0 0 91,9 H 9 A 3,3 0 0 0 6,12 Z M 46,21 h 8 a 3,3 0 0 1 3,3 v 5.5 a 3,3 0 0 1 -3,3 h -8 a 3,3 0 0 1 -3,-3 V 24 a 3,3 0 0 1 3,-3 z m -6,19 h 20 a 3,3 0 0 1 3,3 v 24 a 3,3 0 0 0 3,3 h 5 a 3,3 0 0 1 3,3 v 4 a 3,3 0 0 1 -3,3 H 37 a 3,3 0 0 1 -3,-3 v -4.5 a 3,3 0 0 1 3,-3 h 4.5 a 3,3 0 0 0 3,-3 V 53 a 3,3 0 0 0 -3,-3 H 38 a 3,3 0 0 1 -3,-3 v -4.5 a 3,3 0 0 1 3,-3 z"/>
       </svg>`;
 
       // Get SVG content
@@ -477,9 +477,14 @@ const plugin: JupyterFrontEndPlugin<void> = {
         .jp-DirListing-item[data-file-type="notebook"][data-readme-md] .jp-DirListing-itemIcon img {
           display: none !important;
         }
+        .jp-DirListing-item[data-file-type="notebook"][data-readme-md] .jp-DirListing-itemIcon {
+          display: flex !important;
+          justify-content: center !important;
+          align-items: center !important;
+        }
         .jp-DirListing-item[data-file-type="notebook"][data-readme-md] .jp-DirListing-itemIcon::before {
           content: '';
-          display: inline-block;
+          display: block;
           width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           background-image: url('${readmeDataUri}');
@@ -497,9 +502,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
           filter: brightness(0.85) saturate(0.85);
         }
 
-        /* Color shell script icons - pale red for Linux shells (.sh, .bash, .zsh) with inverted colors */
+        /* Color shell script icons - orange for Linux shells (.sh, .bash, .zsh) with inverted colors */
         .jp-DirListing-item[data-shell-type="linux"] .jp-DirListing-itemIcon svg {
-          filter: invert(1) hue-rotate(130deg) saturate(0.8) brightness(1.1);
+          filter: invert(1) hue-rotate(350deg) saturate(1.2) brightness(1.4);
         }
 
         /* Color shell script icons - pale blue for Windows shells (.bat, .cmd) */

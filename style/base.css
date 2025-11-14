@@ -24,6 +24,7 @@
   display: inline-flex;
   align-items: center;
   margin-right: 4px;
+  justify-content: center;
 }
 
 /* Ensure proper spacing in breadcrumbs and other locations */
