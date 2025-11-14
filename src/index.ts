@@ -455,7 +455,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           background-position: center;
         }
 
-        /* Override CLAUDE.md file icon with VSCode Claude icon (purple tint) */
+        /* Override CLAUDE.md file icon with VSCode Claude icon (Claude orange/coral color #c77c5e) */
         .jp-DirListing-item[data-file-type="notebook"][data-claude-md] .jp-DirListing-itemIcon svg,
         .jp-DirListing-item[data-file-type="notebook"][data-claude-md] .jp-DirListing-itemIcon img {
           display: none !important;
@@ -469,7 +469,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           background-size: contain;
           background-repeat: no-repeat;
           background-position: center;
-          filter: hue-rotate(270deg) saturate(1.5) brightness(1.1);
+          filter: brightness(0) saturate(100%) invert(64%) sepia(35%) saturate(647%) hue-rotate(327deg) brightness(91%) contrast(87%);
         }
 
         /* Override README.md file icon with custom info icon */

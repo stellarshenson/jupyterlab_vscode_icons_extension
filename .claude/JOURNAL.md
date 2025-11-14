@@ -119,3 +119,6 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 38. **Task - Notebook attribute isolation**: Fixed .py files sometimes displaying README.md info icon due to attribute persistence<br>
     **Result**: Modified notebook file handling to clear all notebook attributes (`data-claude-md`, `data-readme-md`, `data-jupytext-py`, `data-jupytext-md`) BEFORE setting the correct attribute based on filename; prevents DOM element reuse from causing .py files to retain `data-readme-md` attribute when DOM element previously rendered README.md; ensures only one notebook attribute is set per item at any time; version 1.0.62
+
+39. **Task - CLAUDE.md icon color update**: Changed CLAUDE.md icon to Claude brand color #c77c5e<br>
+    **Result**: Replaced purple hue-rotate filter with precise filter chain targeting Claude's orange/coral color #c77c5e (`brightness(0) saturate(100%) invert(64%) sepia(35%) saturate(647%) hue-rotate(327deg) brightness(91%) contrast(87%)`); CLAUDE.md files now display with authentic Claude brand color; version 1.0.64
