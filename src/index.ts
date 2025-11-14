@@ -431,8 +431,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
         .jp-DirListing-item[data-file-type="notebook"][data-jupytext-py] .jp-DirListing-itemIcon::before {
           content: '';
           display: inline-block;
-          width: 18px;
-          height: 18px;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           background-image: url('${pythonDataUri}');
           background-size: contain;
           background-repeat: no-repeat;
@@ -447,8 +447,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
         .jp-DirListing-item[data-file-type="notebook"][data-jupytext-md] .jp-DirListing-itemIcon::before {
           content: '';
           display: inline-block;
-          width: 18px;
-          height: 18px;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           background-image: url('${markdownDataUri}');
           background-size: contain;
           background-repeat: no-repeat;
@@ -463,8 +463,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
         .jp-DirListing-item[data-file-type="notebook"][data-claude-md] .jp-DirListing-itemIcon::before {
           content: '';
           display: inline-block;
-          width: 18px;
-          height: 18px;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           background-image: url('${claudeDataUri}');
           background-size: contain;
           background-repeat: no-repeat;
@@ -480,8 +480,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
         .jp-DirListing-item[data-file-type="notebook"][data-readme-md] .jp-DirListing-itemIcon::before {
           content: '';
           display: inline-block;
-          width: 20px;
-          height: 20px;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           background-image: url('${readmeDataUri}');
           background-size: contain;
           background-repeat: no-repeat;
