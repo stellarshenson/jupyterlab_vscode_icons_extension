@@ -537,6 +537,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
           // Handle notebook files (Jupytext and special markdown)
           if (fileType === 'notebook') {
+            // Clear all notebook attributes first
+            item.removeAttribute('data-claude-md');
+            item.removeAttribute('data-readme-md');
+            item.removeAttribute('data-jupytext-py');
+            item.removeAttribute('data-jupytext-md');
+
+            // Set the correct attribute based on filename
             if (name === 'CLAUDE.md') {
               item.setAttribute('data-claude-md', 'true');
             } else if (name === 'README.md') {
