@@ -494,17 +494,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
       `;
 
-      // Add CSS to make JavaScript icons less bright
+      // Add CSS to make JavaScript and .env icons less bright
       style.textContent += `
-        /* Reduce brightness of JavaScript icons */
+        /* Reduce brightness of JavaScript and .env icons */
         .jp-DirListing-item[data-file-type*="js"] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-file-type="vscode-file-type-js-official"] .jp-DirListing-itemIcon svg {
+        .jp-DirListing-item[data-file-type="vscode-file-type-js-official"] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-file-type="vscode-file-type-env"] .jp-DirListing-itemIcon svg {
           filter: brightness(0.85) saturate(0.85);
         }
 
-        /* Color shell script icons - orange for Linux shells (.sh, .bash, .zsh) with inverted colors */
+        /* Color shell script icons - JupyterLab orange for Linux shells (.sh, .bash, .zsh) */
         .jp-DirListing-item[data-shell-type="linux"] .jp-DirListing-itemIcon svg {
-          filter: invert(1) hue-rotate(350deg) saturate(1.2) brightness(1.4);
+          filter: brightness(0) saturate(100%) invert(58%) sepia(76%) saturate(3113%) hue-rotate(1deg) brightness(101%) contrast(101%);
         }
 
         /* Color shell script icons - pale blue for Windows shells (.bat, .cmd) */
