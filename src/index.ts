@@ -506,6 +506,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
         .jp-DirListing-item[data-shell-type="windows"] .jp-DirListing-itemIcon svg {
           filter: hue-rotate(180deg) saturate(0.6) brightness(1.2);
         }
+
+        /* Make hidden folders darker (folders starting with .) */
+        .jp-DirListing-item.jp-mod-hidden .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item.jp-mod-hidden .jp-DirListing-itemIcon::before {
+          opacity: 0.25;
+        }
+        .jp-DirListing-item.jp-mod-hidden .jp-DirListing-itemText {
+          opacity: 0.3;
+        }
       `;
 
       // Add a MutationObserver to mark special files in the file browser
@@ -515,6 +524,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
           '.jp-DirListing-item[data-file-type="notebook"]'
         );
         notebookItems.forEach(item => {
+          // Clear all previous special file attributes first
+          item.removeAttribute('data-claude-md');
+          item.removeAttribute('data-readme-md');
+          item.removeAttribute('data-jupytext-py');
+          item.removeAttribute('data-jupytext-md');
+
           const nameSpan = item.querySelector(
             '.jp-DirListing-itemText'
           ) as HTMLElement;
@@ -537,6 +552,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
           '.jp-DirListing-item[data-file-type="vscode-file-type-shell"]'
         );
         shellItems.forEach(item => {
+          // Clear previous shell type attribute first
+          item.removeAttribute('data-shell-type');
+
           const nameSpan = item.querySelector(
             '.jp-DirListing-itemText'
           ) as HTMLElement;
