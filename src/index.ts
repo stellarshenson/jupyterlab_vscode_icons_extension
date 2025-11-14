@@ -521,17 +521,21 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       // Add a MutationObserver to mark special files in the file browser
       const markSpecialFiles = () => {
+        // Clear all special attributes from ALL items first (to handle DOM element reuse)
+        const allItems = document.querySelectorAll('.jp-DirListing-item');
+        allItems.forEach(item => {
+          item.removeAttribute('data-claude-md');
+          item.removeAttribute('data-readme-md');
+          item.removeAttribute('data-jupytext-py');
+          item.removeAttribute('data-jupytext-md');
+          item.removeAttribute('data-shell-type');
+        });
+
         // Mark Jupytext files (.py and .md notebooks) and CLAUDE.md
         const notebookItems = document.querySelectorAll(
           '.jp-DirListing-item[data-file-type="notebook"]'
         );
         notebookItems.forEach(item => {
-          // Clear all previous special file attributes first
-          item.removeAttribute('data-claude-md');
-          item.removeAttribute('data-readme-md');
-          item.removeAttribute('data-jupytext-py');
-          item.removeAttribute('data-jupytext-md');
-
           const nameSpan = item.querySelector(
             '.jp-DirListing-itemText'
           ) as HTMLElement;
@@ -554,9 +558,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
           '.jp-DirListing-item[data-file-type="vscode-file-type-shell"]'
         );
         shellItems.forEach(item => {
-          // Clear previous shell type attribute first
-          item.removeAttribute('data-shell-type');
-
           const nameSpan = item.querySelector(
             '.jp-DirListing-itemText'
           ) as HTMLElement;
