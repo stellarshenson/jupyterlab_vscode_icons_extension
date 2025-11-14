@@ -1,26 +1,21 @@
 # Release Notes
 
-## Version 1.0.37 (STABLE)
+## Version 1.0.62
 
-README.md icon refinements - adjusted transparent "i" cutout for optimal visual balance.
+Fixed persistent icon color swapping issue where non-shell files incorrectly displayed shell script styling.
 
-### Features
+### Bug Fixes
 
-- Custom README.md icon with purple filled circle (#9826c8)
-- Transparent "i" cutout using SVG mask technique
-- Courier New monospace font for consistent typography
-- Fine-tuned boldness with font size 20px and stroke-width 0.7px
+- Fixed JavaScript, PNG, and TOML files incorrectly showing orange shell script color filter
+- Changed CSS selectors to require both `data-file-type="vscode-file-type-shell"` AND `data-shell-type` attributes
+- Refactored `markSpecialFiles()` function to actively remove incorrect attributes from non-matching files
+- Prevents race conditions where DOM element reuse causes attribute persistence after file type changes
 
 ### Technical Details
 
-The README.md icon uses an SVG mask to create a transparent cutout effect where the lowercase "i" appears as a hole in the purple circle, allowing the background to show through. This provides better visual integration with both light and dark JupyterLab themes.
+The issue occurred when JupyterLab's virtual scrolling reused DOM elements between different file types. The previous implementation cleared all attributes at the start of the observer function, but JupyterLab could update the `data-file-type` attribute after our observer ran, leaving stale `data-shell-type` attributes on non-shell files.
 
-### Related Features
-
-- CLAUDE.md icon with purple-tinted Claude branding
-- Unified shell script icons with color differentiation (pale red for Linux .sh/.bash/.zsh, pale blue for Windows .bat/.cmd)
-- Jupytext file icon overrides for .py and .md notebook files
-- Settings system with debounced change alerts
+The solution implements defensive attribute handling - for each item, the function now checks the current `data-file-type` and actively removes `data-shell-type` if the item is not a shell file. Shell-type attributes are only set when both the file type AND file extension match shell script patterns.
 
 ### Compatibility
 

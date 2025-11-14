@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.62 (2025-01-14)
+
+### Bug Fixes
+
+- Fixed icon color swapping issue where JavaScript, PNG, and TOML files incorrectly displayed shell script orange filter
+- Changed CSS selectors to require both `data-file-type="vscode-file-type-shell"` AND `data-shell-type` attributes
+- Refactored `markSpecialFiles()` function to actively remove incorrect attributes from non-matching files
+- Prevents race conditions where DOM element reuse causes attribute persistence after file type changes
+
 ## 1.0.37 (2025-01-13) - STABLE
 
 ### Enhancements
