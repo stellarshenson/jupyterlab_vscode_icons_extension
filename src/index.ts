@@ -504,12 +504,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
 
         /* Color shell script icons - JupyterLab orange for Linux shells (.sh, .bash, .zsh) */
-        .jp-DirListing-item[data-shell-type="linux"] .jp-DirListing-itemIcon svg {
+        .jp-DirListing-item[data-file-type="vscode-file-type-shell"][data-shell-type="linux"] .jp-DirListing-itemIcon svg {
           filter: brightness(0) saturate(100%) invert(58%) sepia(76%) saturate(3113%) hue-rotate(1deg) brightness(101%) contrast(101%);
         }
 
         /* Color shell script icons - pale blue for Windows shells (.bat, .cmd) */
-        .jp-DirListing-item[data-shell-type="windows"] .jp-DirListing-itemIcon svg {
+        .jp-DirListing-item[data-file-type="vscode-file-type-shell"][data-shell-type="windows"] .jp-DirListing-itemIcon svg {
           filter: hue-rotate(180deg) saturate(0.6) brightness(1.2);
         }
 
@@ -521,26 +521,22 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       // Add a MutationObserver to mark special files in the file browser
       const markSpecialFiles = () => {
-        // Clear all special attributes from ALL items first (to handle DOM element reuse)
+        // Process ALL items - clear wrong attributes and set correct ones
         const allItems = document.querySelectorAll('.jp-DirListing-item');
         allItems.forEach(item => {
-          item.removeAttribute('data-claude-md');
-          item.removeAttribute('data-readme-md');
-          item.removeAttribute('data-jupytext-py');
-          item.removeAttribute('data-jupytext-md');
-          item.removeAttribute('data-shell-type');
-        });
-
-        // Mark Jupytext files (.py and .md notebooks) and CLAUDE.md
-        const notebookItems = document.querySelectorAll(
-          '.jp-DirListing-item[data-file-type="notebook"]'
-        );
-        notebookItems.forEach(item => {
           const nameSpan = item.querySelector(
             '.jp-DirListing-itemText'
           ) as HTMLElement;
-          if (nameSpan && nameSpan.textContent) {
-            const name = nameSpan.textContent.trim();
+          const fileType = item.getAttribute('data-file-type');
+
+          if (!nameSpan || !nameSpan.textContent || !fileType) {
+            return;
+          }
+
+          const name = nameSpan.textContent.trim();
+
+          // Handle notebook files (Jupytext and special markdown)
+          if (fileType === 'notebook') {
             if (name === 'CLAUDE.md') {
               item.setAttribute('data-claude-md', 'true');
             } else if (name === 'README.md') {
@@ -550,24 +546,27 @@ const plugin: JupyterFrontEndPlugin<void> = {
             } else if (name.endsWith('.md')) {
               item.setAttribute('data-jupytext-md', 'true');
             }
+          } else {
+            // Not a notebook - clear notebook attributes
+            item.removeAttribute('data-claude-md');
+            item.removeAttribute('data-readme-md');
+            item.removeAttribute('data-jupytext-py');
+            item.removeAttribute('data-jupytext-md');
           }
-        });
 
-        // Mark shell script files for different coloring
-        const shellItems = document.querySelectorAll(
-          '.jp-DirListing-item[data-file-type="vscode-file-type-shell"]'
-        );
-        shellItems.forEach(item => {
-          const nameSpan = item.querySelector(
-            '.jp-DirListing-itemText'
-          ) as HTMLElement;
-          if (nameSpan && nameSpan.textContent) {
-            const name = nameSpan.textContent.trim();
+          // Handle shell script files - ONLY set attribute if BOTH conditions match
+          if (fileType === 'vscode-file-type-shell') {
             if (name.endsWith('.sh') || name.endsWith('.bash') || name.endsWith('.zsh')) {
               item.setAttribute('data-shell-type', 'linux');
             } else if (name.endsWith('.bat') || name.endsWith('.cmd')) {
               item.setAttribute('data-shell-type', 'windows');
+            } else {
+              // Shell file type but wrong extension - clear attribute
+              item.removeAttribute('data-shell-type');
             }
+          } else {
+            // Not a shell file - always clear shell-type attribute
+            item.removeAttribute('data-shell-type');
           }
         });
       };
