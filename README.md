@@ -79,6 +79,8 @@ This extension shamelessly borrows icons from the excellent [vscode-icons](https
 
 All icon assets remain under their original licenses (MIT for code, CC BY-SA for branded icons). We just wrapped them in a JupyterLab extension and called it a day.
 
+**Custom Icons**: A few icons (Python, Markdown, README) were hand-crafted in Inkscape - because sometimes you need that perfect shade of purple and the exact right amount of snake eyes.
+
 ## Why This Exists
 
 Because JupyterLab deserves pretty icons too. That's it. That's the whole justification

@@ -3,7 +3,7 @@ import {
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
-import { LabIcon, markdownIcon } from '@jupyterlab/ui-components';
+import { LabIcon } from '@jupyterlab/ui-components';
 import { getIconSVG } from './icons';
 
 const PLUGIN_ID = 'jupyterlab_vscode_icons_extension:plugin';
@@ -378,24 +378,37 @@ const plugin: JupyterFrontEndPlugin<void> = {
     // Function to inject CSS that overrides Jupytext icons
     const injectIconOverrideCSS = () => {
 
-      // Get icons: Python (VSCode), Markdown (JupyterLab native), Claude (VSCode), README (custom)
-      const pythonIcon = createLabIcon('file-type-python');
+      // Get icons: Python (custom SVG), Markdown (custom SVG), Claude (VSCode), README (custom)
       const claudeIcon = createLabIcon('file-type-claude');
-      const markdownSvg = markdownIcon.svgstr;
 
-      // Custom README icon (purple filled circle with bold lowercase i - transparent cutout)
-      const readmeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      // Custom Markdown icon (from markdown.svg - purple M with arrow)
+      const markdownSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 309 327">
+        <path fill="#912bac" opacity="1" stroke="none" d="m 138.68393,230.48651 c 36.58836,3.1e-4 72.68422,3.1e-4 108.78008,3.1e-4 0.13988,0.49669 0.0821,0.12537 -3.34406,3.81472 -27.34165,24.16766 -54.43119,49.41695 -81.72391,73.62893 -2.65146,2.35216 -4.5582,3.21609 -7.64686,0.37229 -26.89754,-24.76539 -75.191307,-68.40096 -80.889724,-74.12425 -0.744118,-0.74735 -1.274501,-1.57204 -2.95867,-3.69233 23.309236,0 45.299954,0 67.783144,3.3e-4 z"/>
+        <path fill="#912bac" d="m 61.156397,14.443673 h 69.176263 q 14.81059,56.661581 23.29958,97.452667 l 5.96036,-27.150338 q 3.61233,-15.870486 7.76652,-30.954008 l 10.6564,-39.348321 H 248.6367 L 276.09047,189.5437 H 221.90541 L 207.27544,69.137838 173.50009,189.5437 H 136.47364 L 101.07273,68.875516 86.984609,189.5437 H 35.147571 Z"/>
+      </svg>`;
+
+      // Custom Python icon (simplified official logo - 50% reduced fidelity)
+      const pythonSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 110">
         <defs>
-          <mask id="readme-mask">
-            <circle cx="16" cy="16" r="12" fill="white"/>
-            <text x="16" y="22" font-size="20" font-weight="900" text-anchor="middle" fill="black" stroke="black" stroke-width="0.7" font-family="'Courier New', Courier, monospace">i</text>
-          </mask>
+          <linearGradient id="py-b" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0" stop-color="#387EB8"/>
+            <stop offset="100" stop-color="#366994"/>
+          </linearGradient>
+          <linearGradient id="py-y" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0" stop-color="#FFE052"/>
+            <stop offset="100" stop-color="#FFC331"/>
+          </linearGradient>
         </defs>
-        <circle cx="16" cy="16" r="12" fill="#9826c8" mask="url(#readme-mask)"/>
+        <path fill="url(#py-b)" d="M55,0C29,0,29,10,29,12v13h27v4H19C11,29,0,34,0,55c0,20,8,27,16,27h9V69c0-6,3-16,16-16h26c4,0,15-2,15-14V14C82,11,82,0,55,0zM40,8c3,0,5,2,5,5s-2,5-5,5-5-2-5-5S37,8,40,8z"/>
+        <path fill="url(#py-y)" d="M55,110c26,0,26-10,26-12V85H54v-4h37c8,0,18-5,18-26 0-23-11-27-16-27h-9v13c0,6-3,16-16,16H42c-4,0-15,2-15,14v24c0,3,0,14,28,14zM70,101c-3,0-5-2-5-5s2-5,5-5 5,2,5,5S73,101,70,101z"/>
+      </svg>`;
+
+      // Custom README icon (info icon from info2.svg - color #aa4fb2)
+      const readmeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+        <path fill="#aa4fb2" d="m 9.5247234,12.218859 v 75.35612 a 2.9104166,2.9104166 45 0 0 2.9104166,2.910417 l 76.222217,0 a 2.9104166,2.9104166 135 0 0 2.910417,-2.910417 V 12.218859 A 2.9104166,2.9104166 45 0 0 88.657357,9.3084428 H 12.43514 A 2.9104166,2.9104166 135 0 0 9.5247234,12.218859 Z m 36.2236286,5.918502 h 11.515059 a 2.9104166,2.9104166 45 0 1 2.910417,2.910417 v 3.482474 a 2.9104166,2.9104166 135 0 1 -2.910417,2.910417 H 45.748352 a 2.9104166,2.9104166 45 0 1 -2.910417,-2.910417 v -3.482474 a 2.9104166,2.9104166 135 0 1 2.910417,-2.910417 z M 30.307434,33.442887 h 25.62996 a 2.9104166,2.9104166 45 0 1 2.910417,2.910417 v 34.844385 a 2.9104166,2.9104166 45 0 0 2.910417,2.910417 h 10.661879 a 2.9104166,2.9104166 45 0 1 2.910417,2.910417 v 1.607136 a 2.9104166,2.9104166 135 0 1 -2.910417,2.910417 H 30.307434 a 2.9104166,2.9104166 45 0 1 -2.910417,-2.910417 v -1.607136 a 2.9104166,2.9104166 135 0 1 2.910417,-2.910417 h 10.946618 a 2.9104166,2.9104166 135 0 0 2.910417,-2.910417 V 43.931136 a 2.9104166,2.9104166 45 0 0 -2.910417,-2.910417 l -10.946618,0 a 2.9104166,2.9104166 45 0 1 -2.910417,-2.910417 v -1.756998 a 2.9104166,2.9104166 135 0 1 2.910417,-2.910417 z"/>
       </svg>`;
 
       // Get SVG content
-      const pythonSvg = pythonIcon.svgstr;
       const claudeSvg = claudeIcon.svgstr;
 
       // Create base64 encoded data URIs
