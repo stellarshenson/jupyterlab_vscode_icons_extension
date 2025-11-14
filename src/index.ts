@@ -499,7 +499,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         /* Color shell script icons - pale red for Linux shells (.sh, .bash, .zsh) with inverted colors */
         .jp-DirListing-item[data-shell-type="linux"] .jp-DirListing-itemIcon svg {
-          filter: invert(1) hue-rotate(130deg) saturate(0.8) brightness(0.9);
+          filter: invert(1) hue-rotate(130deg) saturate(0.8) brightness(1.1);
         }
 
         /* Color shell script icons - pale blue for Windows shells (.bat, .cmd) */
@@ -507,13 +507,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
           filter: hue-rotate(180deg) saturate(0.6) brightness(1.2);
         }
 
-        /* Make hidden folders darker (folders starting with .) */
-        .jp-DirListing-item.jp-mod-hidden .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item.jp-mod-hidden .jp-DirListing-itemIcon::before {
-          opacity: 0.25;
-        }
-        .jp-DirListing-item.jp-mod-hidden .jp-DirListing-itemText {
-          opacity: 0.3;
+        /* Make hidden items darker (items starting with .) */
+        .jp-DirListing-item[data-is-dot] {
+          opacity: 55% !important;
         }
       `;
 
