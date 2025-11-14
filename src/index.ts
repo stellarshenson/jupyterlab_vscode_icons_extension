@@ -499,7 +499,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         /* Reduce brightness of JavaScript and .env icons */
         .jp-DirListing-item[data-file-type*="js"] .jp-DirListing-itemIcon svg,
         .jp-DirListing-item[data-file-type="vscode-file-type-js-official"] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-file-type="vscode-file-type-env"] .jp-DirListing-itemIcon svg {
+        .jp-DirListing-item[data-file-type="vscode-file-type-dotenv"] .jp-DirListing-itemIcon svg {
           filter: brightness(0.85) saturate(0.85);
         }
 
