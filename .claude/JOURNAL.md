@@ -124,4 +124,4 @@ This journal tracks substantive work on documents, diagrams, and documentation c
     **Result**: Replaced purple hue-rotate filter with precise filter chain targeting Claude's orange/coral color #c77c5e (`brightness(0) saturate(100%) invert(64%) sepia(35%) saturate(647%) hue-rotate(327deg) brightness(91%) contrast(87%)`); CLAUDE.md files now display with authentic Claude brand color; version 1.0.64
 
 40. **Task - README.md icon update and npm icon desaturation**: Updated README.md icon with latest info2.svg path and desaturated npm icons<br>
-    **Result**: Updated README.md icon with corrected path from info2.svg file (using fillet-chamfer effect version with better rounded corners); color remains #912bac; added CSS filter to slightly desaturate npm package icons (`saturate(0.75)`) to reduce color intensity; version 1.0.66
+    **Result**: Updated README.md icon with corrected path from info2.svg file (using fillet-chamfer effect version with better rounded corners); color remains #912bac; added CSS filter to desaturate and dim npm package icons (`brightness(0.85) saturate(0.75)`) to reduce white brightness and overall color intensity; version 1.0.67

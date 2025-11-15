@@ -503,9 +503,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
           filter: brightness(0.85) saturate(0.85);
         }
 
-        /* Slightly desaturate npm icons */
+        /* Desaturate and dim npm icons */
         .jp-DirListing-item[data-file-type="vscode-file-type-npm"] .jp-DirListing-itemIcon svg {
-          filter: saturate(0.75);
+          filter: brightness(0.85) saturate(0.75);
         }
 
         /* Color shell script icons - JupyterLab orange for Linux shells (.sh, .bash, .zsh) */
