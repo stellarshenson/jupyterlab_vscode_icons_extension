@@ -123,5 +123,5 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 39. **Task - CLAUDE.md icon color update**: Changed CLAUDE.md icon to Claude brand color #c77c5e<br>
     **Result**: Replaced purple hue-rotate filter with precise filter chain targeting Claude's orange/coral color #c77c5e (`brightness(0) saturate(100%) invert(64%) sepia(35%) saturate(647%) hue-rotate(327deg) brightness(91%) contrast(87%)`); CLAUDE.md files now display with authentic Claude brand color; version 1.0.64
 
-40. **Task - README.md icon update from info2.svg**: Replaced README.md icon with refined design from info2.svg<br>
-    **Result**: Updated README.md custom icon SVG path using info2.svg source file; changed color from #8f4397 to #912bac; refined icon shape with improved rounded corners and better proportions using Inkscape-generated path data; maintains purple rounded square with "i" information symbol; version 1.0.65
+40. **Task - README.md icon update and npm icon desaturation**: Updated README.md icon with latest info2.svg path and desaturated npm icons<br>
+    **Result**: Updated README.md icon with corrected path from info2.svg file (using fillet-chamfer effect version with better rounded corners); color remains #912bac; added CSS filter to slightly desaturate npm package icons (`saturate(0.75)`) to reduce color intensity; version 1.0.66
