@@ -700,9 +700,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       // Register CLAUDE.md with Claude icon (always register, not conditional on settings)
       const claudeIcon = createLabIcon('file-type-claude');
-      console.log('[VSCode Icons] CLAUDE.md icon created:', !!claudeIcon);
       if (claudeIcon) {
-        console.log('[VSCode Icons] CLAUDE.md icon svgstr length:', claudeIcon.svgstr?.length || 0);
         docRegistry.addFileType({
           name: 'vscode-claude-md',
           displayName: 'Claude Configuration',
@@ -711,7 +709,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
           contentType: 'file',
           icon: claudeIcon
         });
-        console.log('[VSCode Icons] CLAUDE.md file type registered with pattern: ^CLAUDE\\.md$');
       } else {
         console.error('[VSCode Icons] Failed to create CLAUDE.md icon');
       }
@@ -735,7 +732,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
         contentType: 'file',
         icon: readmeIcon
       });
-      console.log('[VSCode Icons] README.md file type registered with pattern: ^README\\.md$');
     };
 
     // Debounce timer for settings change alert
