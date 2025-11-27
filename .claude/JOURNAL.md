@@ -128,3 +128,6 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 41. **Task - Debug code cleanup**: Removed debug console.log statements from source code<br>
     **Result**: Removed all debug console.log statements for CLAUDE.md and README.md file type registration; kept console.error for error handling; cleaner production code without debug output; version 1.0.70
+
+42. **Task - MS Office and PDF icons**: Added icons for Microsoft Office files and PDF override<br>
+    **Result**: Added file type registrations for Word (.doc, .docx), Excel (.xls, .xlsx), and PowerPoint (.ppt, .pptx) using vscode-icons file-type-word, file-type-excel, and file-type-powerpoint icons; added CSS override for PDF files to use VSCode PDF icon instead of JupyterLab native icon (similar to Jupytext override approach); version 1.0.71

@@ -260,6 +260,21 @@ const fileTypeConfigs: IFileTypeConfig[] = [
     iconName: 'file-type-pdf',
     group: 'enableDocIcons'
   },
+  {
+    extensions: ['.doc', '.docx'],
+    iconName: 'file-type-word',
+    group: 'enableDocIcons'
+  },
+  {
+    extensions: ['.xls', '.xlsx'],
+    iconName: 'file-type-excel',
+    group: 'enableDocIcons'
+  },
+  {
+    extensions: ['.ppt', '.pptx'],
+    iconName: 'file-type-powerpoint',
+    group: 'enableDocIcons'
+  },
 
   // Config Files
   {
@@ -378,8 +393,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
     // Function to inject CSS that overrides Jupytext icons
     const injectIconOverrideCSS = () => {
 
-      // Get icons: Python (custom SVG), Markdown (custom SVG), Claude (VSCode), README (custom)
+      // Get icons: Python (custom SVG), Markdown (custom SVG), Claude (VSCode), README (custom), PDF (VSCode)
       const claudeIcon = createLabIcon('file-type-claude');
+      const pdfIcon = createLabIcon('file-type-pdf');
 
       // Custom Markdown icon (from markdown.svg - purple M with arrow, darker #7a2491)
       const markdownSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 309 327">
@@ -410,12 +426,14 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       // Get SVG content
       const claudeSvg = claudeIcon.svgstr;
+      const pdfSvg = pdfIcon?.svgstr || '';
 
       // Create base64 encoded data URIs
       const pythonDataUri = `data:image/svg+xml;base64,${btoa(pythonSvg)}`;
       const markdownDataUri = `data:image/svg+xml;base64,${btoa(markdownSvg)}`;
       const claudeDataUri = `data:image/svg+xml;base64,${btoa(claudeSvg)}`;
       const readmeDataUri = `data:image/svg+xml;base64,${btoa(readmeSvg)}`;
+      const pdfDataUri = pdfSvg ? `data:image/svg+xml;base64,${btoa(pdfSvg)}` : '';
 
       // Inject CSS that overrides icons for .py and .md files
       // Note: Jupytext marks .py and .md files as type="notebook", so we need to
@@ -488,6 +506,22 @@ const plugin: JupyterFrontEndPlugin<void> = {
           width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           background-image: url('${readmeDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
+
+        /* Override PDF file icon with VSCode PDF icon */
+        .jp-DirListing-item[data-file-type="pdf"] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-file-type="pdf"] .jp-DirListing-itemIcon img {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-file-type="pdf"] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          background-image: url('${pdfDataUri}');
           background-size: contain;
           background-repeat: no-repeat;
           background-position: center;
