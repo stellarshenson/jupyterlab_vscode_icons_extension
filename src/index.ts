@@ -393,14 +393,34 @@ const plugin: JupyterFrontEndPlugin<void> = {
     // Function to inject CSS that overrides Jupytext icons
     const injectIconOverrideCSS = () => {
 
-      // Get icons: Python (custom SVG), Markdown (custom SVG), Claude (VSCode), README (custom), PDF (VSCode)
+      // Get icons: Claude (VSCode), Office (VSCode)
       const claudeIcon = createLabIcon('file-type-claude');
-      const pdfIcon = createLabIcon('file-type-pdf');
+      const wordIcon = createLabIcon('file-type-word');
+      const excelIcon = createLabIcon('file-type-excel');
+      const powerpointIcon = createLabIcon('file-type-powerpoint');
 
       // Custom Markdown icon (from markdown.svg - purple M with arrow, darker #7a2491)
       const markdownSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 309 327">
         <path fill="#7a2491" opacity="1" stroke="none" d="m 138.68393,230.48651 c 36.58836,3.1e-4 72.68422,3.1e-4 108.78008,3.1e-4 0.13988,0.49669 0.0821,0.12537 -3.34406,3.81472 -27.34165,24.16766 -54.43119,49.41695 -81.72391,73.62893 -2.65146,2.35216 -4.5582,3.21609 -7.64686,0.37229 -26.89754,-24.76539 -75.191307,-68.40096 -80.889724,-74.12425 -0.744118,-0.74735 -1.274501,-1.57204 -2.95867,-3.69233 23.309236,0 45.299954,0 67.783144,3.3e-4 z"/>
         <path fill="#7a2491" d="m 61.156397,14.443673 h 69.176263 q 14.81059,56.661581 23.29958,97.452667 l 5.96036,-27.150338 q 3.61233,-15.870486 7.76652,-30.954008 l 10.6564,-39.348321 H 248.6367 L 276.09047,189.5437 H 221.90541 L 207.27544,69.137838 173.50009,189.5437 H 136.47364 L 101.07273,68.875516 86.984609,189.5437 H 35.147571 Z"/>
+      </svg>`;
+
+      // Custom PDF icon (document with folded corner and red PDF banner)
+      const pdfSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 16">
+        <g transform="matrix(.046 0 0 .046 -.67 -.73)">
+          <polygon points="52 357 52 24 205 24 283 102 283 357" fill="#e8e8e8"/>
+          <path d="m198 32v76h76v240H52V32h146m10-16H36v365h247V98z"/>
+          <polygon points="258 88 220 88 220 49 258 86"/>
+        </g>
+        <g transform="matrix(.046 0 0 .046 -.67 -.73)">
+          <polygon points="312 284 23 284 23 168 37 153 37 171 297 171 297 153 312 168" fill="#ed1c24"/>
+          <path d="m304 169l2 2v108H24V171l2-2v9h278v-9m-13-31v28H43v-28l-28 28v126h302V166z"/>
+        </g>
+        <g transform="matrix(.046 0 0 .046 1.72 11.73)" fill="#fff">
+          <path d="M9-83h30q7 0 13 1 6 1 11 5 5 3 7 9 3 5 3 13 0 8-3 13-3 6-7 9-5 4-11 5-6 2-13 2h-9v26H9zm22 39h8q7 0 10-3 3-3 3-9t-4-8-10-2h-7z"/>
+          <path d="M87-83h25q9 0 17 2 8 3 14 8 6 5 9 13 3 8 3 19t-3 19-9 13q-6 5-13 8-8 2-17 2H87zm22 66h1q5 0 9-1 4-1 7-4 3-3 5-8 2-4 2-12t-2-12-5-7q-3-3-7-4-4-1-9-1h-1z"/>
+          <path d="M169-83h54v18h-32v16h28v18h-28v31h-22z"/>
+        </g>
       </svg>`;
 
       // Custom Python icon (simplified official logo - 50% reduced fidelity)
@@ -424,16 +444,21 @@ const plugin: JupyterFrontEndPlugin<void> = {
         <path fill="#912bac" d="m 9.5247234,11.42511 v 76.943619 l 2.1166666,2.116667 h 77.809717 l 2.116667,-2.116667 v -76.94362 l -2.116667,-2.1166662 -77.809717,0 z m 36.2115596,9.141612 h 11.01003 l 2.116667,2.116667 0,7.619586 -2.116667,2.116667 h -11.01003 l -2.116667,-2.116667 v -7.619586 z m -6.168542,19.478681 h 23.084596 l 2.116667,2.116667 v 5.700733 l -2.116597,2.09951 -3.175139,-0.02574 -2.116597,2.09951 V 67.32187 l 2.116667,2.116667 h 4.211629 l 2.116667,2.116667 v 5.567219 L 63.688967,79.23909 H 38.509408 l -2.116667,-2.116667 v -6.096386 l 2.116667,-2.116667 h 4.968955 L 45.59503,66.792703 V 52.096294 l -2.116667,-2.116667 h -3.910622 l -2.116667,-2.116667 0,-5.70089 z"/>
       </svg>`;
 
-      // Get SVG content
+      // Get SVG content from VSCode icons
       const claudeSvg = claudeIcon.svgstr;
-      const pdfSvg = pdfIcon?.svgstr || '';
+      const wordSvg = wordIcon?.svgstr || '';
+      const excelSvg = excelIcon?.svgstr || '';
+      const powerpointSvg = powerpointIcon?.svgstr || '';
 
       // Create base64 encoded data URIs
       const pythonDataUri = `data:image/svg+xml;base64,${btoa(pythonSvg)}`;
       const markdownDataUri = `data:image/svg+xml;base64,${btoa(markdownSvg)}`;
       const claudeDataUri = `data:image/svg+xml;base64,${btoa(claudeSvg)}`;
       const readmeDataUri = `data:image/svg+xml;base64,${btoa(readmeSvg)}`;
-      const pdfDataUri = pdfSvg ? `data:image/svg+xml;base64,${btoa(pdfSvg)}` : '';
+      const pdfDataUri = `data:image/svg+xml;base64,${btoa(pdfSvg)}`;
+      const wordDataUri = wordSvg ? `data:image/svg+xml;base64,${btoa(wordSvg)}` : '';
+      const excelDataUri = excelSvg ? `data:image/svg+xml;base64,${btoa(excelSvg)}` : '';
+      const powerpointDataUri = powerpointSvg ? `data:image/svg+xml;base64,${btoa(powerpointSvg)}` : '';
 
       // Inject CSS that overrides icons for .py and .md files
       // Note: Jupytext marks .py and .md files as type="notebook", so we need to
@@ -512,16 +537,64 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
 
         /* Override PDF file icon with VSCode PDF icon */
-        .jp-DirListing-item[data-file-type="pdf"] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-file-type="pdf"] .jp-DirListing-itemIcon img {
+        .jp-DirListing-item[data-vscode-pdf] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-vscode-pdf] .jp-DirListing-itemIcon img {
           display: none !important;
         }
-        .jp-DirListing-item[data-file-type="pdf"] .jp-DirListing-itemIcon::before {
+        .jp-DirListing-item[data-vscode-pdf] .jp-DirListing-itemIcon::before {
           content: '';
           display: inline-block;
           width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           background-image: url('${pdfDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
+
+        /* Override Word file icon with VSCode Word icon */
+        .jp-DirListing-item[data-vscode-word] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-vscode-word] .jp-DirListing-itemIcon img {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-vscode-word] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          background-image: url('${wordDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
+
+        /* Override Excel file icon with VSCode Excel icon */
+        .jp-DirListing-item[data-vscode-excel] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-vscode-excel] .jp-DirListing-itemIcon img {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-vscode-excel] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          background-image: url('${excelDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
+
+        /* Override PowerPoint file icon with VSCode PowerPoint icon */
+        .jp-DirListing-item[data-vscode-powerpoint] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-vscode-powerpoint] .jp-DirListing-itemIcon img {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-vscode-powerpoint] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          background-image: url('${powerpointDataUri}');
           background-size: contain;
           background-repeat: no-repeat;
           background-position: center;
@@ -613,6 +686,26 @@ const plugin: JupyterFrontEndPlugin<void> = {
           } else {
             // Not a shell file - always clear shell-type attribute
             item.removeAttribute('data-shell-type');
+          }
+
+          // Handle PDF and Office files by extension (override native JupyterLab icons)
+          const nameLower = name.toLowerCase();
+
+          // Clear all office/pdf attributes first
+          item.removeAttribute('data-vscode-pdf');
+          item.removeAttribute('data-vscode-word');
+          item.removeAttribute('data-vscode-excel');
+          item.removeAttribute('data-vscode-powerpoint');
+
+          // Set the correct attribute based on extension
+          if (nameLower.endsWith('.pdf')) {
+            item.setAttribute('data-vscode-pdf', 'true');
+          } else if (nameLower.endsWith('.doc') || nameLower.endsWith('.docx')) {
+            item.setAttribute('data-vscode-word', 'true');
+          } else if (nameLower.endsWith('.xls') || nameLower.endsWith('.xlsx')) {
+            item.setAttribute('data-vscode-excel', 'true');
+          } else if (nameLower.endsWith('.ppt') || nameLower.endsWith('.pptx')) {
+            item.setAttribute('data-vscode-powerpoint', 'true');
           }
         });
       };

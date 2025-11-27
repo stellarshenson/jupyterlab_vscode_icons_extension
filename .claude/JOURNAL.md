@@ -129,5 +129,11 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 41. **Task - Debug code cleanup**: Removed debug console.log statements from source code<br>
     **Result**: Removed all debug console.log statements for CLAUDE.md and README.md file type registration; kept console.error for error handling; cleaner production code without debug output; version 1.0.70
 
-42. **Task - MS Office and PDF icons**: Added icons for Microsoft Office files and PDF override<br>
-    **Result**: Added file type registrations for Word (.doc, .docx), Excel (.xls, .xlsx), and PowerPoint (.ppt, .pptx) using vscode-icons file-type-word, file-type-excel, and file-type-powerpoint icons; added CSS override for PDF files to use VSCode PDF icon instead of JupyterLab native icon (similar to Jupytext override approach); version 1.0.71
+42. **Task - MS Office and PDF icons initial attempt**: Added icons for Microsoft Office files and PDF override using file type registration<br>
+    **Result**: Added file type registrations for Word (.doc, .docx), Excel (.xls, .xlsx), and PowerPoint (.ppt, .pptx) using vscode-icons file-type-word, file-type-excel, and file-type-powerpoint icons; attempted CSS override for PDF files targeting `data-file-type="pdf"` attribute; version 1.0.71; approach failed - JupyterLab native file types take precedence over extension registrations
+
+43. **Task - MS Office and PDF icons MutationObserver override**: Implemented proper PDF and Office icon overrides using MutationObserver pattern (same approach as Jupytext files)<br>
+    **Result**: Replaced simple file type registration approach with DOM-based override; extended markSpecialFiles() function to detect PDF and Office files by extension; added custom data attributes (`data-vscode-pdf`, `data-vscode-word`, `data-vscode-excel`, `data-vscode-powerpoint`); CSS hides native icons and injects VSCode icons via ::before pseudo-element with base64-encoded SVG data URIs; dynamically sized using `calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5))`; defensive attribute clearing prevents DOM element reuse issues; supports .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx extensions; version 1.0.73
+
+44. **Task - Custom PDF icon**: Replaced VSCode PDF icon with custom embedded SVG from .resources/PDF_icon.svg<br>
+    **Result**: Embedded simplified PDF icon directly in src/index.ts - document shape with folded corner, red banner with white "PDF" text; changed document fill from white (#fff) to light gray (#e8e8e8) for better visibility in both light and dark themes; removed dependency on vscode-icons file-type-pdf; version 1.0.76
