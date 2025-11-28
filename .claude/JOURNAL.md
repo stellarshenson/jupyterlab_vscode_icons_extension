@@ -137,3 +137,6 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 44. **Task - Custom PDF icon**: Replaced VSCode PDF icon with custom embedded SVG from .resources/PDF_icon.svg<br>
     **Result**: Embedded simplified PDF icon directly in src/index.ts - document shape with folded corner, red banner with white "PDF" text; changed document fill from white (#fff) to light gray (#e8e8e8) for better visibility in both light and dark themes; removed dependency on vscode-icons file-type-pdf; version 1.0.76
+
+45. **Task - Custom Makefile icon**: Replaced red "M" text icon with document-with-gears SVG from .resources/text-x-makefile-svgrepo-com.svg<br>
+    **Result**: Embedded document icon with two gears (color #c2544f) in src/index.ts; adjusted viewBox to `19 7 90 114` removing spacing around shape; updated pattern matching to exact match `^(Makefile|makefile|GNUmakefile)$` - removed `makefile.*` and `Makefile.*` patterns as those could be other file types; kept extensions `.mk`, `.mak`, `.make`; version 1.0.81
