@@ -140,3 +140,6 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 45. **Task - Custom Makefile icon**: Replaced red "M" text icon with document-with-gears SVG from .resources/text-x-makefile-svgrepo-com.svg<br>
     **Result**: Embedded document icon with two gears (color #c2544f) in src/index.ts; adjusted viewBox to `19 7 90 114` removing spacing around shape; updated pattern matching to exact match `^(Makefile|makefile|GNUmakefile)$` - removed `makefile.*` and `Makefile.*` patterns as those could be other file types; kept extensions `.mk`, `.mak`, `.make`; version 1.0.81
+
+46. **Task - Terraform icons**: Added Terraform file type support with vscode-icons file-type-terraform icon<br>
+    **Result**: Added extensions `.tf`, `.tfvars`, `.tfstate`; added pattern matching for `terraform.tfvars.*`, `.terraform.lock.*`, `.terraform.tfstate.lock.*`; all in enableConfigIcons group; version 1.0.84

@@ -364,6 +364,17 @@ const fileTypeConfigs: IFileTypeConfig[] = [
     iconName: 'file-type-lnk',
     group: 'enableConfigIcons'
   },
+  {
+    extensions: ['.tf', '.tfvars', '.tfstate'],
+    iconName: 'file-type-terraform',
+    group: 'enableConfigIcons'
+  },
+  {
+    pattern: '^(terraform\\.tfvars\\..*|\\.terraform\\.lock\\..*|\\.terraform\\.tfstate\\.lock\\..*)$',
+    extensions: [],
+    iconName: 'file-type-terraform',
+    group: 'enableConfigIcons'
+  },
 
   // Images
   {
