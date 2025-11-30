@@ -38,6 +38,7 @@ interface IFileTypeConfig {
   extensions: string[];
   pattern?: string;
   iconName: string;
+  mimeTypes?: string[];
   group: keyof IIconSettings;
 }
 
@@ -266,7 +267,7 @@ const fileTypeConfigs: IFileTypeConfig[] = [
     group: 'enableDocIcons'
   },
   {
-    extensions: ['.xls', '.xlsx'],
+    extensions: ['.xls', '.xlsx', '.xlsm'],
     iconName: 'file-type-excel',
     group: 'enableDocIcons'
   },
@@ -279,7 +280,9 @@ const fileTypeConfigs: IFileTypeConfig[] = [
   // Config Files
   {
     extensions: ['.env'],
+    pattern: '^(\\.env\\.(?!zip|tar|gz|bz2|xz|7z|rar)[^.]+|[^.]+\\.env)$',
     iconName: 'file-type-dotenv',
+    mimeTypes: ['text/x-sh'],
     group: 'enableConfigIcons'
   },
   {
@@ -713,7 +716,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             item.setAttribute('data-vscode-pdf', 'true');
           } else if (nameLower.endsWith('.doc') || nameLower.endsWith('.docx')) {
             item.setAttribute('data-vscode-word', 'true');
-          } else if (nameLower.endsWith('.xls') || nameLower.endsWith('.xlsx')) {
+          } else if (nameLower.endsWith('.xls') || nameLower.endsWith('.xlsx') || nameLower.endsWith('.xlsm')) {
             item.setAttribute('data-vscode-excel', 'true');
           } else if (nameLower.endsWith('.ppt') || nameLower.endsWith('.pptx')) {
             item.setAttribute('data-vscode-powerpoint', 'true');
@@ -790,6 +793,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         if (config.pattern) {
           fileTypeOptions.pattern = config.pattern;
+        }
+
+        if (config.mimeTypes) {
+          fileTypeOptions.mimeTypes = config.mimeTypes;
         }
 
         docRegistry.addFileType(fileTypeOptions);
