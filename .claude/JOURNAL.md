@@ -143,3 +143,6 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 46. **Task - Terraform icons**: Added Terraform file type support with vscode-icons file-type-terraform icon<br>
     **Result**: Added extensions `.tf`, `.tfvars`, `.tfstate`; added pattern matching for `terraform.tfvars.*`, `.terraform.lock.*`, `.terraform.tfstate.lock.*`; all in enableConfigIcons group; version 1.0.84
+
+47. **Task - Excel and env file enhancements**: Added .xlsm extension support and enhanced .env file detection<br>
+    **Result**: Added mimeTypes support to IFileTypeConfig interface; added .xlsm extension for Excel macro-enabled workbooks; enhanced .env file detection with pattern matching for variants (e.g., `.env.local`, `dev.env`) and mimeTypes `['text/x-sh']`; version 1.0.95
