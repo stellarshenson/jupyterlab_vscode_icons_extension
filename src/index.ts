@@ -302,7 +302,7 @@ const fileTypeConfigs: IFileTypeConfig[] = [
     group: 'enableConfigIcons'
   },
   {
-    pattern: '^\\.git(ignore|modules|attributes)?$',
+    pattern: '^\\.git(ignore|modules|attributes|keep)?$',
     extensions: [],
     iconName: 'file-type-git',
     group: 'enableConfigIcons'
