@@ -378,6 +378,12 @@ const fileTypeConfigs: IFileTypeConfig[] = [
     iconName: 'file-type-terraform',
     group: 'enableConfigIcons'
   },
+  // Draw.io diagrams (custom icon registered separately)
+  {
+    extensions: ['.drawio', '.dio'],
+    iconName: 'custom-drawio',
+    group: 'enableConfigIcons'
+  },
 
   // Images
   {
@@ -776,6 +782,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
           return;
         }
 
+        // Skip custom icons that are registered separately
+        if (config.iconName.startsWith('custom-')) {
+          return;
+        }
+
         const icon = createLabIcon(config.iconName);
         const fileTypeName = `vscode-${config.iconName}`;
 
@@ -877,6 +888,29 @@ const plugin: JupyterFrontEndPlugin<void> = {
         contentType: 'file',
         icon: readmeIcon
       });
+
+      // Register Draw.io files with custom orange diagram icon
+      if (settings.enableConfigIcons) {
+        const drawioSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+          <rect x="2" y="2" width="28" height="28" rx="3" fill="#F08705"/>
+          <path fill="#DF6C0C" d="M30 27c0 1.7-1.3 3-3 3H11l-6-6 4-6 11-14 11 11v12z"/>
+          <path fill="#fff" d="M26 18h-3l-3-5c1-0.2 2-1 2-2v-4c0-1-1-2-2-2h-6c-1 0-2 1-2 2v4c0 1 1 2 2 2l-3 5H8c-1 0-2 1-2 2v4c0 1 1 2 2 2h6c1 0 2-1 2-2v-4c0-1-1-2-2-2h-1l3-5h3l3 5h-1c-1 0-2 1-2 2v4c0 1 1 2 2 2h6c1 0 2-1 2-2v-4c0-1-1-2-2-2z"/>
+        </svg>`;
+
+        const drawioIcon = new LabIcon({
+          name: 'drawio-icon',
+          svgstr: drawioSvg
+        });
+
+        docRegistry.addFileType({
+          name: 'vscode-drawio',
+          displayName: 'Draw.io Diagram',
+          extensions: ['.drawio', '.dio'],
+          fileFormat: 'text',
+          contentType: 'file',
+          icon: drawioIcon
+        });
+      }
     };
 
     // Debounce timer for settings change alert
