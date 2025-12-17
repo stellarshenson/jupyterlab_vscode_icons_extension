@@ -891,10 +891,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       // Register Draw.io files with custom orange diagram icon
       if (settings.enableConfigIcons) {
-        const drawioSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-          <rect x="2" y="2" width="28" height="28" rx="3" fill="#F08705"/>
-          <path fill="#DF6C0C" d="M30 27c0 1.7-1.3 3-3 3H11l-6-6 4-6 11-14 11 11v12z"/>
-          <path fill="#fff" d="M26 18h-3l-3-5c1-0.2 2-1 2-2v-4c0-1-1-2-2-2h-6c-1 0-2 1-2 2v4c0 1 1 2 2 2l-3 5H8c-1 0-2 1-2 2v4c0 1 1 2 2 2h6c1 0 2-1 2-2v-4c0-1-1-2-2-2h-1l3-5h3l3 5h-1c-1 0-2 1-2 2v4c0 1 1 2 2 2h6c1 0 2-1 2-2v-4c0-1-1-2-2-2z"/>
+        const drawioSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 161.6 161.6">
+          <path fill="#F08705" d="M161.6,154.7c0,3.9-3.2,6.9-6.9,6.9H6.9c-3.9,0-6.9-3.2-6.9-6.9V6.9C0,3,3.2,0,6.9,0h147.8c3.9,0,6.9,3.2,6.9,6.9L161.6,154.7z"/>
+          <path fill="#DF6C0C" d="M161.6,154.7c0,3.9-3.2,6.9-6.9,6.9H55.3l-32.2-32.7l20-32.7l59.4-73.8l58.9,60.7L161.6,154.7z"/>
+          <path fill="#fff" d="M132.7,90.3h-17l-18-30.6c4-0.8,7-4.4,7-8.6V28c0-4.9-3.9-8.8-8.8-8.8h-30c-4.9,0-8.8,3.9-8.8,8.8v23.1c0,4.3,3,7.8,6.9,8.6L46,90.4H29c-4.9,0-8.8,3.9-8.8,8.8v23.1c0,4.9,3.9,8.8,8.8,8.8h30c4.9,0,8.8-3.9,8.8-8.8V99.2c0-4.9-3.9-8.8-8.8-8.8h-2.9L73.9,60h13.9l17.9,30.4h-3c-4.9,0-8.8,3.9-8.8,8.8v23.1c0,4.9,3.9,8.8,8.8,8.8h30c4.9,0,8.8-3.9,8.8-8.8V99.2C141.5,94.3,137.6,90.3,132.7,90.3z"/>
         </svg>`;
 
         const drawioIcon = new LabIcon({
