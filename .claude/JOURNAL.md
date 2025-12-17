@@ -146,3 +146,9 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 47. **Task - Excel and env file enhancements**: Added .xlsm extension support and enhanced .env file detection<br>
     **Result**: Added mimeTypes support to IFileTypeConfig interface; added .xlsm extension for Excel macro-enabled workbooks; enhanced .env file detection with pattern matching for variants (e.g., `.env.local`, `dev.env`) and mimeTypes `['text/x-sh']`; version 1.0.95
+
+48. **Task - Draw.io diagram icon**: Added custom Draw.io icon support for .drawio and .dio files<br>
+    **Result**: Embedded original SVG paths from `.resources/drawio.svg` with viewBox 0 0 161.6 161.6 - orange rounded square (#F08705), darker accent (#DF6C0C), and white diagram icon showing three connected boxes; added to enableConfigIcons group; added skip logic for `custom-` prefixed iconNames in main registration loop to handle separately registered custom icons
+
+49. **Task - Git file pattern update**: Added .gitkeep to git file type pattern<br>
+    **Result**: Updated pattern from `^\\.git(ignore|modules|attributes)?$` to `^\\.git(ignore|modules|attributes|keep)?$` to include .gitkeep placeholder files
