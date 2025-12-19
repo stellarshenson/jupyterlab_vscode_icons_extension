@@ -155,16 +155,8 @@ const fileTypeConfigs: IFileTypeConfig[] = [
     iconName: 'file-type-perl',
     group: 'enableLanguageIcons'
   },
-  {
-    extensions: ['.sh', '.bash', '.zsh'],
-    iconName: 'file-type-shell',
-    group: 'enableLanguageIcons'
-  },
-  {
-    extensions: ['.bat', '.cmd'],
-    iconName: 'file-type-shell',
-    group: 'enableLanguageIcons'
-  },
+  // Shell scripts (.sh, .bash, .zsh) and batch files (.bat, .cmd) use custom icons with black backgrounds
+  // Registered separately below with custom SVGs
   {
     extensions: ['.ps1'],
     iconName: 'file-type-powershell',
@@ -654,15 +646,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
           filter: brightness(0.85) saturate(0.75);
         }
 
-        /* Color shell script icons - JupyterLab orange for Linux shells (.sh, .bash, .zsh) */
-        .jp-DirListing-item[data-file-type="vscode-file-type-shell"][data-shell-type="linux"] .jp-DirListing-itemIcon svg {
-          filter: brightness(0) saturate(100%) invert(58%) sepia(76%) saturate(3113%) hue-rotate(1deg) brightness(101%) contrast(101%);
-        }
-
-        /* Color shell script icons - pale blue for Windows shells (.bat, .cmd) */
-        .jp-DirListing-item[data-file-type="vscode-file-type-shell"][data-shell-type="windows"] .jp-DirListing-itemIcon svg {
-          filter: hue-rotate(180deg) saturate(0.6) brightness(1.2);
-        }
 
         /* Make hidden items darker (items starting with .) */
         .jp-DirListing-item[data-is-dot] {
@@ -710,21 +693,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
             item.removeAttribute('data-readme-md');
             item.removeAttribute('data-jupytext-py');
             item.removeAttribute('data-jupytext-md');
-          }
-
-          // Handle shell script files - ONLY set attribute if BOTH conditions match
-          if (fileType === 'vscode-file-type-shell') {
-            if (name.endsWith('.sh') || name.endsWith('.bash') || name.endsWith('.zsh')) {
-              item.setAttribute('data-shell-type', 'linux');
-            } else if (name.endsWith('.bat') || name.endsWith('.cmd')) {
-              item.setAttribute('data-shell-type', 'windows');
-            } else {
-              // Shell file type but wrong extension - clear attribute
-              item.removeAttribute('data-shell-type');
-            }
-          } else {
-            // Not a shell file - always clear shell-type attribute
-            item.removeAttribute('data-shell-type');
           }
 
           // Handle PDF and Office files by extension (override native JupyterLab icons)
@@ -955,6 +923,52 @@ const plugin: JupyterFrontEndPlugin<void> = {
           fileFormat: 'text',
           contentType: 'file',
           icon: mcpIcon
+        });
+      }
+
+      // Register shell scripts with custom black background and desaturated orange icon
+      if (settings.enableLanguageIcons) {
+        const shellSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+          <rect x="1" y="3" width="30" height="26" rx="2" fill="#1a1a1a"/>
+          <path fill="#e0a060" d="M29.4 27.6H2.5V4.5h26.9Zm-25.9-1h24.9V5.5H3.5Z"/>
+          <path fill="#e0a060" d="m6.077 19.316l-.555-.832l4.844-3.229l-4.887-4.071l.641-.768l5.915 4.928zM12.7 18.2h7.8v1h-7.8zM2.5 5.5h26.9v1.9H2.5z"/>
+        </svg>`;
+
+        const shellIcon = new LabIcon({
+          name: 'shell-icon',
+          svgstr: shellSvg
+        });
+
+        docRegistry.addFileType({
+          name: 'vscode-shell',
+          displayName: 'Shell Script',
+          extensions: ['.sh', '.bash', '.zsh'],
+          fileFormat: 'text',
+          contentType: 'file',
+          icon: shellIcon
+        });
+      }
+
+      // Register batch files with custom black background and desaturated blue icon
+      if (settings.enableLanguageIcons) {
+        const batchSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+          <rect x="1" y="3" width="30" height="26" rx="2" fill="#1a1a1a"/>
+          <path fill="#70c0e8" d="M29.4 27.6H2.5V4.5h26.9Zm-25.9-1h24.9V5.5H3.5Z"/>
+          <path fill="#70c0e8" d="m6.077 19.316l-.555-.832l4.844-3.229l-4.887-4.071l.641-.768l5.915 4.928zM12.7 18.2h7.8v1h-7.8zM2.5 5.5h26.9v1.9H2.5z"/>
+        </svg>`;
+
+        const batchIcon = new LabIcon({
+          name: 'batch-icon',
+          svgstr: batchSvg
+        });
+
+        docRegistry.addFileType({
+          name: 'vscode-batch',
+          displayName: 'Batch File',
+          extensions: ['.bat', '.cmd'],
+          fileFormat: 'text',
+          contentType: 'file',
+          icon: batchIcon
         });
       }
     };
