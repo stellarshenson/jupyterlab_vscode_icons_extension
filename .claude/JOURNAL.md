@@ -167,3 +167,6 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 54. **Task - UV lock file icon**: Added custom UV icon for uv.lock files<br>
     **Result**: Embedded UV logo from `.resources/uv.svg` - purple rounded rectangle background (#26102f) with magenta "UV" shape (#d256dc). Used MutationObserver + CSS override approach (same as PDF/Office files) since pattern-only docRegistry registration doesn't work reliably for files without standard extensions. Detects exactly `uv.lock` filename, sets `data-uv-lock` attribute, CSS injects icon via `::before` pseudo-element. Version 1.0.120
+
+55. **Task - Pytest icon for test artifacts**: Added pytest bar chart icon for pytest-related files<br>
+    **Result**: Embedded simplified pytest logo from `.resources/pytest.svg` - gray horizontal bar with colored vertical bars (blue #009fe3, yellow-green #c7d302, orange #f07e16, red #df2815) representing test result distribution. Applies to `.coverage`, `pytest.ini`, and `conftest.py` files. Uses MutationObserver + CSS override approach with `data-pytest` attribute. Version 1.0.122
