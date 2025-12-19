@@ -930,8 +930,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       if (settings.enableLanguageIcons) {
         const shellSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
           <rect x="1" y="3" width="30" height="26" rx="2" fill="#1a1a1a"/>
-          <path fill="#e0a060" d="M29.4 27.6H2.5V4.5h26.9Zm-25.9-1h24.9V5.5H3.5Z"/>
-          <path fill="#e0a060" d="m6.077 19.316l-.555-.832l4.844-3.229l-4.887-4.071l.641-.768l5.915 4.928zM12.7 18.2h7.8v1h-7.8zM2.5 5.5h26.9v1.9H2.5z"/>
+          <path fill="#e8b070" d="M29.4 27.6H2.5V4.5h26.9Zm-25.9-1h24.9V5.5H3.5Z"/>
+          <path fill="#e8b070" d="m6.077 19.316l-.555-.832l4.844-3.229l-4.887-4.071l.641-.768l5.915 4.928zM12.7 18.2h7.8v1h-7.8zM2.5 5.5h26.9v1.9H2.5z"/>
         </svg>`;
 
         const shellIcon = new LabIcon({
@@ -953,8 +953,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       if (settings.enableLanguageIcons) {
         const batchSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
           <rect x="1" y="3" width="30" height="26" rx="2" fill="#1a1a1a"/>
-          <path fill="#70c0e8" d="M29.4 27.6H2.5V4.5h26.9Zm-25.9-1h24.9V5.5H3.5Z"/>
-          <path fill="#70c0e8" d="m6.077 19.316l-.555-.832l4.844-3.229l-4.887-4.071l.641-.768l5.915 4.928zM12.7 18.2h7.8v1h-7.8zM2.5 5.5h26.9v1.9H2.5z"/>
+          <path fill="#80c8f0" d="M29.4 27.6H2.5V4.5h26.9Zm-25.9-1h24.9V5.5H3.5Z"/>
+          <path fill="#80c8f0" d="m6.077 19.316l-.555-.832l4.844-3.229l-4.887-4.071l.641-.768l5.915 4.928zM12.7 18.2h7.8v1h-7.8zM2.5 5.5h26.9v1.9H2.5z"/>
         </svg>`;
 
         const batchIcon = new LabIcon({
