@@ -474,6 +474,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const excelDataUri = excelSvg ? `data:image/svg+xml;base64,${btoa(excelSvg)}` : '';
       const powerpointDataUri = powerpointSvg ? `data:image/svg+xml;base64,${btoa(powerpointSvg)}` : '';
       const svgFileDataUri = svgFileSvg ? `data:image/svg+xml;base64,${btoa(svgFileSvg)}` : '';
+      const uvSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 330"><rect height="100%" width="100%" rx="66" fill="#26102f"/><path fill="#d256dc" d="M 65,65 h92 v130 h16 v-130 h92 v200 h-16 v-20 h-8 a20,20 0 0 1 -20,20 h-136 a20,20 0 0 1 -20,-20 z"/></svg>`;
+      const uvDataUri = `data:image/svg+xml;base64,${btoa(uvSvg)}`;
 
       // Inject CSS that overrides icons for .py and .md files
       // Note: Jupytext marks .py and .md files as type="notebook", so we need to
@@ -630,6 +632,22 @@ const plugin: JupyterFrontEndPlugin<void> = {
           background-repeat: no-repeat;
           background-position: center;
         }
+
+        /* Override uv.lock file icon with UV icon */
+        .jp-DirListing-item[data-uv-lock] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-uv-lock] .jp-DirListing-itemIcon img {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-uv-lock] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          background-image: url('${uvDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
       `;
 
       // Add CSS to make JavaScript and .env icons less bright
@@ -719,6 +737,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
           item.removeAttribute('data-vscode-svg-override');
           if (nameLower.endsWith('.svg')) {
             item.setAttribute('data-vscode-svg-override', 'true');
+          }
+
+          // Force UV icon for uv.lock file
+          item.removeAttribute('data-uv-lock');
+          if (nameLower === 'uv.lock') {
+            item.setAttribute('data-uv-lock', 'true');
           }
         });
       };
@@ -971,6 +995,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
           icon: batchIcon
         });
       }
+
+      // Note: uv.lock icon is handled via MutationObserver + CSS override
+      // (see injectIconOverrideCSS function) since pattern-only registration
+      // doesn't work reliably for files without standard extensions
     };
 
     // Debounce timer for settings change alert
