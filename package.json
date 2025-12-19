@@ -1,6 +1,6 @@
 {
     "name": "jupyterlab_vscode_icons_extension",
-    "version": "1.0.120",
+    "version": "1.0.122",
     "description": "Jupyterlab extension with a shameless rip-off of the vscode-icons into our beloved environment",
     "keywords": [
         "jupyter",

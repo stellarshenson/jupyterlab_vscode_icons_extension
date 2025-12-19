@@ -476,6 +476,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const svgFileDataUri = svgFileSvg ? `data:image/svg+xml;base64,${btoa(svgFileSvg)}` : '';
       const uvSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 330"><rect height="100%" width="100%" rx="66" fill="#26102f"/><path fill="#d256dc" d="M 65,65 h92 v130 h16 v-130 h92 v200 h-16 v-20 h-8 a20,20 0 0 1 -20,20 h-136 a20,20 0 0 1 -20,-20 z"/></svg>`;
       const uvDataUri = `data:image/svg+xml;base64,${btoa(uvSvg)}`;
+      const pytestSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474 542"><path fill="#696969" d="M21,43h431c12,0 21,9 21,21c0,12-9,21-21,21H21c-12,0-21-9-21-21c0-12,9-21,21-21z"/><path fill="#009fe3" d="M25,0h87v20H25z"/><path fill="#c7d302" d="M138,0h87v20h-87z"/><path fill="#f07e16" d="M250,0h87v20h-87z"/><path fill="#df2815" d="M362,0h87v20h-87z"/><path fill="#df2815" d="M362,107h87v147h-87z"/><path fill="#f07e16" d="M250,107h87v238h-87z"/><path fill="#c7d302" d="M138,107h87v357h-87z"/><path fill="#009fe3" d="M25,107h87v435h-87z"/></svg>`;
+      const pytestDataUri = `data:image/svg+xml;base64,${btoa(pytestSvg)}`;
 
       // Inject CSS that overrides icons for .py and .md files
       // Note: Jupytext marks .py and .md files as type="notebook", so we need to
@@ -648,6 +650,22 @@ const plugin: JupyterFrontEndPlugin<void> = {
           background-repeat: no-repeat;
           background-position: center;
         }
+
+        /* Override pytest-related file icons */
+        .jp-DirListing-item[data-pytest] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-pytest] .jp-DirListing-itemIcon img {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-pytest] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          background-image: url('${pytestDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
       `;
 
       // Add CSS to make JavaScript and .env icons less bright
@@ -743,6 +761,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
           item.removeAttribute('data-uv-lock');
           if (nameLower === 'uv.lock') {
             item.setAttribute('data-uv-lock', 'true');
+          }
+
+          // Force pytest icon for pytest-related files
+          item.removeAttribute('data-pytest');
+          if (nameLower === '.coverage' || nameLower === 'pytest.ini' || nameLower === 'conftest.py') {
+            item.setAttribute('data-pytest', 'true');
           }
         });
       };
