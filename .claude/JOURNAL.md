@@ -152,3 +152,12 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 49. **Task - Git file pattern update**: Added .gitkeep to git file type pattern<br>
     **Result**: Updated pattern from `^\\.git(ignore|modules|attributes)?$` to `^\\.git(ignore|modules|attributes|keep)?$` to include .gitkeep placeholder files
+
+50. **Task - Draw.io icon color adjustment**: Darkened Draw.io icon colors for better visibility<br>
+    **Result**: Updated colors from original bright orange to darker tones - main #F08705 → #D07005, accent #DF6C0C → #B85A0A, diagram #fff → #e0e0e0 (light gray)
+
+51. **Task - MCP config file icon**: Added MCP (Model Context Protocol) configuration file icon support<br>
+    **Result**: Created custom icon from `.resources/mcp.svg` with light gray fill (#eee); pattern `^\\.mcp\\.json(\\..*)?$` matches `.mcp.json` and variants like `.mcp.json.local`; added to enableConfigIcons group
+
+52. **Task - Makefile pattern expansion**: Updated Makefile pattern to include files with extensions<br>
+    **Result**: Changed pattern from `^(Makefile|makefile|GNUmakefile)$` to `^(Makefile|makefile|GNUmakefile)(\\..+)?$` to match `makefile.svg`, `Makefile.bak`, etc.

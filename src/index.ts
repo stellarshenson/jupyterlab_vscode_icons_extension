@@ -828,7 +828,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         displayName: 'Makefile',
         mimeTypes: ['text/x-makefile'],
         extensions: ['.mk', '.mak', '.make'],
-        pattern: '^(Makefile|makefile|GNUmakefile)$',
+        pattern: '^(Makefile|makefile|GNUmakefile)(\\..+)?$',
         fileFormat: 'text',
         contentType: 'file',
         icon: makefileIcon
@@ -892,9 +892,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // Register Draw.io files with custom orange diagram icon
       if (settings.enableConfigIcons) {
         const drawioSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 161.6 161.6">
-          <path fill="#F08705" d="M161.6,154.7c0,3.9-3.2,6.9-6.9,6.9H6.9c-3.9,0-6.9-3.2-6.9-6.9V6.9C0,3,3.2,0,6.9,0h147.8c3.9,0,6.9,3.2,6.9,6.9L161.6,154.7z"/>
-          <path fill="#DF6C0C" d="M161.6,154.7c0,3.9-3.2,6.9-6.9,6.9H55.3l-32.2-32.7l20-32.7l59.4-73.8l58.9,60.7L161.6,154.7z"/>
-          <path fill="#fff" d="M132.7,90.3h-17l-18-30.6c4-0.8,7-4.4,7-8.6V28c0-4.9-3.9-8.8-8.8-8.8h-30c-4.9,0-8.8,3.9-8.8,8.8v23.1c0,4.3,3,7.8,6.9,8.6L46,90.4H29c-4.9,0-8.8,3.9-8.8,8.8v23.1c0,4.9,3.9,8.8,8.8,8.8h30c4.9,0,8.8-3.9,8.8-8.8V99.2c0-4.9-3.9-8.8-8.8-8.8h-2.9L73.9,60h13.9l17.9,30.4h-3c-4.9,0-8.8,3.9-8.8,8.8v23.1c0,4.9,3.9,8.8,8.8,8.8h30c4.9,0,8.8-3.9,8.8-8.8V99.2C141.5,94.3,137.6,90.3,132.7,90.3z"/>
+          <path fill="#D07005" d="M161.6,154.7c0,3.9-3.2,6.9-6.9,6.9H6.9c-3.9,0-6.9-3.2-6.9-6.9V6.9C0,3,3.2,0,6.9,0h147.8c3.9,0,6.9,3.2,6.9,6.9L161.6,154.7z"/>
+          <path fill="#B85A0A" d="M161.6,154.7c0,3.9-3.2,6.9-6.9,6.9H55.3l-32.2-32.7l20-32.7l59.4-73.8l58.9,60.7L161.6,154.7z"/>
+          <path fill="#e0e0e0" d="M132.7,90.3h-17l-18-30.6c4-0.8,7-4.4,7-8.6V28c0-4.9-3.9-8.8-8.8-8.8h-30c-4.9,0-8.8,3.9-8.8,8.8v23.1c0,4.3,3,7.8,6.9,8.6L46,90.4H29c-4.9,0-8.8,3.9-8.8,8.8v23.1c0,4.9,3.9,8.8,8.8,8.8h30c4.9,0,8.8-3.9,8.8-8.8V99.2c0-4.9-3.9-8.8-8.8-8.8h-2.9L73.9,60h13.9l17.9,30.4h-3c-4.9,0-8.8,3.9-8.8,8.8v23.1c0,4.9,3.9,8.8,8.8,8.8h30c4.9,0,8.8-3.9,8.8-8.8V99.2C141.5,94.3,137.6,90.3,132.7,90.3z"/>
         </svg>`;
 
         const drawioIcon = new LabIcon({
@@ -909,6 +909,28 @@ const plugin: JupyterFrontEndPlugin<void> = {
           fileFormat: 'text',
           contentType: 'file',
           icon: drawioIcon
+        });
+      }
+
+      // Register MCP config files with custom icon
+      if (settings.enableConfigIcons) {
+        const mcpSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path fill="#eee" d="M15.688 2.343a2.588 2.588 0 00-3.61 0l-9.626 9.44a.863.863 0 01-1.203 0 .823.823 0 010-1.18l9.626-9.44a4.313 4.313 0 016.016 0 4.116 4.116 0 011.204 3.54 4.3 4.3 0 013.609 1.18l.05.05a4.115 4.115 0 010 5.9l-8.706 8.537a.274.274 0 000 .393l1.788 1.754a.823.823 0 010 1.18.863.863 0 01-1.203 0l-1.788-1.753a1.92 1.92 0 010-2.754l8.706-8.538a2.47 2.47 0 000-3.54l-.05-.049a2.588 2.588 0 00-3.607-.003l-7.172 7.034-.002.002-.098.097a.863.863 0 01-1.204 0 .823.823 0 010-1.18l7.273-7.133a2.47 2.47 0 00-.003-3.537z"/>
+          <path fill="#eee" d="M14.485 4.703a.823.823 0 000-1.18.863.863 0 00-1.204 0l-7.119 6.982a4.115 4.115 0 000 5.9 4.314 4.314 0 006.016 0l7.12-6.982a.823.823 0 000-1.18.863.863 0 00-1.204 0l-7.119 6.982a2.588 2.588 0 01-3.61 0 2.47 2.47 0 010-3.54l7.12-6.982z"/>
+        </svg>`;
+
+        const mcpIcon = new LabIcon({
+          name: 'mcp-icon',
+          svgstr: mcpSvg
+        });
+
+        docRegistry.addFileType({
+          name: 'vscode-mcp',
+          displayName: 'MCP Configuration',
+          pattern: '^\\.mcp\\.json(\\..*)?$',
+          fileFormat: 'text',
+          contentType: 'file',
+          icon: mcpIcon
         });
       }
     };
