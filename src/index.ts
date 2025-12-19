@@ -469,6 +469,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const wordSvg = wordIcon?.svgstr || '';
       const excelSvg = excelIcon?.svgstr || '';
       const powerpointSvg = powerpointIcon?.svgstr || '';
+      const svgFileIcon = createLabIcon('file-type-image');
+      const svgFileSvg = svgFileIcon?.svgstr || '';
 
       // Create base64 encoded data URIs
       const pythonDataUri = `data:image/svg+xml;base64,${btoa(pythonSvg)}`;
@@ -479,6 +481,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const wordDataUri = wordSvg ? `data:image/svg+xml;base64,${btoa(wordSvg)}` : '';
       const excelDataUri = excelSvg ? `data:image/svg+xml;base64,${btoa(excelSvg)}` : '';
       const powerpointDataUri = powerpointSvg ? `data:image/svg+xml;base64,${btoa(powerpointSvg)}` : '';
+      const svgFileDataUri = svgFileSvg ? `data:image/svg+xml;base64,${btoa(svgFileSvg)}` : '';
 
       // Inject CSS that overrides icons for .py and .md files
       // Note: Jupytext marks .py and .md files as type="notebook", so we need to
@@ -619,6 +622,22 @@ const plugin: JupyterFrontEndPlugin<void> = {
           background-repeat: no-repeat;
           background-position: center;
         }
+
+        /* Override any incorrect file type detection for SVG files */
+        .jp-DirListing-item[data-vscode-svg-override] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-vscode-svg-override] .jp-DirListing-itemIcon img {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-vscode-svg-override] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          background-image: url('${svgFileDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
       `;
 
       // Add CSS to make JavaScript and .env icons less bright
@@ -727,6 +746,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
           } else if (nameLower.endsWith('.ppt') || nameLower.endsWith('.pptx')) {
             item.setAttribute('data-vscode-powerpoint', 'true');
           }
+
+          // Force SVG icon for .svg files (override any incorrect file type detection)
+          item.removeAttribute('data-vscode-svg-override');
+          if (nameLower.endsWith('.svg')) {
+            item.setAttribute('data-vscode-svg-override', 'true');
+          }
         });
       };
 
@@ -826,9 +851,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       docRegistry.addFileType({
         name: 'vscode-makefile',
         displayName: 'Makefile',
-        mimeTypes: ['text/x-makefile'],
         extensions: ['.mk', '.mak', '.make'],
-        pattern: '^(Makefile|makefile|GNUmakefile)(\\..+)?$',
+        pattern: '^(Makefile|makefile|GNUmakefile)$',
         fileFormat: 'text',
         contentType: 'file',
         icon: makefileIcon

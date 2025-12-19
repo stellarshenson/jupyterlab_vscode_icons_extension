@@ -159,5 +159,5 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 51. **Task - MCP config file icon**: Added MCP (Model Context Protocol) configuration file icon support<br>
     **Result**: Created custom icon from `.resources/mcp.svg` with light gray fill (#eee); pattern `^\\.mcp\\.json(\\..*)?$` matches `.mcp.json` and variants like `.mcp.json.local`; added to enableConfigIcons group
 
-52. **Task - Makefile pattern expansion**: Updated Makefile pattern to include files with extensions<br>
-    **Result**: Changed pattern from `^(Makefile|makefile|GNUmakefile)$` to `^(Makefile|makefile|GNUmakefile)(\\..+)?$` to match `makefile.svg`, `Makefile.bak`, etc.
+52. **Task - SVG file icon override fix**: Fixed `makefile.svg` and similar files showing wrong icon (e.g., makefile gears instead of image icon)<br>
+    **Result**: Root cause - JupyterLab's file type detection was incorrectly classifying files like `makefile.svg` based on filename substring rather than extension. Solution - implemented MutationObserver-based override (same pattern as PDF/Word/Excel): detects `.svg` files, sets `data-vscode-svg-override` attribute, CSS injects generic image icon via `::before` pseudo-element. Also removed `mimeTypes: ['text/x-makefile']` from makefile registration and reverted pattern to strict `^(Makefile|makefile|GNUmakefile)$`
