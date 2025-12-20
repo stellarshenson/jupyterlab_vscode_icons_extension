@@ -170,3 +170,6 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 55. **Task - Pytest icon for test artifacts**: Added pytest bar chart icon for pytest-related files<br>
     **Result**: Embedded simplified pytest logo from `.resources/pytest.svg` - gray horizontal bar with colored vertical bars (blue #009fe3, yellow-green #c7d302, orange #f07e16, red #df2815) representing test result distribution. Applies to `.coverage`, `pytest.ini`, and `conftest.py` files. Uses MutationObserver + CSS override approach with `data-pytest` attribute. Version 1.0.122
+
+56. **Task - Python package folder icon (WIP)**: Implementing special icon for folders containing `__init__.py`<br>
+    **Result**: Created green folder + Python logo SVG icon from `.resources/python-package.svg`. Implementation uses JupyterLab Contents API (`/api/contents/{path}?content=1`) to check if folders contain `__init__.py`. Added caching to avoid repeated API calls. Detects directories via `data-file-type="directory"` attribute and marks with `data-python-package` attribute for CSS styling. Debug logging added to troubleshoot folder detection. Version 1.1.1

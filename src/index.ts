@@ -478,6 +478,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const uvDataUri = `data:image/svg+xml;base64,${btoa(uvSvg)}`;
       const pytestSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474 542"><path fill="#696969" d="M21,43h431c12,0 21,9 21,21c0,12-9,21-21,21H21c-12,0-21-9-21-21c0-12,9-21,21-21z"/><path fill="#009fe3" d="M25,0h87v20H25z"/><path fill="#c7d302" d="M138,0h87v20h-87z"/><path fill="#f07e16" d="M250,0h87v20h-87z"/><path fill="#df2815" d="M362,0h87v20h-87z"/><path fill="#df2815" d="M362,107h87v147h-87z"/><path fill="#f07e16" d="M250,107h87v238h-87z"/><path fill="#c7d302" d="M138,107h87v357h-87z"/><path fill="#009fe3" d="M25,107h87v435h-87z"/></svg>`;
       const pytestDataUri = `data:image/svg+xml;base64,${btoa(pytestSvg)}`;
+      const pythonPackageSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><defs><linearGradient id="ppa" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0" stop-color="#387eb8"/><stop offset="1" stop-color="#366994"/></linearGradient><linearGradient id="ppb" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0" stop-color="#ffe052"/><stop offset="1" stop-color="#ffc331"/></linearGradient></defs><path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#58af7b"/><path d="M20.9,11c-5.1,0-4.8,2.2-4.8,2.2v2.3H21v.7H14.2S11,15.8,11,21s2.9,5,2.9,5h1.7V23.6a2.7,2.7,0,0,1,2.8-2.9h4.8a2.6,2.6,0,0,0,2.7-2.6V13.7S26.2,11,20.9,11Zm-2.7,1.5a.9.9,0,1,1-.8.9.9.9,0,0,1,.8-.9Z" fill="url(#ppa)"/><path d="M21.1,31c5.1,0,4.8-2.2,4.8-2.2V26.5H21v-.7h6.8S31,26.1,31,21s-2.9-5-2.9-5h-1.7v2.4a2.7,2.7,0,0,1-2.8,2.9H18.8a2.6,2.6,0,0,0-2.7,2.6v4.4S15.7,31,21,31Zm2.7-1.5a.9.9,0,1,1,.8-.9.9.9,0,0,1-.8.9Z" fill="url(#ppb)"/></svg>`;
+      const pythonPackageDataUri = `data:image/svg+xml;base64,${btoa(pythonPackageSvg)}`;
 
       // Inject CSS that overrides icons for .py and .md files
       // Note: Jupytext marks .py and .md files as type="notebook", so we need to
@@ -666,6 +668,22 @@ const plugin: JupyterFrontEndPlugin<void> = {
           background-repeat: no-repeat;
           background-position: center;
         }
+
+        /* Override Python package folder icons */
+        .jp-DirListing-item[data-python-package] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-python-package] .jp-DirListing-itemIcon img {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-python-package] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          background-image: url('${pythonPackageDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
       `;
 
       // Add CSS to make JavaScript and .env icons less bright
@@ -688,6 +706,45 @@ const plugin: JupyterFrontEndPlugin<void> = {
           opacity: 55% !important;
         }
       `;
+
+      // Cache for Python package folder checks
+      const pythonPackageCache: Map<string, boolean> = new Map();
+
+      // Check if a folder is a Python package (contains __init__.py)
+      const checkPythonPackage = async (folderPath: string): Promise<boolean> => {
+        if (pythonPackageCache.has(folderPath)) {
+          return pythonPackageCache.get(folderPath)!;
+        }
+        try {
+          const response = await fetch(`/api/contents/${encodeURIComponent(folderPath)}?content=1`);
+          if (!response.ok) {
+            pythonPackageCache.set(folderPath, false);
+            return false;
+          }
+          const data = await response.json();
+          const hasInit = data.content?.some((item: any) => item.name === '__init__.py') || false;
+          pythonPackageCache.set(folderPath, hasInit);
+          return hasInit;
+        } catch {
+          pythonPackageCache.set(folderPath, false);
+          return false;
+        }
+      };
+
+      // Get current directory path from file browser
+      const getCurrentPath = (): string => {
+        const breadcrumbs = document.querySelector('.jp-BreadCrumbs');
+        if (!breadcrumbs) return '';
+        const links = breadcrumbs.querySelectorAll('a, span.jp-BreadCrumbs-item');
+        const parts: string[] = [];
+        links.forEach(link => {
+          const text = link.textContent?.trim();
+          if (text && text !== '/' && text !== '') {
+            parts.push(text);
+          }
+        });
+        return parts.join('/');
+      };
 
       // Add a MutationObserver to mark special files in the file browser
       const markSpecialFiles = () => {
@@ -767,6 +824,29 @@ const plugin: JupyterFrontEndPlugin<void> = {
           item.removeAttribute('data-pytest');
           if (nameLower === '.coverage' || nameLower === 'pytest.ini' || nameLower === 'conftest.py') {
             item.setAttribute('data-pytest', 'true');
+          }
+
+          // Check if this is a directory (folder)
+          const isDir = fileType === 'directory' || item.classList.contains('jp-DirListing-directory');
+          // Debug: log folder detection
+          if (name && !name.includes('.')) {
+            console.log('Folder check:', name, 'fileType:', fileType, 'isDir:', isDir, 'classList:', item.className);
+          }
+          if (isDir) {
+            // Check if this folder is a Python package (async)
+            const currentPath = getCurrentPath();
+            const folderPath = currentPath ? `${currentPath}/${name}` : name;
+            console.log('Checking Python package:', folderPath);
+            checkPythonPackage(folderPath).then(isPythonPackage => {
+              console.log('Python package result:', folderPath, isPythonPackage);
+              if (isPythonPackage) {
+                item.setAttribute('data-python-package', 'true');
+              } else {
+                item.removeAttribute('data-python-package');
+              }
+            });
+          } else {
+            item.removeAttribute('data-python-package');
           }
         });
       };
