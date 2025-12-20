@@ -3,6 +3,7 @@ import {
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
+import { IDefaultFileBrowser } from '@jupyterlab/filebrowser';
 import { LabIcon } from '@jupyterlab/ui-components';
 import { getIconSVG } from './icons';
 
@@ -365,7 +366,8 @@ const fileTypeConfigs: IFileTypeConfig[] = [
     group: 'enableConfigIcons'
   },
   {
-    pattern: '^(terraform\\.tfvars\\..*|\\.terraform\\.lock\\..*|\\.terraform\\.tfstate\\.lock\\..*)$',
+    pattern:
+      '^(terraform\\.tfvars\\..*|\\.terraform\\.lock\\..*|\\.terraform\\.tfstate\\.lock\\..*)$',
     extensions: [],
     iconName: 'file-type-terraform',
     group: 'enableConfigIcons'
@@ -395,16 +397,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
   description:
     'Jupyterlab extension with a shameless rip-off of the vscode-icons into our beloved environment',
   autoStart: true,
-  optional: [ISettingRegistry],
+  optional: [ISettingRegistry, IDefaultFileBrowser],
   activate: (
     app: JupyterFrontEnd,
-    settingRegistry: ISettingRegistry | null
+    settingRegistry: ISettingRegistry | null,
+    defaultFileBrowser: IDefaultFileBrowser | null
   ) => {
     const { docRegistry } = app;
 
     // Function to inject CSS that overrides Jupytext icons
     const injectIconOverrideCSS = () => {
-
       // Get icons: Claude (VSCode), Office (VSCode)
       const claudeIcon = createLabIcon('file-type-claude');
       const wordIcon = createLabIcon('file-type-word');
@@ -470,15 +472,26 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const claudeDataUri = `data:image/svg+xml;base64,${btoa(claudeSvg)}`;
       const readmeDataUri = `data:image/svg+xml;base64,${btoa(readmeSvg)}`;
       const pdfDataUri = `data:image/svg+xml;base64,${btoa(pdfSvg)}`;
-      const wordDataUri = wordSvg ? `data:image/svg+xml;base64,${btoa(wordSvg)}` : '';
-      const excelDataUri = excelSvg ? `data:image/svg+xml;base64,${btoa(excelSvg)}` : '';
-      const powerpointDataUri = powerpointSvg ? `data:image/svg+xml;base64,${btoa(powerpointSvg)}` : '';
-      const svgFileDataUri = svgFileSvg ? `data:image/svg+xml;base64,${btoa(svgFileSvg)}` : '';
-      const uvSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 330"><rect height="100%" width="100%" rx="66" fill="#26102f"/><path fill="#d256dc" d="M 65,65 h92 v130 h16 v-130 h92 v200 h-16 v-20 h-8 a20,20 0 0 1 -20,20 h-136 a20,20 0 0 1 -20,-20 z"/></svg>`;
+      const wordDataUri = wordSvg
+        ? `data:image/svg+xml;base64,${btoa(wordSvg)}`
+        : '';
+      const excelDataUri = excelSvg
+        ? `data:image/svg+xml;base64,${btoa(excelSvg)}`
+        : '';
+      const powerpointDataUri = powerpointSvg
+        ? `data:image/svg+xml;base64,${btoa(powerpointSvg)}`
+        : '';
+      const svgFileDataUri = svgFileSvg
+        ? `data:image/svg+xml;base64,${btoa(svgFileSvg)}`
+        : '';
+      const uvSvg =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 330"><rect height="100%" width="100%" rx="66" fill="#26102f"/><path fill="#d256dc" d="M 65,65 h92 v130 h16 v-130 h92 v200 h-16 v-20 h-8 a20,20 0 0 1 -20,20 h-136 a20,20 0 0 1 -20,-20 z"/></svg>';
       const uvDataUri = `data:image/svg+xml;base64,${btoa(uvSvg)}`;
-      const pytestSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474 542"><path fill="#696969" d="M21,43h431c12,0 21,9 21,21c0,12-9,21-21,21H21c-12,0-21-9-21-21c0-12,9-21,21-21z"/><path fill="#009fe3" d="M25,0h87v20H25z"/><path fill="#c7d302" d="M138,0h87v20h-87z"/><path fill="#f07e16" d="M250,0h87v20h-87z"/><path fill="#df2815" d="M362,0h87v20h-87z"/><path fill="#df2815" d="M362,107h87v147h-87z"/><path fill="#f07e16" d="M250,107h87v238h-87z"/><path fill="#c7d302" d="M138,107h87v357h-87z"/><path fill="#009fe3" d="M25,107h87v435h-87z"/></svg>`;
+      const pytestSvg =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474 542"><path fill="#696969" d="M21,43h431c12,0 21,9 21,21c0,12-9,21-21,21H21c-12,0-21-9-21-21c0-12,9-21,21-21z"/><path fill="#009fe3" d="M25,0h87v20H25z"/><path fill="#c7d302" d="M138,0h87v20h-87z"/><path fill="#f07e16" d="M250,0h87v20h-87z"/><path fill="#df2815" d="M362,0h87v20h-87z"/><path fill="#df2815" d="M362,107h87v147h-87z"/><path fill="#f07e16" d="M250,107h87v238h-87z"/><path fill="#c7d302" d="M138,107h87v357h-87z"/><path fill="#009fe3" d="M25,107h87v435h-87z"/></svg>';
       const pytestDataUri = `data:image/svg+xml;base64,${btoa(pytestSvg)}`;
-      const pythonPackageSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><defs><linearGradient id="ppa" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0" stop-color="#387eb8"/><stop offset="1" stop-color="#366994"/></linearGradient><linearGradient id="ppb" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0" stop-color="#ffe052"/><stop offset="1" stop-color="#ffc331"/></linearGradient></defs><path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#58af7b"/><path d="M20.9,11c-5.1,0-4.8,2.2-4.8,2.2v2.3H21v.7H14.2S11,15.8,11,21s2.9,5,2.9,5h1.7V23.6a2.7,2.7,0,0,1,2.8-2.9h4.8a2.6,2.6,0,0,0,2.7-2.6V13.7S26.2,11,20.9,11Zm-2.7,1.5a.9.9,0,1,1-.8.9.9.9,0,0,1,.8-.9Z" fill="url(#ppa)"/><path d="M21.1,31c5.1,0,4.8-2.2,4.8-2.2V26.5H21v-.7h6.8S31,26.1,31,21s-2.9-5-2.9-5h-1.7v2.4a2.7,2.7,0,0,1-2.8,2.9H18.8a2.6,2.6,0,0,0-2.7,2.6v4.4S15.7,31,21,31Zm2.7-1.5a.9.9,0,1,1,.8-.9.9.9,0,0,1-.8.9Z" fill="url(#ppb)"/></svg>`;
+      const pythonPackageSvg =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><defs><linearGradient id="ppa" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0" stop-color="#387eb8"/><stop offset="1" stop-color="#366994"/></linearGradient><linearGradient id="ppb" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0" stop-color="#ffe052"/><stop offset="1" stop-color="#ffc331"/></linearGradient></defs><g transform="scale(-1,1) translate(-32,0)"><path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#58af7b"/><path d="M20.9,11c-5.1,0-4.8,2.2-4.8,2.2v2.3H21v.7H14.2S11,15.8,11,21s2.9,5,2.9,5h1.7V23.6a2.7,2.7,0,0,1,2.8-2.9h4.8a2.6,2.6,0,0,0,2.7-2.6V13.7S26.2,11,20.9,11Zm-2.7,1.5a.9.9,0,1,1-.8.9.9.9,0,0,1,.8-.9Z" fill="url(#ppa)"/><path d="M21.1,31c5.1,0,4.8-2.2,4.8-2.2V26.5H21v-.7h6.8S31,26.1,31,21s-2.9-5-2.9-5h-1.7v2.4a2.7,2.7,0,0,1-2.8,2.9H18.8a2.6,2.6,0,0,0-2.7,2.6v4.4S15.7,31,21,31Zm2.7-1.5a.9.9,0,1,1,.8-.9.9.9,0,0,1-.8.9Z" fill="url(#ppb)"/></g></svg>';
       const pythonPackageDataUri = `data:image/svg+xml;base64,${btoa(pythonPackageSvg)}`;
 
       // Inject CSS that overrides icons for .py and .md files
@@ -710,40 +723,71 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // Cache for Python package folder checks
       const pythonPackageCache: Map<string, boolean> = new Map();
 
-      // Check if a folder is a Python package (contains __init__.py)
-      const checkPythonPackage = async (folderPath: string): Promise<boolean> => {
-        if (pythonPackageCache.has(folderPath)) {
-          return pythonPackageCache.get(folderPath)!;
-        }
-        try {
-          const response = await fetch(`/api/contents/${encodeURIComponent(folderPath)}?content=1`);
-          if (!response.ok) {
-            pythonPackageCache.set(folderPath, false);
-            return false;
-          }
-          const data = await response.json();
-          const hasInit = data.content?.some((item: any) => item.name === '__init__.py') || false;
-          pythonPackageCache.set(folderPath, hasInit);
-          return hasInit;
-        } catch {
-          pythonPackageCache.set(folderPath, false);
-          return false;
-        }
+      // Folders to exclude from Python package checking
+      const excludedFolderPatterns = [
+        /^\.git$/,
+        /^\.hg$/,
+        /^\.svn$/,
+        /^\.venv$/,
+        /^venv$/,
+        /^\.env$/,
+        /^env$/,
+        /^node_modules$/,
+        /^__pycache__$/,
+        /^\.ipynb_checkpoints$/,
+        /^\.pytest_cache$/,
+        /^\.mypy_cache$/,
+        /^\.ruff_cache$/,
+        /^\.tox$/,
+        /^\.nox$/,
+        /^\.coverage$/,
+        /^htmlcov$/,
+        /^dist$/,
+        /^build$/,
+        /^\.eggs$/,
+        /\.egg-info$/,
+        /\.dist-info$/
+      ];
+
+      const isExcludedFolder = (name: string): boolean => {
+        return excludedFolderPatterns.some(pattern => pattern.test(name));
       };
 
-      // Get current directory path from file browser
-      const getCurrentPath = (): string => {
-        const breadcrumbs = document.querySelector('.jp-BreadCrumbs');
-        if (!breadcrumbs) return '';
-        const links = breadcrumbs.querySelectorAll('a, span.jp-BreadCrumbs-item');
-        const parts: string[] = [];
-        links.forEach(link => {
-          const text = link.textContent?.trim();
-          if (text && text !== '/' && text !== '') {
-            parts.push(text);
-          }
-        });
-        return parts.join('/');
+      // Check if a folder is a Python package (contains __init__.py)
+      // Use the file browser's model to get the correct path
+      const checkPythonPackage = async (
+        folderName: string
+      ): Promise<boolean> => {
+        // Skip excluded folders
+        if (isExcludedFolder(folderName)) {
+          return false;
+        }
+
+        // Get the current path from the file browser model
+        if (!defaultFileBrowser) {
+          return false;
+        }
+        const currentPath = defaultFileBrowser.model.path;
+        const fullPath = currentPath
+          ? `${currentPath}/${folderName}`
+          : folderName;
+
+        if (pythonPackageCache.has(fullPath)) {
+          return pythonPackageCache.get(fullPath)!;
+        }
+        try {
+          // Use JupyterLab's contents manager with the correct path from file browser
+          const contents = app.serviceManager.contents;
+          const model = await contents.get(fullPath, { content: true });
+          const hasInit =
+            model.content?.some((item: any) => item.name === '__init__.py') ||
+            false;
+          pythonPackageCache.set(fullPath, hasInit);
+          return hasInit;
+        } catch {
+          pythonPackageCache.set(fullPath, false);
+          return false;
+        }
       };
 
       // Add a MutationObserver to mark special files in the file browser
@@ -800,11 +844,21 @@ const plugin: JupyterFrontEndPlugin<void> = {
           // Set the correct attribute based on extension
           if (nameLower.endsWith('.pdf')) {
             item.setAttribute('data-vscode-pdf', 'true');
-          } else if (nameLower.endsWith('.doc') || nameLower.endsWith('.docx')) {
+          } else if (
+            nameLower.endsWith('.doc') ||
+            nameLower.endsWith('.docx')
+          ) {
             item.setAttribute('data-vscode-word', 'true');
-          } else if (nameLower.endsWith('.xls') || nameLower.endsWith('.xlsx') || nameLower.endsWith('.xlsm')) {
+          } else if (
+            nameLower.endsWith('.xls') ||
+            nameLower.endsWith('.xlsx') ||
+            nameLower.endsWith('.xlsm')
+          ) {
             item.setAttribute('data-vscode-excel', 'true');
-          } else if (nameLower.endsWith('.ppt') || nameLower.endsWith('.pptx')) {
+          } else if (
+            nameLower.endsWith('.ppt') ||
+            nameLower.endsWith('.pptx')
+          ) {
             item.setAttribute('data-vscode-powerpoint', 'true');
           }
 
@@ -822,23 +876,22 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
           // Force pytest icon for pytest-related files
           item.removeAttribute('data-pytest');
-          if (nameLower === '.coverage' || nameLower === 'pytest.ini' || nameLower === 'conftest.py') {
+          if (
+            nameLower === '.coverage' ||
+            nameLower === 'pytest.ini' ||
+            nameLower === 'conftest.py'
+          ) {
             item.setAttribute('data-pytest', 'true');
           }
 
           // Check if this is a directory (folder)
-          const isDir = fileType === 'directory' || item.classList.contains('jp-DirListing-directory');
-          // Debug: log folder detection
-          if (name && !name.includes('.')) {
-            console.log('Folder check:', name, 'fileType:', fileType, 'isDir:', isDir, 'classList:', item.className);
-          }
+          const isDir =
+            fileType === 'directory' ||
+            item.classList.contains('jp-DirListing-directory');
           if (isDir) {
             // Check if this folder is a Python package (async)
-            const currentPath = getCurrentPath();
-            const folderPath = currentPath ? `${currentPath}/${name}` : name;
-            console.log('Checking Python package:', folderPath);
-            checkPythonPackage(folderPath).then(isPythonPackage => {
-              console.log('Python package result:', folderPath, isPythonPackage);
+            // Pass just the folder name - checkPythonPackage gets current path from file browser
+            checkPythonPackage(name).then(isPythonPackage => {
               if (isPythonPackage) {
                 item.setAttribute('data-python-package', 'true');
               } else {
@@ -1131,7 +1184,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
                 settings[key as keyof IIconSettings] = value;
               }
             });
-
 
             // Debounce the alert to show only once when multiple settings change
             if (settingsChangeTimeout) {

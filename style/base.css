@@ -47,5 +47,5 @@
 
 /* Make hidden items darker (items starting with .) */
 .jp-DirListing-item[data-is-dot] {
-  opacity: 55% !important;
+  opacity: 0.55 !important;
 }
