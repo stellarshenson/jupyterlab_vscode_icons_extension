@@ -173,3 +173,6 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 56. **Task - Python package folder icon**: Added special icon for folders containing `__init__.py`<br>
     **Result**: Created green folder + Python logo SVG icon from `.resources/python-package.svg` with horizontal flip (`scale(-1,1) translate(-32,0)`) for better visual balance. Implementation uses `IDefaultFileBrowser` to get correct current path from file browser model, then checks folder contents via `app.serviceManager.contents` API for `__init__.py` presence. Added caching to avoid repeated API calls. Folder exclusion filter skips non-package directories: `.git`, `.hg`, `.svn`, `.venv`, `venv`, `.env`, `env`, `node_modules`, `__pycache__`, `.ipynb_checkpoints`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.tox`, `.nox`, `.coverage`, `htmlcov`, `dist`, `build`, `.eggs`, `*.egg-info`, `*.dist-info`. Detects directories via `data-file-type="directory"` attribute and marks with `data-python-package` attribute for CSS styling. Version 1.1.5
+
+57. **Task - Icon color refinements**: Updated README.md and markdown icon colors<br>
+    **Result**: README.md icon - separated SVG into background rect (#912bac purple) and "i" path (#bdbdbd gray) for two-tone appearance; generic markdown icon - lightened purple from #7a2491 to #8a2ea5 for better visibility. Version 1.1.7
