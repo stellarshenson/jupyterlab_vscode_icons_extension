@@ -21,7 +21,7 @@ This extension brings 1414 beautiful file type icons from the vscode-icons proje
 - Zero configuration required - just install and enjoy
 - Lightweight integration using Iconify's JSON icon format
 - Compatible with Jupytext - properly displays Python and Markdown icons for .py and .md notebook files
-- No folders (we left those alone... for now)
+- Python package folder detection - folders declared in `pyproject.toml` or `setup.py` get a special Python package icon
 
 ## Requirements
 
