@@ -721,78 +721,99 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
       `;
 
-      // Cache for Python package folder checks
-      const pythonPackageCache: Map<string, boolean> = new Map();
+      // Cache for Python package detection (per directory)
+      let pythonPackagesCache: { path: string; packages: Set<string> } | null =
+        null;
 
-      // Folders to exclude from Python package checking
-      const excludedFolderPatterns = [
-        /^\.git$/,
-        /^\.hg$/,
-        /^\.svn$/,
-        /^\.venv$/,
-        /^venv$/,
-        /^\.env$/,
-        /^env$/,
-        /^node_modules$/,
-        /^__pycache__$/,
-        /^\.ipynb_checkpoints$/,
-        /^\.pytest_cache$/,
-        /^\.mypy_cache$/,
-        /^\.ruff_cache$/,
-        /^\.tox$/,
-        /^\.nox$/,
-        /^\.coverage$/,
-        /^htmlcov$/,
-        /^dist$/,
-        /^build$/,
-        /^\.eggs$/,
-        /\.egg-info$/,
-        /\.dist-info$/
-      ];
+      // Detect Python packages by parsing pyproject.toml or setup.py
+      const detectPythonPackages = async (): Promise<Set<string>> => {
+        const currentPath = defaultFileBrowser?.model.path || '';
 
-      const isExcludedFolder = (name: string): boolean => {
-        return excludedFolderPatterns.some(pattern => pattern.test(name));
-      };
-
-      // Check if a folder is a Python package (contains __init__.py)
-      // Use the file browser's model to get the correct path
-      const checkPythonPackage = async (
-        folderName: string
-      ): Promise<boolean> => {
-        // Skip excluded folders
-        if (isExcludedFolder(folderName)) {
-          return false;
+        // Return cached result if same directory
+        if (pythonPackagesCache?.path === currentPath) {
+          return pythonPackagesCache.packages;
         }
 
-        // Get the current path from the file browser model
-        if (!defaultFileBrowser) {
-          return false;
-        }
-        const currentPath = defaultFileBrowser.model.path;
-        const fullPath = currentPath
-          ? `${currentPath}/${folderName}`
-          : folderName;
+        const packages = new Set<string>();
 
-        if (pythonPackageCache.has(fullPath)) {
-          return pythonPackageCache.get(fullPath)!;
-        }
         try {
-          // Use JupyterLab's contents manager with the correct path from file browser
-          const contents = app.serviceManager.contents;
-          const model = await contents.get(fullPath, { content: true });
-          const hasInit =
-            model.content?.some((item: any) => item.name === '__init__.py') ||
-            false;
-          pythonPackageCache.set(fullPath, hasInit);
-          return hasInit;
+          const contents = await app.serviceManager.contents.get(currentPath, {
+            content: true
+          });
+          const files = contents.content || [];
+
+          // Check for pyproject.toml
+          const hasPyproject = files.some(
+            (f: any) => f.name === 'pyproject.toml'
+          );
+          if (hasPyproject) {
+            const pyprojectPath = currentPath
+              ? `${currentPath}/pyproject.toml`
+              : 'pyproject.toml';
+            const file = await app.serviceManager.contents.get(pyprojectPath);
+            const content = file.content as string;
+
+            // Parse [project] name
+            const nameMatch = content.match(
+              /\[project\][^[]*name\s*=\s*["']([^"']+)["']/s
+            );
+            if (nameMatch) {
+              packages.add(nameMatch[1]);
+              // Also add underscore variant (package-name -> package_name)
+              packages.add(nameMatch[1].replace(/-/g, '_'));
+            }
+
+            // Parse packages = ["pkg1", "pkg2"]
+            const packagesMatch = content.match(/packages\s*=\s*\[([^\]]+)\]/);
+            if (packagesMatch) {
+              const pkgList = packagesMatch[1].match(/["']([^"']+)["']/g);
+              pkgList?.forEach(p => packages.add(p.replace(/["']/g, '')));
+            }
+          }
+
+          // Check for setup.py
+          const hasSetupPy = files.some((f: any) => f.name === 'setup.py');
+          if (hasSetupPy) {
+            const setupPath = currentPath
+              ? `${currentPath}/setup.py`
+              : 'setup.py';
+            const file = await app.serviceManager.contents.get(setupPath);
+            const content = file.content as string;
+
+            // Parse packages=["pkg1", "pkg2"]
+            const packagesMatch = content.match(/packages\s*=\s*\[([^\]]+)\]/);
+            if (packagesMatch) {
+              const pkgList = packagesMatch[1].match(/["']([^"']+)["']/g);
+              pkgList?.forEach(p => packages.add(p.replace(/["']/g, '')));
+            }
+
+            // Parse name="package_name"
+            const nameMatch = content.match(/name\s*=\s*["']([^"']+)["']/);
+            if (nameMatch) {
+              packages.add(nameMatch[1]);
+              packages.add(nameMatch[1].replace(/-/g, '_'));
+            }
+          }
         } catch {
-          pythonPackageCache.set(fullPath, false);
-          return false;
+          // Ignore errors - no packages detected
         }
+
+        pythonPackagesCache = { path: currentPath, packages };
+        return packages;
       };
+
+      // Invalidate cache on directory change
+      if (defaultFileBrowser) {
+        defaultFileBrowser.model.pathChanged.connect(() => {
+          pythonPackagesCache = null;
+        });
+      }
 
       // Add a MutationObserver to mark special files in the file browser
-      const markSpecialFiles = () => {
+      const markSpecialFiles = async () => {
+        // Get Python packages for current directory (cached)
+        const pythonPackages = await detectPythonPackages();
+
         // Process ALL items - clear wrong attributes and set correct ones
         const allItems = document.querySelectorAll('.jp-DirListing-item');
         allItems.forEach(item => {
@@ -890,24 +911,29 @@ const plugin: JupyterFrontEndPlugin<void> = {
             fileType === 'directory' ||
             item.classList.contains('jp-DirListing-directory');
           if (isDir) {
-            // Check if this folder is a Python package (async)
-            // Pass just the folder name - checkPythonPackage gets current path from file browser
-            checkPythonPackage(name).then(isPythonPackage => {
-              if (isPythonPackage) {
-                item.setAttribute('data-python-package', 'true');
-              } else {
-                item.removeAttribute('data-python-package');
-              }
-            });
+            // Check if folder name matches a detected Python package
+            if (pythonPackages.has(name)) {
+              item.setAttribute('data-python-package', 'true');
+            } else {
+              item.removeAttribute('data-python-package');
+            }
           } else {
             item.removeAttribute('data-python-package');
           }
         });
       };
 
-      // Watch for changes in the file browser
+      // Debounce timeout for MutationObserver
+      let markSpecialFilesTimeout: ReturnType<typeof setTimeout> | null = null;
+
+      // Watch for changes in the file browser (debounced)
       const observer = new MutationObserver(() => {
-        markSpecialFiles();
+        if (markSpecialFilesTimeout) {
+          clearTimeout(markSpecialFilesTimeout);
+        }
+        markSpecialFilesTimeout = setTimeout(() => {
+          markSpecialFiles();
+        }, 100);
       });
 
       // Start observing when the file browser is ready
