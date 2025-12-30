@@ -6,6 +6,7 @@ import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { IDefaultFileBrowser } from '@jupyterlab/filebrowser';
 import { LabIcon } from '@jupyterlab/ui-components';
 import { getIconSVG } from './icons';
+import { parsePyprojectToml, parseSetupPy } from './parsers';
 
 const PLUGIN_ID = 'jupyterlab_vscode_icons_extension:plugin';
 
@@ -752,23 +753,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
               : 'pyproject.toml';
             const file = await app.serviceManager.contents.get(pyprojectPath);
             const content = file.content as string;
-
-            // Parse [project] name
-            const nameMatch = content.match(
-              /\[project\][^[]*name\s*=\s*["']([^"']+)["']/s
-            );
-            if (nameMatch) {
-              packages.add(nameMatch[1]);
-              // Also add underscore variant (package-name -> package_name)
-              packages.add(nameMatch[1].replace(/-/g, '_'));
-            }
-
-            // Parse packages = ["pkg1", "pkg2"]
-            const packagesMatch = content.match(/packages\s*=\s*\[([^\]]+)\]/);
-            if (packagesMatch) {
-              const pkgList = packagesMatch[1].match(/["']([^"']+)["']/g);
-              pkgList?.forEach(p => packages.add(p.replace(/["']/g, '')));
-            }
+            const parsed = parsePyprojectToml(content);
+            parsed.forEach(p => packages.add(p));
           }
 
           // Check for setup.py
@@ -779,20 +765,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
               : 'setup.py';
             const file = await app.serviceManager.contents.get(setupPath);
             const content = file.content as string;
-
-            // Parse packages=["pkg1", "pkg2"]
-            const packagesMatch = content.match(/packages\s*=\s*\[([^\]]+)\]/);
-            if (packagesMatch) {
-              const pkgList = packagesMatch[1].match(/["']([^"']+)["']/g);
-              pkgList?.forEach(p => packages.add(p.replace(/["']/g, '')));
-            }
-
-            // Parse name="package_name"
-            const nameMatch = content.match(/name\s*=\s*["']([^"']+)["']/);
-            if (nameMatch) {
-              packages.add(nameMatch[1]);
-              packages.add(nameMatch[1].replace(/-/g, '_'));
-            }
+            const parsed = parseSetupPy(content);
+            parsed.forEach(p => packages.add(p));
           }
         } catch {
           // Ignore errors - no packages detected

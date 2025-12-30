@@ -29,11 +29,14 @@ jobs:
         set -eux
         python -m pip install .[test]
 
-        # pytest -vv -r ap --cov jupyterlab_vscode_icons_extension
-
         jupyter labextension list
         jupyter labextension list 2>&1 | grep -ie "jupyterlab_vscode_icons_extension.*OK"
         python -m jupyterlab.browser_check
+
+    - name: Run unit tests
+      run: |
+        set -eux
+        jlpm test
 
     - name: Package the extension
       run: |
