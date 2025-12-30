@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="800px" height="800px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Purple folder base - same shape as python-package -->
+  <path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#9575cd"/>
+  <!-- Gear/cog decal - gray, positioned left-bottom like python-package -->
+  <g transform="translate(22, 22) scale(1.25)" fill="#bababa">
+    <!-- Outer gear teeth -->
+    <path d="M-1.2,-6 L1.2,-6 L1.5,-4.5 L2.8,-4 L4,-5 L5.5,-3.5 L4.5,-2.3 L5,-1 L6.5,-0.8 L6.5,1.2 L5,1.5 L4.5,2.8 L5.5,4 L4,5.5 L2.8,4.5 L1.5,5 L1.2,6.5 L-1.2,6.5 L-1.5,5 L-2.8,4.5 L-4,5.5 L-5.5,4 L-4.5,2.8 L-5,1.5 L-6.5,1.2 L-6.5,-0.8 L-5,-1 L-4.5,-2.3 L-5.5,-3.5 L-4,-5 L-2.8,-4 L-1.5,-4.5 Z"/>
+    <!-- Inner circle cutout -->
+    <circle cx="0" cy="0" r="2.5" fill="#9575cd"/>
+  </g>
+</svg>

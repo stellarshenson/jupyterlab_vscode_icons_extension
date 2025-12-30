@@ -495,6 +495,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const pythonPackageSvg =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><defs><linearGradient id="ppa" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0" stop-color="#387eb8"/><stop offset="1" stop-color="#366994"/></linearGradient><linearGradient id="ppb" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0" stop-color="#ffe052"/><stop offset="1" stop-color="#ffc331"/></linearGradient></defs><g transform="scale(-1,1) translate(-32,0)"><path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#58af7b"/><path d="M20.9,11c-5.1,0-4.8,2.2-4.8,2.2v2.3H21v.7H14.2S11,15.8,11,21s2.9,5,2.9,5h1.7V23.6a2.7,2.7,0,0,1,2.8-2.9h4.8a2.6,2.6,0,0,0,2.7-2.6V13.7S26.2,11,20.9,11Zm-2.7,1.5a.9.9,0,1,1-.8.9.9.9,0,0,1,.8-.9Z" fill="url(#ppa)"/><path d="M21.1,31c5.1,0,4.8-2.2,4.8-2.2V26.5H21v-.7h6.8S31,26.1,31,21s-2.9-5-2.9-5h-1.7v2.4a2.7,2.7,0,0,1-2.8,2.9H18.8a2.6,2.6,0,0,0-2.7,2.6v4.4S15.7,31,21,31Zm2.7-1.5a.9.9,0,1,1,.8-.9.9.9,0,0,1-.8.9Z" fill="url(#ppb)"/></g></svg>';
       const pythonPackageDataUri = `data:image/svg+xml;base64,${btoa(pythonPackageSvg)}`;
+      const venvSvg =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g transform="scale(-1,1) translate(-32,0)"><path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#9575cd"/><g transform="translate(22,22) scale(1.25)" fill="#bababa"><path d="M-1.2,-6 L1.2,-6 L1.5,-4.5 L2.8,-4 L4,-5 L5.5,-3.5 L4.5,-2.3 L5,-1 L6.5,-0.8 L6.5,1.2 L5,1.5 L4.5,2.8 L5.5,4 L4,5.5 L2.8,4.5 L1.5,5 L1.2,6.5 L-1.2,6.5 L-1.5,5 L-2.8,4.5 L-4,5.5 L-5.5,4 L-4.5,2.8 L-5,1.5 L-6.5,1.2 L-6.5,-0.8 L-5,-1 L-4.5,-2.3 L-5.5,-3.5 L-4,-5 L-2.8,-4 L-1.5,-4.5 Z"/><circle cx="0" cy="0" r="2.5" fill="#9575cd"/></g></g></svg>';
+      const venvDataUri = `data:image/svg+xml;base64,${btoa(venvSvg)}`;
 
       // Inject CSS that overrides icons for .py and .md files
       // Note: Jupytext marks .py and .md files as type="notebook", so we need to
@@ -699,6 +702,22 @@ const plugin: JupyterFrontEndPlugin<void> = {
           background-repeat: no-repeat;
           background-position: center;
         }
+
+        /* Override venv folder icons (.venv, venv, .env, env) */
+        .jp-DirListing-item[data-venv-folder] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-venv-folder] .jp-DirListing-itemIcon img {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-venv-folder] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          background-image: url('${venvDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
       `;
 
       // Add CSS to make JavaScript and .env icons less bright
@@ -885,14 +904,23 @@ const plugin: JupyterFrontEndPlugin<void> = {
             fileType === 'directory' ||
             item.classList.contains('jp-DirListing-directory');
           if (isDir) {
-            // Check if folder name matches a detected Python package
-            if (pythonPackages.has(name)) {
-              item.setAttribute('data-python-package', 'true');
-            } else {
+            // Check if folder is a venv folder (.venv, venv, .env, env)
+            const venvNames = ['.venv', 'venv', '.env', 'env'];
+            if (venvNames.includes(nameLower)) {
+              item.setAttribute('data-venv-folder', 'true');
               item.removeAttribute('data-python-package');
+            } else {
+              item.removeAttribute('data-venv-folder');
+              // Check if folder name matches a detected Python package
+              if (pythonPackages.has(name)) {
+                item.setAttribute('data-python-package', 'true');
+              } else {
+                item.removeAttribute('data-python-package');
+              }
             }
           } else {
             item.removeAttribute('data-python-package');
+            item.removeAttribute('data-venv-folder');
           }
         });
       };
