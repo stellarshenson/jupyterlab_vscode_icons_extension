@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="28" failures="0" errors="0" time="3.247">
+  <testsuite name="jupyterlab_vscode_icons_extension" errors="0" failures="0" skipped="0" timestamp="2025-12-30T15:31:43" time="1.468" tests="1">
+    <testcase classname="jupyterlab_vscode_icons_extension should be tested" name="jupyterlab_vscode_icons_extension should be tested" time="0.003">
+    </testcase>
+  </testsuite>
+  <testsuite name="parsePyprojectToml" errors="0" failures="0" skipped="0" timestamp="2025-12-30T15:31:43" time="1.582" tests="27">
+    <testcase classname="parsePyprojectToml project name parsing should parse project name with double quotes" name="parsePyprojectToml project name parsing should parse project name with double quotes" time="0.003">
+    </testcase>
+    <testcase classname="parsePyprojectToml project name parsing should parse project name with single quotes" name="parsePyprojectToml project name parsing should parse project name with single quotes" time="0">
+    </testcase>
+    <testcase classname="parsePyprojectToml project name parsing should handle name without hyphens" name="parsePyprojectToml project name parsing should handle name without hyphens" time="0">
+    </testcase>
+    <testcase classname="parsePyprojectToml project name parsing should handle name with multiple hyphens" name="parsePyprojectToml project name parsing should handle name with multiple hyphens" time="0.001">
+    </testcase>
+    <testcase classname="parsePyprojectToml project name parsing should handle whitespace around equals sign" name="parsePyprojectToml project name parsing should handle whitespace around equals sign" time="0">
+    </testcase>
+    <testcase classname="parsePyprojectToml project name parsing should handle extra whitespace" name="parsePyprojectToml project name parsing should handle extra whitespace" time="0">
+    </testcase>
+    <testcase classname="parsePyprojectToml packages array parsing should parse packages array with double quotes" name="parsePyprojectToml packages array parsing should parse packages array with double quotes" time="0.001">
+    </testcase>
+    <testcase classname="parsePyprojectToml packages array parsing should parse packages array with single quotes" name="parsePyprojectToml packages array parsing should parse packages array with single quotes" time="0">
+    </testcase>
+    <testcase classname="parsePyprojectToml packages array parsing should parse packages array with mixed quotes" name="parsePyprojectToml packages array parsing should parse packages array with mixed quotes" time="0">
+    </testcase>
+    <testcase classname="parsePyprojectToml packages array parsing should parse multiline packages array" name="parsePyprojectToml packages array parsing should parse multiline packages array" time="0.001">
+    </testcase>
+    <testcase classname="parsePyprojectToml packages array parsing should parse single package in array" name="parsePyprojectToml packages array parsing should parse single package in array" time="0">
+    </testcase>
+    <testcase classname="parsePyprojectToml combined parsing should parse both project name and packages array" name="parsePyprojectToml combined parsing should parse both project name and packages array" time="0">
+    </testcase>
+    <testcase classname="parsePyprojectToml combined parsing should handle real-world pyproject.toml" name="parsePyprojectToml combined parsing should handle real-world pyproject.toml" time="0">
+    </testcase>
+    <testcase classname="parsePyprojectToml edge cases should return empty set for empty content" name="parsePyprojectToml edge cases should return empty set for empty content" time="0.001">
+    </testcase>
+    <testcase classname="parsePyprojectToml edge cases should return empty set for content without project section" name="parsePyprojectToml edge cases should return empty set for content without project section" time="0">
+    </testcase>
+    <testcase classname="parsePyprojectToml edge cases should not match name outside [project] section" name="parsePyprojectToml edge cases should not match name outside [project] section" time="0">
+    </testcase>
+    <testcase classname="parseSetupPy name parsing should parse name with double quotes" name="parseSetupPy name parsing should parse name with double quotes" time="0">
+    </testcase>
+    <testcase classname="parseSetupPy name parsing should parse name with single quotes" name="parseSetupPy name parsing should parse name with single quotes" time="0">
+    </testcase>
+    <testcase classname="parseSetupPy name parsing should handle name without hyphens" name="parseSetupPy name parsing should handle name without hyphens" time="0.001">
+    </testcase>
+    <testcase classname="parseSetupPy packages array parsing should parse packages array inline" name="parseSetupPy packages array parsing should parse packages array inline" time="0">
+    </testcase>
+    <testcase classname="parseSetupPy packages array parsing should parse packages array multiline" name="parseSetupPy packages array parsing should parse packages array multiline" time="0">
+    </testcase>
+    <testcase classname="parseSetupPy packages array parsing should parse packages with single quotes" name="parseSetupPy packages array parsing should parse packages with single quotes" time="0">
+    </testcase>
+    <testcase classname="parseSetupPy combined parsing should parse both name and packages" name="parseSetupPy combined parsing should parse both name and packages" time="0.001">
+    </testcase>
+    <testcase classname="parseSetupPy combined parsing should handle real-world setup.py" name="parseSetupPy combined parsing should handle real-world setup.py" time="0">
+    </testcase>
+    <testcase classname="parseSetupPy edge cases should return empty set for empty content" name="parseSetupPy edge cases should return empty set for empty content" time="0">
+    </testcase>
+    <testcase classname="parseSetupPy edge cases should return empty set for content with find_packages() only" name="parseSetupPy edge cases should return empty set for content with find_packages() only" time="0">
+    </testcase>
+    <testcase classname="parseSetupPy edge cases should handle whitespace variations" name="parseSetupPy edge cases should handle whitespace variations" time="0">
+    </testcase>
+  </testsuite>
+</testsuites>
