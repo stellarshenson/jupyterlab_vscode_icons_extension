@@ -157,7 +157,7 @@ const fileTypeConfigs: IFileTypeConfig[] = [
     iconName: 'file-type-perl',
     group: 'enableLanguageIcons'
   },
-  // Shell scripts (.sh, .bash, .zsh) and batch files (.bat, .cmd) use custom icons with black backgrounds
+  // Shell scripts (.sh, .bash, .zsh, .fish, .csh, .nu) and batch files (.bat, .cmd) use custom icons with black backgrounds
   // Registered separately below with custom SVGs
   {
     extensions: ['.ps1'],
@@ -1152,7 +1152,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         docRegistry.addFileType({
           name: 'vscode-shell',
           displayName: 'Shell Script',
-          extensions: ['.sh', '.bash', '.zsh'],
+          extensions: ['.sh', '.bash', '.zsh', '.fish', '.csh', '.nu'],
           fileFormat: 'text',
           contentType: 'file',
           icon: shellIcon

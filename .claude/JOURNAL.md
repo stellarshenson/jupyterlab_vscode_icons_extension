@@ -185,3 +185,6 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 60. **Task - Venv folder icon**: Added custom icon for Python virtual environment folders<br>
     **Result**: Created purple folder (#9575cd) with gray gear (#bababa) decal for `.venv`, `venv`, `.env`, `env` folders. Icon design follows python-package pattern - folder base with decorative element positioned left-bottom using `translate(22,22) scale(1.25)` and horizontal flip. Gear symbolizes tooling/configuration nature of virtual environments. Detection uses `data-venv-folder` attribute set by MutationObserver; venv folders take precedence over python-package detection to avoid conflicts. Created `.resources/venv.svg` source file; embedded flipped version in `src/index.ts`. Version 1.1.13
+
+61. **Task - Extended shell icon coverage**: Added Fish, C shell, and Nushell support to shell script icon<br>
+    **Result**: Extended vscode-shell file type extensions from `['.sh', '.bash', '.zsh']` to include `.fish` (Fish shell), `.csh` (C shell), and `.nu` (Nushell). All use the same custom black background with desaturated orange terminal icon. Version 1.1.15
