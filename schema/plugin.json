@@ -40,6 +40,12 @@
       "title": "Image File Icons",
       "description": "Enable icons for image files (PNG, JPG, SVG, etc.)",
       "default": true
+    },
+    "enableExecutableIcons": {
+      "type": "boolean",
+      "title": "Executable File Icons",
+      "description": "Show distinctive icon for files with Unix executable permission (+x). Requires server extension.",
+      "default": false
     }
   },
   "additionalProperties": false

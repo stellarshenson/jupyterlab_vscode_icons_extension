@@ -14,3 +14,16 @@ def _jupyter_labextension_paths():
         "src": "labextension",
         "dest": "jupyterlab_vscode_icons_extension"
     }]
+
+
+def _jupyter_server_extension_points():
+    return [{
+        "module": "jupyterlab_vscode_icons_extension"
+    }]
+
+
+def _load_jupyter_server_extension(server_app):
+    """Register the API handler with the Jupyter server."""
+    from .handlers import setup_handlers
+    setup_handlers(server_app.web_app)
+    server_app.log.info("jupyterlab_vscode_icons_extension server extension loaded")

@@ -2,6 +2,7 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
+import { PageConfig, URLExt } from '@jupyterlab/coreutils';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { IDefaultFileBrowser } from '@jupyterlab/filebrowser';
 import { LabIcon } from '@jupyterlab/ui-components';
@@ -18,6 +19,7 @@ interface IIconSettings {
   enableConfigIcons: boolean;
   enableDocIcons: boolean;
   enableImageIcons: boolean;
+  enableExecutableIcons: boolean;
 }
 
 /**
@@ -498,6 +500,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const venvSvg =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g transform="scale(-1,1) translate(-32,0)"><path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#9575cd"/><g transform="translate(22,22) scale(1.25)" fill="#bababa"><path d="M-1.2,-6 L1.2,-6 L1.5,-4.5 L2.8,-4 L4,-5 L5.5,-3.5 L4.5,-2.3 L5,-1 L6.5,-0.8 L6.5,1.2 L5,1.5 L4.5,2.8 L5.5,4 L4,5.5 L2.8,4.5 L1.5,5 L1.2,6.5 L-1.2,6.5 L-1.5,5 L-2.8,4.5 L-4,5.5 L-5.5,4 L-4.5,2.8 L-5,1.5 L-6.5,1.2 L-6.5,-0.8 L-5,-1 L-4.5,-2.3 L-5.5,-3.5 L-4,-5 L-2.8,-4 L-1.5,-4.5 Z"/><circle cx="0" cy="0" r="2.5" fill="#9575cd"/></g></g></svg>';
       const venvDataUri = `data:image/svg+xml;base64,${btoa(venvSvg)}`;
+      // Executable file icon - JupyterLab standard file icon with play triangle overlay
+      const executableSvg =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22"><path fill="#616161" d="m19.3 8.2-5.5-5.5c-.3-.3-.7-.5-1.2-.5H3.9c-.8.1-1.6.9-1.6 1.8v14.1c0 .9.7 1.6 1.6 1.6h14.2c.9 0 1.6-.7 1.6-1.6V9.4c.1-.5-.1-.9-.4-1.2m-5.8-3.3 3.4 3.6h-3.4zm3.9 12.7H4.7c-.1 0-.2 0-.2-.2V4.7c0-.2.1-.3.2-.3h7.2v4.4s0 .8.3 1.1 1.1.3 1.1.3h4.3v7.2s-.1.2-.2.2"/><path fill="#4caf50" d="M12,12 L20,16 L12,20 Z"/></svg>';
+      const executableDataUri = `data:image/svg+xml;base64,${btoa(executableSvg)}`;
 
       // Inject CSS that overrides icons for .py and .md files
       // Note: Jupytext marks .py and .md files as type="notebook", so we need to
@@ -718,6 +724,22 @@ const plugin: JupyterFrontEndPlugin<void> = {
           background-repeat: no-repeat;
           background-position: center;
         }
+
+        /* Override executable file icons */
+        .jp-DirListing-item[data-executable] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-executable] .jp-DirListing-itemIcon img {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-executable] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          background-image: url('${executableDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
       `;
 
       // Add CSS to make JavaScript and .env icons less bright
@@ -795,10 +817,52 @@ const plugin: JupyterFrontEndPlugin<void> = {
         return packages;
       };
 
+      // Cache for executable file detection (per directory)
+      let executablesCache: { path: string; executables: Set<string> } | null =
+        null;
+
+      // Detect executable files via server API
+      const detectExecutables = async (): Promise<Set<string>> => {
+        if (!settings.enableExecutableIcons) {
+          return new Set<string>();
+        }
+
+        const currentPath = defaultFileBrowser?.model.path || '';
+
+        // Return cached result if same directory
+        if (executablesCache?.path === currentPath) {
+          return executablesCache.executables;
+        }
+
+        const executables = new Set<string>();
+
+        try {
+          const baseUrl = PageConfig.getBaseUrl();
+          const apiUrl = URLExt.join(
+            baseUrl,
+            'vscode-icons',
+            'executables'
+          );
+          const response = await fetch(
+            `${apiUrl}?path=${encodeURIComponent(currentPath)}`
+          );
+          if (response.ok) {
+            const files: string[] = await response.json();
+            files.forEach(f => executables.add(f));
+          }
+        } catch {
+          // Ignore errors - no executables detected
+        }
+
+        executablesCache = { path: currentPath, executables };
+        return executables;
+      };
+
       // Invalidate cache on directory change
       if (defaultFileBrowser) {
         defaultFileBrowser.model.pathChanged.connect(() => {
           pythonPackagesCache = null;
+          executablesCache = null;
         });
       }
 
@@ -806,6 +870,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const markSpecialFiles = async () => {
         // Get Python packages for current directory (cached)
         const pythonPackages = await detectPythonPackages();
+        // Get executable files for current directory (cached, only if setting enabled)
+        const executables = await detectExecutables();
 
         // Process ALL items - clear wrong attributes and set correct ones
         const allItems = document.querySelectorAll('.jp-DirListing-item');
@@ -899,6 +965,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
             item.setAttribute('data-pytest', 'true');
           }
 
+          // Mark executable files if setting is enabled (uses server API for +x detection)
+          item.removeAttribute('data-executable');
+          if (settings.enableExecutableIcons && executables.has(name)) {
+            item.setAttribute('data-executable', 'true');
+          }
+
           // Check if this is a directory (folder)
           const isDir =
             fileType === 'directory' ||
@@ -973,7 +1045,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       enableDataIcons: true,
       enableConfigIcons: true,
       enableDocIcons: true,
-      enableImageIcons: true
+      enableImageIcons: true,
+      enableExecutableIcons: false
     };
 
     // Function to register file types based on settings
