@@ -194,3 +194,6 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 63. **Task - Executable icon color refinements** (v1.1.26): Improved visibility and aesthetics of executable file icon play glyph<br>
     **Result**: Iteratively refined icon colors through versions 1.1.22-1.1.26. File icon gray brightened from #616161 to #909090 for better visibility. Play triangle green changed from #4caf50 through #66bb6a, #43a047, #00c853 to final #00e676 (bright saturated green). Added dark green outline stroke (#1b5e20, 0.8px width) around play triangle to make it pop against the gray file icon background. Updated both `src/index.ts` inline SVG and `.resources/executable.svg` source file
+
+64. **Task - Requirements file pattern expansion** (v1.1.28): Extended requirements.txt icon to cover variant filenames<br>
+    **Result**: Updated pattern from `^requirements\\.txt$` to `^requirements([_-].*?)?\\.txt$` to match requirements_dev.txt, requirements-test.txt, requirements_prod.txt and similar variants commonly used in Python projects

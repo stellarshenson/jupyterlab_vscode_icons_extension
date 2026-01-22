@@ -328,7 +328,7 @@ const fileTypeConfigs: IFileTypeConfig[] = [
     group: 'enableConfigIcons'
   },
   {
-    pattern: '^requirements\\.txt$',
+    pattern: '^requirements([_-].*?)?\\.txt$',
     extensions: [],
     iconName: 'file-type-python',
     group: 'enableConfigIcons'
@@ -838,11 +838,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         try {
           const baseUrl = PageConfig.getBaseUrl();
-          const apiUrl = URLExt.join(
-            baseUrl,
-            'vscode-icons',
-            'executables'
-          );
+          const apiUrl = URLExt.join(baseUrl, 'vscode-icons', 'executables');
           const response = await fetch(
             `${apiUrl}?path=${encodeURIComponent(currentPath)}`
           );
