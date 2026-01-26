@@ -216,6 +216,11 @@ const fileTypeConfigs: IFileTypeConfig[] = [
 
   // Data Formats
   {
+    extensions: ['.json'],
+    iconName: 'file-type-json',
+    group: 'enableDataIcons'
+  },
+  {
     extensions: ['.toml'],
     iconName: 'file-type-toml',
     group: 'enableDataIcons'
@@ -276,7 +281,7 @@ const fileTypeConfigs: IFileTypeConfig[] = [
   // Config Files
   {
     extensions: ['.env'],
-    pattern: '^(\\.env\\.(?!zip|tar|gz|bz2|xz|7z|rar)[^.]+|[^.]+\\.env)$',
+    pattern: '^(\\.env|\\.env\\.(?!zip|tar|gz|bz2|xz|7z|rar)[^.]+|[^.]+\\.env)$',
     iconName: 'file-type-dotenv',
     mimeTypes: ['text/x-sh'],
     group: 'enableConfigIcons'
@@ -319,6 +324,12 @@ const fileTypeConfigs: IFileTypeConfig[] = [
     pattern: '^package-lock\\.json$',
     extensions: [],
     iconName: 'file-type-npm',
+    group: 'enableConfigIcons'
+  },
+  {
+    pattern: '^tsconfig(\\..*)?\\.json$',
+    extensions: [],
+    iconName: 'file-type-tsconfig-official',
     group: 'enableConfigIcons'
   },
   {

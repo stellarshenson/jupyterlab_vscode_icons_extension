@@ -197,3 +197,12 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 64. **Task - Requirements file pattern expansion** (v1.1.28): Extended requirements.txt icon to cover variant filenames<br>
     **Result**: Updated pattern from `^requirements\\.txt$` to `^requirements([_-].*?)?\\.txt$` to match requirements_dev.txt, requirements-test.txt, requirements_prod.txt and similar variants commonly used in Python projects
+
+65. **Task - tsconfig.json and .env pattern fixes** (v1.1.30): Added missing tsconfig.json icon and fixed .env pattern to include plain .env files<br>
+    **Result**: Added pattern-based registration for `^tsconfig(\\..*)?\\.json$` matching tsconfig.json and variants like tsconfig.build.json, tsconfig.test.json using file-type-tsconfig-official icon. Fixed .env pattern from `^(\\.env\\.(?!zip|tar|gz|bz2|xz|7z|rar)[^.]+|[^.]+\\.env)$` to `^(\\.env|\\.env\\.(?!zip|tar|gz|bz2|xz|7z|rar)[^.]+|[^.]+\\.env)$` - previous pattern matched `.env.local` and `dev.env` but not plain `.env` file; added `\\.env|` alternative at start to include exact `.env` match
+
+66. **Task - JSON icon missing fix** (v1.1.34): Added general .json file extension registration<br>
+    **Result**: User reported JSON and PNG icons stopped displaying. Investigation revealed `.json` was never registered in fileTypeConfigs - only specific patterns like `package.json`, `tsconfig.json` existed. Added `{extensions: ['.json'], iconName: 'file-type-json', group: 'enableDataIcons'}` to Data Formats section. PNG configuration was already correct in Images section (lines 391-401). Version 1.1.34
+
+67. **Task - nh3 dependency fix** (v1.1.39): Added nh3 HTML sanitizer as explicit dependency to fix JupyterLab rendering issues<br>
+    **Result**: Investigated performance/rendering issues by comparing working server packages against non-working environment using `pip freeze` diff. Identified `nh3` (HTML sanitizer written in Rust) was missing from non-working environment while present on working server (v0.3.2). Package is used by JupyterLab or extensions for HTML content sanitization in file browser rendering. Added `nh3>=0.3.2` to `pyproject.toml` dependencies array. Also included in this release: `.json` file icon support, `.env` pattern fix to include plain `.env` files, `tsconfig.json` pattern support. Published to PyPI and npm as v1.1.39
