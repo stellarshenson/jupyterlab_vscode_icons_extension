@@ -209,3 +209,6 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 68. **Task - tsconfig pattern expansion** (v1.1.40): Extended tsconfig icon to cover all tsconfig.* files<br>
     **Result**: Changed pattern from `^tsconfig(\\..*)?\\.json$` to `^tsconfig\\..+$` to match all TypeScript config files including tsconfig.tsbuildinfo, tsconfig.node.json, tsconfig.build.json, etc.
+
+69. **Task - Prettier and LICENSE icons** (v1.1.45): Added custom icons for Prettier config files and updated LICENSE icon<br>
+    **Result**: Prettier icon - created custom embedded SVG with 24 horizontal color bars representing code formatting (yellows #E7D06D/#D0A245, pinks #E09EBE/#CD6799, greens #32978A/#5BA080, blues #2B7488/#3B6A7B, grays #403B44/#58555B/#71686F); pattern `^(\\.prettierrc(\\..*)?|prettier\\.config\\..+|\\.prettierignore)$` matches `.prettierrc`, `.prettierrc.json`, `.prettierrc.yaml`, `prettier.config.js`, `.prettierignore` etc. LICENSE icon - replaced simple copyright circle with document + red seal design from `.resources/license.svg`; uses light document body (#e0bdbd), red seal (#C33831), dark seal outline (#5e1c18); pattern unchanged matching LICENSE, LICENCE and variants. Both icons use custom-prefixed iconName for separate registration handling.
