@@ -327,7 +327,7 @@ const fileTypeConfigs: IFileTypeConfig[] = [
     group: 'enableConfigIcons'
   },
   {
-    pattern: '^tsconfig(\\..*)?\\.json$',
+    pattern: '^tsconfig\\..+$',
     extensions: [],
     iconName: 'file-type-tsconfig-official',
     group: 'enableConfigIcons'

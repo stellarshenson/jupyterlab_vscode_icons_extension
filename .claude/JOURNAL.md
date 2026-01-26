@@ -206,3 +206,6 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 67. **Task - nh3 dependency fix** (v1.1.39): Added nh3 HTML sanitizer as explicit dependency to fix JupyterLab rendering issues<br>
     **Result**: Investigated performance/rendering issues by comparing working server packages against non-working environment using `pip freeze` diff. Identified `nh3` (HTML sanitizer written in Rust) was missing from non-working environment while present on working server (v0.3.2). Package is used by JupyterLab or extensions for HTML content sanitization in file browser rendering. Added `nh3>=0.3.2` to `pyproject.toml` dependencies array. Also included in this release: `.json` file icon support, `.env` pattern fix to include plain `.env` files, `tsconfig.json` pattern support. Published to PyPI and npm as v1.1.39
+
+68. **Task - tsconfig pattern expansion** (v1.1.40): Extended tsconfig icon to cover all tsconfig.* files<br>
+    **Result**: Changed pattern from `^tsconfig(\\..*)?\\.json$` to `^tsconfig\\..+$` to match all TypeScript config files including tsconfig.tsbuildinfo, tsconfig.node.json, tsconfig.build.json, etc.
