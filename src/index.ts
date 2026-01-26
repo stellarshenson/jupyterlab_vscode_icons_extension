@@ -979,9 +979,19 @@ const plugin: JupyterFrontEndPlugin<void> = {
           }
 
           // Mark executable files if setting is enabled (uses server API for +x detection)
+          // Only show executable icon for shell scripts or files without a specific type
           item.removeAttribute('data-executable');
           if (settings.enableExecutableIcons && executables.has(name)) {
-            item.setAttribute('data-executable', 'true');
+            const shellTypes = [
+              'vscode-shell',
+              'vscode-batch',
+              'vscode-file-type-powershell'
+            ];
+            const isShellScript = shellTypes.includes(fileType);
+            const hasNoSpecificType = !fileType || fileType === 'file' || fileType === '';
+            if (isShellScript || hasNoSpecificType) {
+              item.setAttribute('data-executable', 'true');
+            }
           }
 
           // Check if this is a directory (folder)
