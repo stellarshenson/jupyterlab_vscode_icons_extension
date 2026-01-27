@@ -8,6 +8,7 @@ import { IDefaultFileBrowser } from '@jupyterlab/filebrowser';
 import { LabIcon } from '@jupyterlab/ui-components';
 import { getIconSVG } from './icons';
 import { parsePyprojectToml, parseSetupPy } from './parsers';
+import { applyJupytext1191Hotfix } from './hotfixes';
 
 const PLUGIN_ID = 'jupyterlab_vscode_icons_extension:plugin';
 
@@ -1059,6 +1060,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
     // Wait for DOM to be ready, then inject CSS
     app.started.then(() => {
       setTimeout(injectIconOverrideCSS, 500);
+      // Apply hotfix for jupytext 1.19.1 (re-registers standard file types broken by catch-all pattern)
+      applyJupytext1191Hotfix(docRegistry);
     });
 
     // Default settings
