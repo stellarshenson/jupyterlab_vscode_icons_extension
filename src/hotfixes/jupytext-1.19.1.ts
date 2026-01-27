@@ -137,6 +137,8 @@ const KNOWN_EXTENSIONS = [
   'log',
   'rst',
   'tex',
+  'md',
+  'markdown',
   // Notebooks (handled separately by jupytext)
   'ipynb'
 ];
