@@ -90,6 +90,12 @@ const KNOWN_EXTENSIONS = [
   'ods',
   'odp',
   // Programming (not handled by jupytext)
+  'py',
+  'pyw',
+  'pyi',
+  'pyc',
+  'pyo',
+  'pyd',
   'js',
   'mjs',
   'cjs',

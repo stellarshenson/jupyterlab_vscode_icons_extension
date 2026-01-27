@@ -230,3 +230,9 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 75. **Task - Markdown extension hotfix** (v1.1.53): Fixed .md files showing as gray generic icons due to missing extensions in jupytext hotfix<br>
     **Result**: Added 'md' and 'markdown' to KNOWN_EXTENSIONS array in `src/hotfixes/jupytext-1.19.1.ts` - these extensions were missing from the hotfix's exclusion pattern, causing jupytext's catch-all file type to override standard markdown file icons; generic markdown files (not README.md, CHANGELOG.md, or other special-cased files) now correctly display their intended icons instead of being caught by jupytext's `jupytext-notebook-file` pattern.
+
+76. **Task - BPMN file icon** (v1.1.55): Added custom BPMN process notation icon for .bpmn files<br>
+    **Result**: Embedded SVG from `.resources/bpmn.svg` - orange rounded rectangle (#fc5d0d) with white BPMN notation symbols (two circles for start/end events, square for task, diamond for gateway); registered in fileTypeConfigs with `iconName: 'custom-bpmn'` in enableConfigIcons group; icon registration block added after drawio section creating LabIcon with embedded SVG.
+
+77. **Task - Jupytext hotfix extensions expansion** (v1.1.56-1.1.58): Added diagram and Python file extensions to KNOWN_EXTENSIONS array<br>
+    **Result**: Extended hotfix to prevent jupytext's catch-all pattern from overriding additional file types: v1.1.56 added diagram extensions (drawio, dio, bpmn); v1.1.57 added Python source files (py, pyw, pyi); v1.1.58 added Python compiled files (pyc, pyo, pyd). Total KNOWN_EXTENSIONS array now contains ~100 extensions ensuring jupytext's `jupytext-notebook-file` pattern doesn't capture standard file types.
