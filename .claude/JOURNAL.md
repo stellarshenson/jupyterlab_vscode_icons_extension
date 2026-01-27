@@ -227,3 +227,6 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 74. **Task - RELEASE file icons** (v1.1.51): Added icons for RELEASE and RELEASE.md files with different treatments<br>
     **Result**: RELEASE (without extension) uses same changelogIcon as CHANGELOG - document with list design; RELEASE.md uses JupyterLab native markdownIcon imported from `@jupyterlab/ui-components`; separate file type registrations with patterns `^RELEASE$` and `^RELEASE\\.md$` to differentiate.
+
+75. **Task - Markdown extension hotfix** (v1.1.53): Fixed .md files showing as gray generic icons due to missing extensions in jupytext hotfix<br>
+    **Result**: Added 'md' and 'markdown' to KNOWN_EXTENSIONS array in `src/hotfixes/jupytext-1.19.1.ts` - these extensions were missing from the hotfix's exclusion pattern, causing jupytext's catch-all file type to override standard markdown file icons; generic markdown files (not README.md, CHANGELOG.md, or other special-cased files) now correctly display their intended icons instead of being caught by jupytext's `jupytext-notebook-file` pattern.
