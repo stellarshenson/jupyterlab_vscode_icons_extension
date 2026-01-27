@@ -528,6 +528,24 @@ const plugin: JupyterFrontEndPlugin<void> = {
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22"><path fill="#909090" d="m19.3 8.2-5.5-5.5c-.3-.3-.7-.5-1.2-.5H3.9c-.8.1-1.6.9-1.6 1.8v14.1c0 .9.7 1.6 1.6 1.6h14.2c.9 0 1.6-.7 1.6-1.6V9.4c.1-.5-.1-.9-.4-1.2m-5.8-3.3 3.4 3.6h-3.4zm3.9 12.7H4.7c-.1 0-.2 0-.2-.2V4.7c0-.2.1-.3.2-.3h7.2v4.4s0 .8.3 1.1 1.1.3 1.1.3h4.3v7.2s-.1.2-.2.2"/><path fill="#00e676" stroke="#1b5e20" stroke-width="0.8" d="M12,12 L20,16 L12,20 Z"/></svg>';
       const executableDataUri = `data:image/svg+xml;base64,${btoa(executableSvg)}`;
 
+      // Executable shell script icon - shell icon with green play triangle
+      const executableShellSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+        <rect x="1" y="3" width="30" height="26" rx="2" fill="#1a1a1a"/>
+        <path fill="#e8b070" d="M29.4 27.6H2.5V4.5h26.9Zm-25.9-1h24.9V5.5H3.5Z"/>
+        <path fill="#e8b070" d="m6.077 19.316l-.555-.832l4.844-3.229l-4.887-4.071l.641-.768l5.915 4.928zM12.7 18.2h7.8v1h-7.8zM2.5 5.5h26.9v1.9H2.5z"/>
+        <path fill="#00e676" stroke="#1b5e20" stroke-width="1" d="M18,18 L28,23 L18,28 Z"/>
+      </svg>`;
+      const executableShellDataUri = `data:image/svg+xml;base64,${btoa(executableShellSvg)}`;
+
+      // Executable batch script icon - batch icon with green play triangle
+      const executableBatchSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+        <rect x="1" y="3" width="30" height="26" rx="2" fill="#1a1a1a"/>
+        <path fill="#80c8f0" d="M29.4 27.6H2.5V4.5h26.9Zm-25.9-1h24.9V5.5H3.5Z"/>
+        <path fill="#80c8f0" d="m6.077 19.316l-.555-.832l4.844-3.229l-4.887-4.071l.641-.768l5.915 4.928zM12.7 18.2h7.8v1h-7.8zM2.5 5.5h26.9v1.9H2.5z"/>
+        <path fill="#00e676" stroke="#1b5e20" stroke-width="1" d="M18,18 L28,23 L18,28 Z"/>
+      </svg>`;
+      const executableBatchDataUri = `data:image/svg+xml;base64,${btoa(executableBatchSvg)}`;
+
       // Inject CSS that overrides icons for .py and .md files
       // Note: Jupytext marks .py and .md files as type="notebook", so we need to
       // use JavaScript to detect and mark these files for CSS targeting
@@ -748,7 +766,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           background-position: center;
         }
 
-        /* Override executable file icons */
+        /* Override executable file icons (generic files) */
         .jp-DirListing-item[data-executable] .jp-DirListing-itemIcon svg,
         .jp-DirListing-item[data-executable] .jp-DirListing-itemIcon img {
           display: none !important;
@@ -759,6 +777,38 @@ const plugin: JupyterFrontEndPlugin<void> = {
           width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           background-image: url('${executableDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
+
+        /* Override executable shell script icons (.sh, .bash, .zsh, etc.) */
+        .jp-DirListing-item[data-executable-shell] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-executable-shell] .jp-DirListing-itemIcon img {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-executable-shell] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          background-image: url('${executableShellDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
+
+        /* Override executable batch script icons (.bat, .cmd) */
+        .jp-DirListing-item[data-executable-batch] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-executable-batch] .jp-DirListing-itemIcon img {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-executable-batch] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          background-image: url('${executableBatchDataUri}');
           background-size: contain;
           background-repeat: no-repeat;
           background-position: center;
@@ -985,17 +1035,27 @@ const plugin: JupyterFrontEndPlugin<void> = {
           }
 
           // Mark executable files if setting is enabled (uses server API for +x detection)
-          // Only show executable icon for shell scripts or files without a specific type
+          // Shell scripts get shell+play icon, batch scripts get batch+play icon, others get generic executable icon
           item.removeAttribute('data-executable');
+          item.removeAttribute('data-executable-shell');
+          item.removeAttribute('data-executable-batch');
           if (settings.enableExecutableIcons && executables.has(name)) {
-            const shellTypes = [
-              'vscode-shell',
-              'vscode-batch',
-              'vscode-file-type-powershell'
-            ];
-            const isShellScript = shellTypes.includes(fileType);
-            const hasNoSpecificType = !fileType || fileType === 'file' || fileType === '';
-            if (isShellScript || hasNoSpecificType) {
+            const shellExtensions = ['.sh', '.bash', '.zsh', '.fish', '.csh', '.nu'];
+            const batchExtensions = ['.bat', '.cmd'];
+            const isShellScript =
+              fileType === 'vscode-shell' ||
+              shellExtensions.some(ext => nameLower.endsWith(ext));
+            const isBatchScript =
+              fileType === 'vscode-batch' ||
+              batchExtensions.some(ext => nameLower.endsWith(ext));
+            const hasNoSpecificType =
+              !fileType || fileType === 'file' || fileType === '';
+
+            if (isShellScript) {
+              item.setAttribute('data-executable-shell', 'true');
+            } else if (isBatchScript) {
+              item.setAttribute('data-executable-batch', 'true');
+            } else if (hasNoSpecificType) {
               item.setAttribute('data-executable', 'true');
             }
           }
