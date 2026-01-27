@@ -399,6 +399,11 @@ const fileTypeConfigs: IFileTypeConfig[] = [
     iconName: 'custom-drawio',
     group: 'enableConfigIcons'
   },
+  {
+    extensions: ['.bpmn'],
+    iconName: 'custom-bpmn',
+    group: 'enableConfigIcons'
+  },
 
   // Images
   {
@@ -1278,6 +1283,31 @@ const plugin: JupyterFrontEndPlugin<void> = {
           fileFormat: 'text',
           contentType: 'file',
           icon: drawioIcon
+        });
+      }
+
+      // Register BPMN files with custom process notation icon
+      if (settings.enableConfigIcons) {
+        const bpmnSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+          <path fill="#fc5d0d" d="M80.472 0c10.785 0 19.528 8.743 19.528 19.528v60.944c0 10.785-8.743 19.528-19.528 19.528H19.528C8.743 100 0 91.257 0 80.472V19.528C0 8.743 8.743 0 19.528 0h60.944z"/>
+          <circle cx="20.86" cy="50" r="8.5" fill="#fff"/>
+          <circle cx="79.08" cy="50" r="8.5" fill="#fff"/>
+          <rect x="32.46" y="43.45" width="13.18" height="13.14" fill="#fff"/>
+          <path fill="#fff" d="M58.95 40.7l-9.3 9.29 9.3 9.3 9.3-9.3z"/>
+        </svg>`;
+
+        const bpmnIcon = new LabIcon({
+          name: 'bpmn-icon',
+          svgstr: bpmnSvg
+        });
+
+        docRegistry.addFileType({
+          name: 'vscode-bpmn',
+          displayName: 'BPMN Diagram',
+          extensions: ['.bpmn'],
+          fileFormat: 'text',
+          contentType: 'file',
+          icon: bpmnIcon
         });
       }
 

@@ -132,6 +132,10 @@ const KNOWN_EXTENSIONS = [
   'lock',
   'tf',
   'tfvars',
+  // Diagrams
+  'drawio',
+  'dio',
+  'bpmn',
   // Text/Docs
   'txt',
   'log',
