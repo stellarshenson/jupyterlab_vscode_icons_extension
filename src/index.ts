@@ -5,7 +5,7 @@ import {
 import { PageConfig, URLExt } from '@jupyterlab/coreutils';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { IDefaultFileBrowser } from '@jupyterlab/filebrowser';
-import { LabIcon } from '@jupyterlab/ui-components';
+import { LabIcon, markdownIcon } from '@jupyterlab/ui-components';
 import { getIconSVG } from './icons';
 import { parsePyprojectToml, parseSetupPy } from './parsers';
 import { applyJupytext1191Hotfix } from './hotfixes';
@@ -1236,6 +1236,26 @@ const plugin: JupyterFrontEndPlugin<void> = {
         fileFormat: 'text',
         contentType: 'file',
         icon: changelogIcon
+      });
+
+      // Register RELEASE without .md extension (same icon as CHANGELOG)
+      docRegistry.addFileType({
+        name: 'vscode-release',
+        displayName: 'Release Notes',
+        pattern: '^RELEASE$',
+        fileFormat: 'text',
+        contentType: 'file',
+        icon: changelogIcon
+      });
+
+      // Register RELEASE.md with markdown icon
+      docRegistry.addFileType({
+        name: 'vscode-release-md',
+        displayName: 'Release Notes',
+        pattern: '^RELEASE\\.md$',
+        fileFormat: 'text',
+        contentType: 'file',
+        icon: markdownIcon
       });
 
       // Register Draw.io files with custom orange diagram icon
