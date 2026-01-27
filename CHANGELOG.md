@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.49 (2025-01-27)
+
+### Features
+
+- Added hotfix for jupytext 1.19.1 catch-all pattern bug that breaks standard file icons
+- Created `src/hotfixes/` module architecture for isolated third-party fixes
+- Monkey-patches jupytext's `jupytext-notebook-file` file type to exclude ~90 known extensions
+- Includes CSS reset for jupytext's orange borders on markdown files
+
+### Documentation
+
+- Added `docs/jupytext-1.19.1-hotfix.md` with problem analysis and removal instructions
+- Updated README.md with jupytext 1.19.1 hotfix note
+
+### Maintenance
+
+- Updated `tsconfig.json` include pattern from `src/*` to `src/**/*` for subdirectories
+
 ## 1.0.62 (2025-01-14)
 
 ### Bug Fixes
