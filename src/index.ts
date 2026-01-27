@@ -1207,6 +1207,37 @@ const plugin: JupyterFrontEndPlugin<void> = {
         icon: readmeIcon
       });
 
+      // Register CHANGELOG with document + list icon
+      const changelogSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+        <path style="opacity:0.2" d="m 14.5,8 c -1.385,0 -2.5,1.115 -2.5,2.5 v 45 c 0,1.385 1.115,2.5 2.5,2.5 h 35 C 50.885,58 52,56.885 52,55.5 V 23 L 38.25,21.75 37,8 Z"/>
+        <path fill="#e4e4e4" d="m14.5 7c-1.385 0-2.5 1.115-2.5 2.5v45c0 1.385 1.115 2.5 2.5 2.5h35c1.385 0 2.5-1.115 2.5-2.5v-32.5l-13.75-1.25-1.25-13.75z"/>
+        <path style="opacity:0.2" d="M 37,8 V 20.5 c 0,1.3808 1.1193,2.5 2.5,2.5 H 52 Z"/>
+        <path fill="#fafafa" d="m37 7v12.5c0 1.3808 1.1193 2.5 2.5 2.5h12.5l-15-15z"/>
+        <rect style="opacity:0.5" width="19" height="3" x="25" y="35"/>
+        <rect style="opacity:0.5" width="19" height="3" x="25" y="40"/>
+        <rect style="opacity:0.5" width="19" height="3" x="25" y="45"/>
+        <rect style="opacity:0.5" width="3" height="3" x="20" y="35"/>
+        <rect style="opacity:0.5" width="3" height="3" x="20" y="40"/>
+        <rect style="opacity:0.5" width="3" height="3" x="20" y="45"/>
+        <rect style="opacity:0.5" width="19" height="3" x="25" y="30"/>
+        <rect style="opacity:0.5" width="3" height="3" x="20" y="30"/>
+        <path style="opacity:0.2;fill:#ffffff" d="m 14.5,7 c -1.385,0 -2.5,1.115 -2.5,2.5 V 10.5 C 12,9.115 13.115,8 14.5,8 H 37 c 0,-1 0,0 0,-1 z"/>
+      </svg>`;
+
+      const changelogIcon = new LabIcon({
+        name: 'changelog-icon',
+        svgstr: changelogSvg
+      });
+
+      docRegistry.addFileType({
+        name: 'vscode-changelog',
+        displayName: 'Changelog',
+        pattern: '^CHANGELOG(\\.md)?$',
+        fileFormat: 'text',
+        contentType: 'file',
+        icon: changelogIcon
+      });
+
       // Register Draw.io files with custom orange diagram icon
       if (settings.enableConfigIcons) {
         const drawioSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 161.6 161.6">
