@@ -236,3 +236,9 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 77. **Task - Jupytext hotfix extensions expansion** (v1.1.56-1.1.58): Added diagram and Python file extensions to KNOWN_EXTENSIONS array<br>
     **Result**: Extended hotfix to prevent jupytext's catch-all pattern from overriding additional file types: v1.1.56 added diagram extensions (drawio, dio, bpmn); v1.1.57 added Python source files (py, pyw, pyi); v1.1.58 added Python compiled files (pyc, pyo, pyd). Total KNOWN_EXTENSIONS array now contains ~100 extensions ensuring jupytext's `jupytext-notebook-file` pattern doesn't capture standard file types.
+
+78. **Task - Executable shell script icons** (v1.1.59-1.1.61): Added green play triangle overlay to executable shell and batch scripts<br>
+    **Result**: Created composite SVG icons combining shell/batch terminal icons with green play triangle (#00e676 with #1b5e20 stroke) positioned at bottom-right. Shell scripts (.sh, .bash, .zsh, .fish, .csh, .nu) with +x permission show orange terminal icon + play triangle; batch scripts (.bat, .cmd) show blue terminal icon + play triangle; generic executable files retain file icon + play triangle. Added `data-executable-shell` and `data-executable-batch` attributes with corresponding CSS rules. Modified `markSpecialFiles()` to detect shell/batch extensions separately from generic executables.
+
+79. **Task - Hotfix data and Office formats** (v1.1.62): Expanded KNOWN_EXTENSIONS with data formats and MS Office variants<br>
+    **Result**: Added data formats (parquet, feather, arrow, avro, orc) and comprehensive MS Office extensions including templates and macro-enabled variants (docm, dot, dotx, dotm, xlsb, xlt, xltx, xltm, pptm, pot, potx, potm) plus OpenDocument Graphics (odg) and RTF. KNOWN_EXTENSIONS array now contains ~120 extensions.
