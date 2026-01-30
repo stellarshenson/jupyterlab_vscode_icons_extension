@@ -255,7 +255,7 @@ const fileTypeConfigs: IFileTypeConfig[] = [
   },
   {
     extensions: ['.txt'],
-    iconName: 'file-type-text',
+    iconName: 'custom-txt',
     group: 'enableDocIcons'
   },
   {
@@ -282,7 +282,8 @@ const fileTypeConfigs: IFileTypeConfig[] = [
   // Config Files
   {
     extensions: ['.env'],
-    pattern: '^(\\.env|\\.env\\.(?!zip|tar|gz|bz2|xz|7z|rar)[^.]+|[^.]+\\.env)$',
+    pattern:
+      '^(\\.env|\\.env\\.(?!zip|tar|gz|bz2|xz|7z|rar)[^.]+|[^.]+\\.env)$',
     iconName: 'file-type-dotenv',
     mimeTypes: ['text/x-sh'],
     group: 'enableConfigIcons'
@@ -334,7 +335,8 @@ const fileTypeConfigs: IFileTypeConfig[] = [
     group: 'enableConfigIcons'
   },
   {
-    pattern: '^(\\.prettierrc(\\..*)?|prettier\\.config\\..+|\\.prettierignore)$',
+    pattern:
+      '^(\\.prettierrc(\\..*)?|prettier\\.config\\..+|\\.prettierignore)$',
     extensions: [],
     iconName: 'custom-prettier',
     group: 'enableConfigIcons'
@@ -499,6 +501,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const claudeDataUri = `data:image/svg+xml;base64,${btoa(claudeSvg)}`;
       const readmeDataUri = `data:image/svg+xml;base64,${btoa(readmeSvg)}`;
       const pdfDataUri = `data:image/svg+xml;base64,${btoa(pdfSvg)}`;
+      const txtSvg =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3800 4800"><g><path fill="#c9cac6" d="M0 4800h3800V840L2960 0H0"/><path fill="#BBB" d="M2960 840h840L2960 0"/><path fill="#888" d="M3800 1680V840h-840"/></g><g transform="translate(-32,-508.44444)"><path fill="#555555" d="M 900,1976 H 2900 V 1764 H 900 m 0,657 H 2900 V 2209 H 900 m 0,635 H 2100 V 2668 H 900"/></g><g transform="translate(350,130) scale(0.82,0.95)"><path fill="#555555" stroke="#555555" stroke-width="100" stroke-linejoin="round" d="M 1162,3508 H 795 V 4491 H 491 V 3508 H 124 V 3272 H 1162 Z"/><path fill="#555555" stroke="#555555" stroke-width="100" stroke-linejoin="round" transform="translate(50,0)" d="M 2511,4491 h -351 l -254,-401 -258,401 h -335 l 417,-614 -409,-605 h 350 l 245,380 252,-380 h 336 l -411,593 z"/><path fill="#555555" stroke="#555555" stroke-width="100" stroke-linejoin="round" transform="translate(100,0)" d="M 3701,3508 h -367 v 983 h -304 v -983 h -367 v -236 h 1038 z"/></g></svg>';
+      const txtDataUri = `data:image/svg+xml;base64,${btoa(txtSvg)}`;
       const wordDataUri = wordSvg
         ? `data:image/svg+xml;base64,${btoa(wordSvg)}`
         : '';
@@ -523,28 +528,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const venvSvg =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g transform="scale(-1,1) translate(-32,0)"><path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#9575cd"/><g transform="translate(22,22) scale(1.25)" fill="#bababa"><path d="M-1.2,-6 L1.2,-6 L1.5,-4.5 L2.8,-4 L4,-5 L5.5,-3.5 L4.5,-2.3 L5,-1 L6.5,-0.8 L6.5,1.2 L5,1.5 L4.5,2.8 L5.5,4 L4,5.5 L2.8,4.5 L1.5,5 L1.2,6.5 L-1.2,6.5 L-1.5,5 L-2.8,4.5 L-4,5.5 L-5.5,4 L-4.5,2.8 L-5,1.5 L-6.5,1.2 L-6.5,-0.8 L-5,-1 L-4.5,-2.3 L-5.5,-3.5 L-4,-5 L-2.8,-4 L-1.5,-4.5 Z"/><circle cx="0" cy="0" r="2.5" fill="#9575cd"/></g></g></svg>';
       const venvDataUri = `data:image/svg+xml;base64,${btoa(venvSvg)}`;
-      // Executable file icon - JupyterLab standard file icon with play triangle overlay
-      const executableSvg =
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22"><path fill="#909090" d="m19.3 8.2-5.5-5.5c-.3-.3-.7-.5-1.2-.5H3.9c-.8.1-1.6.9-1.6 1.8v14.1c0 .9.7 1.6 1.6 1.6h14.2c.9 0 1.6-.7 1.6-1.6V9.4c.1-.5-.1-.9-.4-1.2m-5.8-3.3 3.4 3.6h-3.4zm3.9 12.7H4.7c-.1 0-.2 0-.2-.2V4.7c0-.2.1-.3.2-.3h7.2v4.4s0 .8.3 1.1 1.1.3 1.1.3h4.3v7.2s-.1.2-.2.2"/><path fill="#00e676" stroke="#1b5e20" stroke-width="0.8" d="M12,12 L20,16 L12,20 Z"/></svg>';
-      const executableDataUri = `data:image/svg+xml;base64,${btoa(executableSvg)}`;
-
-      // Executable shell script icon - shell icon with green play triangle
-      const executableShellSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-        <rect x="1" y="3" width="30" height="26" rx="2" fill="#1a1a1a"/>
-        <path fill="#e8b070" d="M29.4 27.6H2.5V4.5h26.9Zm-25.9-1h24.9V5.5H3.5Z"/>
-        <path fill="#e8b070" d="m6.077 19.316l-.555-.832l4.844-3.229l-4.887-4.071l.641-.768l5.915 4.928zM12.7 18.2h7.8v1h-7.8zM2.5 5.5h26.9v1.9H2.5z"/>
-        <path fill="#00e676" stroke="#1b5e20" stroke-width="1" d="M18,18 L28,23 L18,28 Z"/>
-      </svg>`;
-      const executableShellDataUri = `data:image/svg+xml;base64,${btoa(executableShellSvg)}`;
-
-      // Executable batch script icon - batch icon with green play triangle
-      const executableBatchSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-        <rect x="1" y="3" width="30" height="26" rx="2" fill="#1a1a1a"/>
-        <path fill="#80c8f0" d="M29.4 27.6H2.5V4.5h26.9Zm-25.9-1h24.9V5.5H3.5Z"/>
-        <path fill="#80c8f0" d="m6.077 19.316l-.555-.832l4.844-3.229l-4.887-4.071l.641-.768l5.915 4.928zM12.7 18.2h7.8v1h-7.8zM2.5 5.5h26.9v1.9H2.5z"/>
-        <path fill="#00e676" stroke="#1b5e20" stroke-width="1" d="M18,18 L28,23 L18,28 Z"/>
-      </svg>`;
-      const executableBatchDataUri = `data:image/svg+xml;base64,${btoa(executableBatchSvg)}`;
+      // Standalone play glyph for executable overlay (not a full icon replacement)
+      const playGlyphSvg =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path fill="#00e676" stroke="#1b5e20" stroke-width="0.5" d="M1,1 L9,5 L1,9 Z"/></svg>';
+      const playGlyphDataUri = `data:image/svg+xml;base64,${btoa(playGlyphSvg)}`;
 
       // Inject CSS that overrides icons for .py and .md files
       // Note: Jupytext marks .py and .md files as type="notebook", so we need to
@@ -633,6 +620,22 @@ const plugin: JupyterFrontEndPlugin<void> = {
           width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           background-image: url('${pdfDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
+
+        /* Override TXT file icon with custom document icon */
+        .jp-DirListing-item[data-vscode-txt] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-vscode-txt] .jp-DirListing-itemIcon img {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-vscode-txt] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          background-image: url('${txtDataUri}');
           background-size: contain;
           background-repeat: no-repeat;
           background-position: center;
@@ -766,52 +769,19 @@ const plugin: JupyterFrontEndPlugin<void> = {
           background-position: center;
         }
 
-        /* Override executable file icons (generic files) */
-        .jp-DirListing-item[data-executable] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-executable] .jp-DirListing-itemIcon img {
-          display: none !important;
+        /* Universal executable overlay - small play glyph badge on any executable file */
+        .jp-DirListing-itemIcon {
+          position: relative;
+          overflow: visible;
         }
-        .jp-DirListing-item[data-executable] .jp-DirListing-itemIcon::before {
-          content: '';
-          display: inline-block;
-          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
-          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
-          background-image: url('${executableDataUri}');
-          background-size: contain;
-          background-repeat: no-repeat;
-          background-position: center;
-        }
-
-        /* Override executable shell script icons (.sh, .bash, .zsh, etc.) */
-        .jp-DirListing-item[data-executable-shell] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-executable-shell] .jp-DirListing-itemIcon img {
-          display: none !important;
-        }
-        .jp-DirListing-item[data-executable-shell] .jp-DirListing-itemIcon::before {
-          content: '';
-          display: inline-block;
-          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
-          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
-          background-image: url('${executableShellDataUri}');
-          background-size: contain;
-          background-repeat: no-repeat;
-          background-position: center;
-        }
-
-        /* Override executable batch script icons (.bat, .cmd) */
-        .jp-DirListing-item[data-executable-batch] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-executable-batch] .jp-DirListing-itemIcon img {
-          display: none !important;
-        }
-        .jp-DirListing-item[data-executable-batch] .jp-DirListing-itemIcon::before {
-          content: '';
-          display: inline-block;
-          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
-          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
-          background-image: url('${executableBatchDataUri}');
-          background-size: contain;
-          background-repeat: no-repeat;
-          background-position: center;
+        .vscode-exec-badge {
+          position: absolute !important;
+          bottom: -2px;
+          right: -2px;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5) * 0.52);
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5) * 0.52);
+          pointer-events: none;
+          z-index: 10;
         }
       `;
 
@@ -985,11 +955,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
           // Handle PDF and Office files by extension (override native JupyterLab icons)
           const nameLower = name.toLowerCase();
 
-          // Clear all office/pdf attributes first
+          // Clear all office/pdf/txt attributes first
           item.removeAttribute('data-vscode-pdf');
           item.removeAttribute('data-vscode-word');
           item.removeAttribute('data-vscode-excel');
           item.removeAttribute('data-vscode-powerpoint');
+          item.removeAttribute('data-vscode-txt');
 
           // Set the correct attribute based on extension
           if (nameLower.endsWith('.pdf')) {
@@ -1010,6 +981,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
             nameLower.endsWith('.pptx')
           ) {
             item.setAttribute('data-vscode-powerpoint', 'true');
+          } else if (nameLower.endsWith('.txt')) {
+            item.setAttribute('data-vscode-txt', 'true');
           }
 
           // Force SVG icon for .svg files (override any incorrect file type detection)
@@ -1035,29 +1008,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
           }
 
           // Mark executable files if setting is enabled (uses server API for +x detection)
-          // Shell scripts get shell+play icon, batch scripts get batch+play icon, others get generic executable icon
-          item.removeAttribute('data-executable');
-          item.removeAttribute('data-executable-shell');
-          item.removeAttribute('data-executable-batch');
+          // Universal overlay: any executable file gets a play glyph badge (injected as DOM element)
+          const iconContainer = item.querySelector('.jp-DirListing-itemIcon');
+          const existingBadge = iconContainer?.querySelector('.vscode-exec-badge');
           if (settings.enableExecutableIcons && executables.has(name)) {
-            const shellExtensions = ['.sh', '.bash', '.zsh', '.fish', '.csh', '.nu'];
-            const batchExtensions = ['.bat', '.cmd'];
-            const isShellScript =
-              fileType === 'vscode-shell' ||
-              shellExtensions.some(ext => nameLower.endsWith(ext));
-            const isBatchScript =
-              fileType === 'vscode-batch' ||
-              batchExtensions.some(ext => nameLower.endsWith(ext));
-            const hasNoSpecificType =
-              !fileType || fileType === 'file' || fileType === '';
-
-            if (isShellScript) {
-              item.setAttribute('data-executable-shell', 'true');
-            } else if (isBatchScript) {
-              item.setAttribute('data-executable-batch', 'true');
-            } else if (hasNoSpecificType) {
-              item.setAttribute('data-executable', 'true');
+            if (iconContainer && !existingBadge) {
+              const badge = document.createElement('img');
+              badge.className = 'vscode-exec-badge';
+              badge.src = playGlyphDataUri;
+              iconContainer.appendChild(badge);
             }
+          } else if (existingBadge) {
+            existingBadge.remove();
           }
 
           // Check if this is a directory (folder)
@@ -1371,6 +1333,29 @@ const plugin: JupyterFrontEndPlugin<void> = {
         });
       }
 
+      // Register TXT files with custom document icon
+      if (settings.enableDocIcons) {
+        const txtSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3800 4800">
+          <g><path fill="#c9cac6" d="M0 4800h3800V840L2960 0H0"/><path fill="#BBB" d="M2960 840h840L2960 0"/><path fill="#888" d="M3800 1680V840h-840"/></g>
+          <g transform="translate(-32,-508.44444)"><path fill="#555555" d="M 900,1976 H 2900 V 1764 H 900 m 0,657 H 2900 V 2209 H 900 m 0,635 H 2100 V 2668 H 900"/></g>
+          <g transform="translate(350,130) scale(0.82,0.95)"><path fill="#555555" stroke="#555555" stroke-width="100" stroke-linejoin="round" d="M 1162,3508 H 795 V 4491 H 491 V 3508 H 124 V 3272 H 1162 Z"/><path fill="#555555" stroke="#555555" stroke-width="100" stroke-linejoin="round" transform="translate(50,0)" d="M 2511,4491 h -351 l -254,-401 -258,401 h -335 l 417,-614 -409,-605 h 350 l 245,380 252,-380 h 336 l -411,593 z"/><path fill="#555555" stroke="#555555" stroke-width="100" stroke-linejoin="round" transform="translate(100,0)" d="M 3701,3508 h -367 v 983 h -304 v -983 h -367 v -236 h 1038 z"/></g>
+        </svg>`;
+
+        const txtIcon = new LabIcon({
+          name: 'txt-icon',
+          svgstr: txtSvg
+        });
+
+        docRegistry.addFileType({
+          name: 'vscode-txt',
+          displayName: 'Text File',
+          extensions: ['.txt'],
+          fileFormat: 'text',
+          contentType: 'file',
+          icon: txtIcon
+        });
+      }
+
       // Register MCP config files with custom icon
       if (settings.enableConfigIcons) {
         const mcpSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -1429,7 +1414,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
         docRegistry.addFileType({
           name: 'vscode-prettier',
           displayName: 'Prettier Configuration',
-          pattern: '^(\\.prettierrc(\\..*)?|prettier\\.config\\..+|\\.prettierignore)$',
+          pattern:
+            '^(\\.prettierrc(\\..*)?|prettier\\.config\\..+|\\.prettierignore)$',
           fileFormat: 'text',
           contentType: 'file',
           icon: prettierIcon
