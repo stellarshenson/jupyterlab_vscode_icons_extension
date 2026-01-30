@@ -4,55 +4,43 @@ This document describes the hotfix implemented to address a breaking change in j
 
 ## Problem
 
-Jupytext 1.19.1 introduced a catch-all file type registration in `registry.ts` that overrides icons for standard file types:
+Jupytext 1.19.1 introduced a catch-all file type registration with a negative lookahead pattern:
 
 ```typescript
 docRegistry.addFileType({
   name: 'jupytext-notebook-file',
   contentType: 'notebook',
   pattern: `^(?!.*\\.(${excludedExtensions})$).*$`,
-  icon: fileIcon,
+  icon: fileIcon
 });
 ```
 
-The `excludedExtensions` list only includes:
-- ipynb
-- myst, mystnb, mnb
-- Rmd
-- qmd
-- Jupytext-specific format extensions
-
-Standard file types like `.yml`, `.json`, `.png`, `.zip`, `.js`, etc. are NOT excluded, causing their icons to be replaced with the generic file icon.
+The `excludedExtensions` list only includes jupytext's own formats (ipynb, myst, mystnb, mnb, Rmd, qmd). Standard file types like `.yml`, `.json`, `.png`, `.zip`, `.js` are NOT excluded, causing their icons to be replaced with the generic file icon.
 
 ## Solution
 
-The hotfix in `src/hotfixes/jupytext-1.19.1.ts` monkey-patches jupytext's file type registration by:
+The hotfix uses a **whitelist approach** - we replace the catch-all pattern with one that only matches the 7 formats jupytext actually handles:
 
-1. Accessing JupyterLab's internal `docRegistry._fileTypes` array
-2. Finding the `jupytext-notebook-file` entry
-3. Replacing its pattern with a corrected version that excludes ~90 known file extensions
+```typescript
+const JUPYTEXT_FORMATS = ['py', 'md', 'Rmd', 'qmd', 'myst', 'mystnb', 'mnb'];
+const correctedPattern = `^.*\\.(?:${JUPYTEXT_FORMATS.join('|')})$`;
+```
 
-Additionally, CSS is injected to reset the `::after` pseudo-element that jupytext uses to add orange borders to markdown files.
+**Benefits**:
+- 7 extensions to maintain instead of 120+
+- New file types automatically get correct icons
+- Future-proof without manual updates
 
-## Affected Extensions
+### Supporting Changes
 
-The hotfix protects the following file extensions from jupytext's catch-all:
+The whitelist causes `.py` and `.md` files to get `data-file-type="jupytext-notebook-file"` instead of `data-file-type="notebook"`. To handle this:
 
-**Images**: jpg, jpeg, png, gif, bmp, svg, webp, ico, tiff, tif
+1. **CSS selectors** use `[data-file-type*="notebook"]` to match both values
+2. **JavaScript** in `markSpecialFiles()` checks for both `fileType === 'notebook'` and `fileType === 'jupytext-notebook-file'`
 
-**Data**: json, yaml, yml, xml, csv, tsv
+## CSS Fixes
 
-**Web**: html, htm, css
-
-**Archives**: zip, tar, gz, bz2, xz, 7z, rar
-
-**Documents**: pdf, doc, docx, xls, xlsx, xlsm, ppt, pptx, odt, ods, odp
-
-**Programming**: js, mjs, cjs, ts, mts, cts, jsx, tsx, java, c, cpp, h, hpp, cs, go, rs, rb, php, swift, kt, scala, pl, pm, lua, sh, bash, zsh, fish, csh, nu, bat, cmd, ps1
-
-**Config**: toml, ini, cfg, conf, env, lock, tf, tfvars
-
-**Text**: txt, log, rst, tex
+The hotfix also injects CSS to reset the `::after` pseudo-element that jupytext uses to add orange borders to markdown files.
 
 ## Removal Instructions
 
@@ -61,9 +49,10 @@ When jupytext releases a fix (check releases at https://github.com/mwouts/jupyte
 1. Delete `src/hotfixes/jupytext-1.19.1.ts`
 2. Update `src/hotfixes/index.ts` to remove the export (or delete if no other hotfixes)
 3. Remove the import and `applyJupytext1191Hotfix(docRegistry)` call from `src/index.ts`
-4. Delete this documentation file
+4. Revert CSS selectors from `[data-file-type*="notebook"]` back to `[data-file-type="notebook"]`
+5. Revert JavaScript check from `fileType === 'notebook' || fileType === 'jupytext-notebook-file'` to just `fileType === 'notebook'`
+6. Delete this documentation file
 
 ## References
 
 - Jupytext 1.19.1 registry.ts: https://github.com/mwouts/jupytext/blob/v1.19.1/jupyterlab/packages/jupyterlab-jupytext-extension/src/registry.ts
-- Issue introduced in commit that added catch-all file type for icon handling

@@ -2,12 +2,15 @@
  * Hotfix for jupytext 1.19.1 breaking change
  *
  * Jupytext 1.19.1 registers a catch-all file type with pattern
- * `^(?!.*\\.(excludedExtensions)$).*$` that overrides icons for ALL
- * standard file types (yml, js, png, zip, etc.) because they forgot
- * to exclude them.
+ * `^(?!.*\\.(excludedExtensions)$).*$` that matches ALL files except
+ * jupytext's own formats. This overrides icons for standard file types.
  *
- * This hotfix monkey-patches jupytext's file type registration by
- * modifying its pattern to exclude standard file extensions.
+ * Solution: Replace the catch-all with a whitelist pattern that ONLY
+ * matches files jupytext actually handles. The main extension's CSS and
+ * MutationObserver are updated to handle both data-file-type="notebook"
+ * and data-file-type="jupytext-notebook-file".
+ *
+ * Jupytext handles: .py, .md, .Rmd, .qmd, .myst, .mystnb, .mnb
  *
  * Remove this file when jupytext releases a fix.
  *
@@ -45,132 +48,9 @@ const HOTFIX_CSS = `
 }
 `;
 
-// Extensions that should NOT be caught by jupytext's catch-all
-const KNOWN_EXTENSIONS = [
-  // Images
-  'jpg',
-  'jpeg',
-  'png',
-  'gif',
-  'bmp',
-  'svg',
-  'webp',
-  'ico',
-  'tiff',
-  'tif',
-  // Data
-  'json',
-  'yaml',
-  'yml',
-  'xml',
-  'csv',
-  'tsv',
-  'parquet',
-  'feather',
-  'arrow',
-  'avro',
-  'orc',
-  // Web
-  'html',
-  'htm',
-  'css',
-  // Archives
-  'zip',
-  'tar',
-  'gz',
-  'bz2',
-  'xz',
-  '7z',
-  'rar',
-  // Documents
-  'pdf',
-  'doc',
-  'docx',
-  'docm',
-  'dot',
-  'dotx',
-  'dotm',
-  'xls',
-  'xlsx',
-  'xlsm',
-  'xlsb',
-  'xlt',
-  'xltx',
-  'xltm',
-  'ppt',
-  'pptx',
-  'pptm',
-  'pot',
-  'potx',
-  'potm',
-  'odt',
-  'ods',
-  'odp',
-  'odg',
-  'rtf',
-  // Programming (not handled by jupytext)
-  'py',
-  'pyw',
-  'pyi',
-  'pyc',
-  'pyo',
-  'pyd',
-  'js',
-  'mjs',
-  'cjs',
-  'ts',
-  'mts',
-  'cts',
-  'jsx',
-  'tsx',
-  'java',
-  'c',
-  'cpp',
-  'h',
-  'hpp',
-  'cs',
-  'go',
-  'rs',
-  'rb',
-  'php',
-  'swift',
-  'kt',
-  'scala',
-  'pl',
-  'pm',
-  'lua',
-  'sh',
-  'bash',
-  'zsh',
-  'fish',
-  'csh',
-  'nu',
-  'bat',
-  'cmd',
-  'ps1',
-  // Config
-  'toml',
-  'ini',
-  'cfg',
-  'conf',
-  'env',
-  'lock',
-  'tf',
-  'tfvars',
-  // Diagrams
-  'drawio',
-  'dio',
-  'bpmn',
-  // Text/Docs
-  'txt',
-  'log',
-  'rst',
-  'tex',
-  'md',
-  'markdown',
-  // Notebooks (handled separately by jupytext)
-  'ipynb'
-];
+// Formats jupytext actually handles (whitelist approach)
+// These are the only extensions that should match jupytext's file type
+const JUPYTEXT_FORMATS = ['py', 'md', 'Rmd', 'qmd', 'myst', 'mystnb', 'mnb'];
 
 export const applyJupytext1191Hotfix = (
   docRegistry?: DocumentRegistry
@@ -195,9 +75,8 @@ export const applyJupytext1191Hotfix = (
       );
 
       if (jupytextCatchAll) {
-        // Build corrected pattern that excludes known extensions
-        const extPattern = KNOWN_EXTENSIONS.join('|');
-        const correctedPattern = `^(?!.*\\.(${extPattern})$).*$`;
+        // Build whitelist pattern: only match jupytext formats
+        const correctedPattern = `^.*\\.(?:${JUPYTEXT_FORMATS.join('|')})$`;
 
         // Monkey-patch the pattern
         jupytextCatchAll.pattern = correctedPattern;

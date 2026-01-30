@@ -534,17 +534,17 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const playGlyphDataUri = `data:image/svg+xml;base64,${btoa(playGlyphSvg)}`;
 
       // Inject CSS that overrides icons for .py and .md files
-      // Note: Jupytext marks .py and .md files as type="notebook", so we need to
-      // use JavaScript to detect and mark these files for CSS targeting
+      // Note: Jupytext marks .py and .md files with data-file-type="notebook" or
+      // "jupytext-notebook-file", so we use [*="notebook"] to match both
       const style = document.createElement('style');
       style.id = 'vscode-icons-jupytext-override';
       style.textContent = `
         /* Override Python file icons (.py files shown as notebooks by Jupytext) */
-        .jp-DirListing-item[data-file-type="notebook"][data-jupytext-py] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-file-type="notebook"][data-jupytext-py] .jp-DirListing-itemIcon img {
+        .jp-DirListing-item[data-file-type*="notebook"][data-jupytext-py] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-file-type*="notebook"][data-jupytext-py] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
           display: none !important;
         }
-        .jp-DirListing-item[data-file-type="notebook"][data-jupytext-py] .jp-DirListing-itemIcon::before {
+        .jp-DirListing-item[data-file-type*="notebook"][data-jupytext-py] .jp-DirListing-itemIcon::before {
           content: '';
           display: inline-block;
           width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
@@ -556,11 +556,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
 
         /* Override Markdown file icons (.md files shown as notebooks by Jupytext) with JupyterLab native markdown icon */
-        .jp-DirListing-item[data-file-type="notebook"][data-jupytext-md] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-file-type="notebook"][data-jupytext-md] .jp-DirListing-itemIcon img {
+        .jp-DirListing-item[data-file-type*="notebook"][data-jupytext-md] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-file-type*="notebook"][data-jupytext-md] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
           display: none !important;
         }
-        .jp-DirListing-item[data-file-type="notebook"][data-jupytext-md] .jp-DirListing-itemIcon::before {
+        .jp-DirListing-item[data-file-type*="notebook"][data-jupytext-md] .jp-DirListing-itemIcon::before {
           content: '';
           display: inline-block;
           width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
@@ -572,11 +572,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
 
         /* Override CLAUDE.md file icon with VSCode Claude icon (Claude orange/coral color #c77c5e) */
-        .jp-DirListing-item[data-file-type="notebook"][data-claude-md] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-file-type="notebook"][data-claude-md] .jp-DirListing-itemIcon img {
+        .jp-DirListing-item[data-file-type*="notebook"][data-claude-md] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-file-type*="notebook"][data-claude-md] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
           display: none !important;
         }
-        .jp-DirListing-item[data-file-type="notebook"][data-claude-md] .jp-DirListing-itemIcon::before {
+        .jp-DirListing-item[data-file-type*="notebook"][data-claude-md] .jp-DirListing-itemIcon::before {
           content: '';
           display: inline-block;
           width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
@@ -589,16 +589,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
 
         /* Override README.md file icon with custom info icon */
-        .jp-DirListing-item[data-file-type="notebook"][data-readme-md] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-file-type="notebook"][data-readme-md] .jp-DirListing-itemIcon img {
+        .jp-DirListing-item[data-file-type*="notebook"][data-readme-md] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-file-type*="notebook"][data-readme-md] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
           display: none !important;
         }
-        .jp-DirListing-item[data-file-type="notebook"][data-readme-md] .jp-DirListing-itemIcon {
+        .jp-DirListing-item[data-file-type*="notebook"][data-readme-md] .jp-DirListing-itemIcon {
           display: flex !important;
           justify-content: center !important;
           align-items: center !important;
         }
-        .jp-DirListing-item[data-file-type="notebook"][data-readme-md] .jp-DirListing-itemIcon::before {
+        .jp-DirListing-item[data-file-type*="notebook"][data-readme-md] .jp-DirListing-itemIcon::before {
           content: '';
           display: block;
           width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
@@ -611,7 +611,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         /* Override PDF file icon with VSCode PDF icon */
         .jp-DirListing-item[data-vscode-pdf] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-vscode-pdf] .jp-DirListing-itemIcon img {
+        .jp-DirListing-item[data-vscode-pdf] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
           display: none !important;
         }
         .jp-DirListing-item[data-vscode-pdf] .jp-DirListing-itemIcon::before {
@@ -627,7 +627,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         /* Override TXT file icon with custom document icon */
         .jp-DirListing-item[data-vscode-txt] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-vscode-txt] .jp-DirListing-itemIcon img {
+        .jp-DirListing-item[data-vscode-txt] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
           display: none !important;
         }
         .jp-DirListing-item[data-vscode-txt] .jp-DirListing-itemIcon::before {
@@ -643,7 +643,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         /* Override Word file icon with VSCode Word icon */
         .jp-DirListing-item[data-vscode-word] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-vscode-word] .jp-DirListing-itemIcon img {
+        .jp-DirListing-item[data-vscode-word] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
           display: none !important;
         }
         .jp-DirListing-item[data-vscode-word] .jp-DirListing-itemIcon::before {
@@ -659,7 +659,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         /* Override Excel file icon with VSCode Excel icon */
         .jp-DirListing-item[data-vscode-excel] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-vscode-excel] .jp-DirListing-itemIcon img {
+        .jp-DirListing-item[data-vscode-excel] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
           display: none !important;
         }
         .jp-DirListing-item[data-vscode-excel] .jp-DirListing-itemIcon::before {
@@ -675,7 +675,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         /* Override PowerPoint file icon with VSCode PowerPoint icon */
         .jp-DirListing-item[data-vscode-powerpoint] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-vscode-powerpoint] .jp-DirListing-itemIcon img {
+        .jp-DirListing-item[data-vscode-powerpoint] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
           display: none !important;
         }
         .jp-DirListing-item[data-vscode-powerpoint] .jp-DirListing-itemIcon::before {
@@ -691,7 +691,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         /* Override any incorrect file type detection for SVG files */
         .jp-DirListing-item[data-vscode-svg-override] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-vscode-svg-override] .jp-DirListing-itemIcon img {
+        .jp-DirListing-item[data-vscode-svg-override] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
           display: none !important;
         }
         .jp-DirListing-item[data-vscode-svg-override] .jp-DirListing-itemIcon::before {
@@ -707,7 +707,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         /* Override uv.lock file icon with UV icon */
         .jp-DirListing-item[data-uv-lock] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-uv-lock] .jp-DirListing-itemIcon img {
+        .jp-DirListing-item[data-uv-lock] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
           display: none !important;
         }
         .jp-DirListing-item[data-uv-lock] .jp-DirListing-itemIcon::before {
@@ -723,7 +723,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         /* Override pytest-related file icons */
         .jp-DirListing-item[data-pytest] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-pytest] .jp-DirListing-itemIcon img {
+        .jp-DirListing-item[data-pytest] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
           display: none !important;
         }
         .jp-DirListing-item[data-pytest] .jp-DirListing-itemIcon::before {
@@ -739,7 +739,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         /* Override Python package folder icons */
         .jp-DirListing-item[data-python-package] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-python-package] .jp-DirListing-itemIcon img {
+        .jp-DirListing-item[data-python-package] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
           display: none !important;
         }
         .jp-DirListing-item[data-python-package] .jp-DirListing-itemIcon::before {
@@ -755,7 +755,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         /* Override venv folder icons (.venv, venv, .env, env) */
         .jp-DirListing-item[data-venv-folder] .jp-DirListing-itemIcon svg,
-        .jp-DirListing-item[data-venv-folder] .jp-DirListing-itemIcon img {
+        .jp-DirListing-item[data-venv-folder] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
           display: none !important;
         }
         .jp-DirListing-item[data-venv-folder] .jp-DirListing-itemIcon::before {
@@ -782,6 +782,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
           height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5) * 0.52);
           pointer-events: none;
           z-index: 10;
+        }
+        /* Ensure exec badge is always visible (override other img:display:none rules) */
+        .jp-DirListing-itemIcon img.vscode-exec-badge {
+          display: block !important;
         }
       `;
 
@@ -926,8 +930,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
           const name = nameSpan.textContent.trim();
 
-          // Handle notebook files (Jupytext and special markdown)
-          if (fileType === 'notebook') {
+          // Handle notebook files (Jupytext marks them as "notebook" or "jupytext-notebook-file")
+          const isNotebookType =
+            fileType === 'notebook' || fileType === 'jupytext-notebook-file';
+          if (isNotebookType) {
             // Clear all notebook attributes first
             item.removeAttribute('data-claude-md');
             item.removeAttribute('data-readme-md');
