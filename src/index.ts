@@ -530,7 +530,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const venvDataUri = `data:image/svg+xml;base64,${btoa(venvSvg)}`;
       // Standalone play glyph for executable overlay (not a full icon replacement)
       const playGlyphSvg =
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path fill="#00e676" stroke="#1b5e20" stroke-width="0.5" d="M1,1 L9,5 L1,9 Z"/></svg>';
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path fill="#00e676" stroke="#1b5e20" stroke-width="0.5" d="M1,0 L11,6 L1,12 Z"/></svg>';
       const playGlyphDataUri = `data:image/svg+xml;base64,${btoa(playGlyphSvg)}`;
 
       // Inject CSS that overrides icons for .py and .md files
@@ -777,7 +777,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         .vscode-exec-badge {
           position: absolute !important;
           bottom: -2px;
-          right: -2px;
+          right: 0px;
           width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5) * 0.52);
           height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5) * 0.52);
           pointer-events: none;
