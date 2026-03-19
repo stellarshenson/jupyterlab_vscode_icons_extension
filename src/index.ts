@@ -1130,7 +1130,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
           name: fileTypeName,
           icon: icon,
           fileFormat: 'text',
-          contentType: 'file'
+          contentType: 'file',
+          mimeTypes: ['text/plain']
         };
 
         if (config.extensions.length > 0) {
@@ -1165,6 +1166,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         pattern: '^(Makefile|makefile|GNUmakefile)$',
         fileFormat: 'text',
         contentType: 'file',
+        mimeTypes: ['text/x-makefile'],
         icon: makefileIcon
       });
 
@@ -1202,6 +1204,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         pattern: '^(LICENSE|LICENCE|LICENSE\\..*|LICENCE\\..*)$',
         fileFormat: 'text',
         contentType: 'file',
+        mimeTypes: ['text/plain'],
         icon: licenseIcon
       });
 
@@ -1214,6 +1217,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           pattern: '^CLAUDE\\.md$',
           fileFormat: 'text',
           contentType: 'file',
+          mimeTypes: ['text/markdown'],
           icon: claudeIcon
         });
       } else {
@@ -1237,6 +1241,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         pattern: '^README\\.md$',
         fileFormat: 'text',
         contentType: 'file',
+        mimeTypes: ['text/markdown'],
         icon: readmeIcon
       });
 
@@ -1268,6 +1273,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         pattern: '^CHANGELOG(\\.md)?$',
         fileFormat: 'text',
         contentType: 'file',
+        mimeTypes: ['text/plain'],
         icon: changelogIcon
       });
 
@@ -1278,6 +1284,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         pattern: '^RELEASE$',
         fileFormat: 'text',
         contentType: 'file',
+        mimeTypes: ['text/plain'],
         icon: changelogIcon
       });
 
@@ -1288,6 +1295,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         pattern: '^RELEASE\\.md$',
         fileFormat: 'text',
         contentType: 'file',
+        mimeTypes: ['text/markdown'],
         icon: markdownIcon
       });
 
@@ -1310,6 +1318,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           extensions: ['.drawio', '.dio'],
           fileFormat: 'text',
           contentType: 'file',
+          mimeTypes: ['application/xml'],
           icon: drawioIcon
         });
       }
@@ -1335,6 +1344,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           extensions: ['.bpmn'],
           fileFormat: 'text',
           contentType: 'file',
+          mimeTypes: ['application/xml'],
           icon: bpmnIcon
         });
       }
@@ -1358,6 +1368,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           extensions: ['.txt'],
           fileFormat: 'text',
           contentType: 'file',
+          mimeTypes: ['text/plain'],
           icon: txtIcon
         });
       }
@@ -1380,6 +1391,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           pattern: '^\\.mcp\\.json(\\..*)?$',
           fileFormat: 'text',
           contentType: 'file',
+          mimeTypes: ['application/json'],
           icon: mcpIcon
         });
       }
@@ -1424,6 +1436,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             '^(\\.prettierrc(\\..*)?|prettier\\.config\\..+|\\.prettierignore)$',
           fileFormat: 'text',
           contentType: 'file',
+          mimeTypes: ['text/plain'],
           icon: prettierIcon
         });
       }
@@ -1447,6 +1460,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           extensions: ['.sh', '.bash', '.zsh', '.fish', '.csh', '.nu'],
           fileFormat: 'text',
           contentType: 'file',
+          mimeTypes: ['text/x-sh'],
           icon: shellIcon
         });
       }
@@ -1470,6 +1484,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           extensions: ['.bat', '.cmd'],
           fileFormat: 'text',
           contentType: 'file',
+          mimeTypes: ['text/plain'],
           icon: batchIcon
         });
       }
