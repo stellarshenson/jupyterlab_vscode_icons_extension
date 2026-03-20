@@ -1441,12 +1441,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
         });
       }
 
-      // Register shell scripts with custom black background and desaturated orange icon
+      // Register shell scripts with terminal-linux icon ($ prompt, theme-aware via jp- classes)
       if (settings.enableLanguageIcons) {
-        const shellSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-          <rect x="1" y="3" width="30" height="26" rx="2" fill="#1a1a1a"/>
-          <path fill="#e8b070" d="M29.4 27.6H2.5V4.5h26.9Zm-25.9-1h24.9V5.5H3.5Z"/>
-          <path fill="#e8b070" d="m6.077 19.316l-.555-.832l4.844-3.229l-4.887-4.071l.641-.768l5.915 4.928zM12.7 18.2h7.8v1h-7.8zM2.5 5.5h26.9v1.9H2.5z"/>
+        const shellSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path fill="#333" d="M2 2h20v20H2z" class="jp-terminal-icon-background-color jp-icon-selectable"/>
+          <path fill="#fff" d="M9.01 14.762q0-.246-.077-.434a.9.9 0 0 0-.234-.351 1.6 1.6 0 0 0-.422-.288 5 5 0 0 0-.627-.263q-.592-.211-1.078-.446a3.5 3.5 0 0 1-.832-.544 2.2 2.2 0 0 1-.528-.721 2.4 2.4 0 0 1-.187-.985q0-.498.17-.908a2.1 2.1 0 0 1 .48-.72q.31-.306.75-.493.44-.188.979-.24V7.11h.937v1.272q.527.07.95.287.421.217.714.568.3.345.457.82.165.47.164 1.055H8.998q0-.709-.323-1.072-.322-.37-.873-.37-.299 0-.521.083a.9.9 0 0 0-.358.223.9.9 0 0 0-.21.334q-.066.194-.065.421 0 .23.064.41a.9.9 0 0 0 .229.329q.165.152.428.293.263.134.656.275.591.223 1.072.463.48.235.82.55.346.312.528.727.187.41.187.973 0 .515-.17.932-.17.41-.486.709t-.762.48a3.7 3.7 0 0 1-.996.229v1.148h-.931V17.1a4 4 0 0 1-.967-.217 2.6 2.6 0 0 1-.832-.504 2.4 2.4 0 0 1-.574-.826q-.217-.505-.217-1.207h1.635q0 .421.123.709.123.281.316.45.2.165.451.235.252.07.516.07.627 0 .949-.292a.98.98 0 0 0 .322-.756m8.36 3.51h-5.343V17h5.344z" class="jp-terminal-icon-color jp-icon-selectable-inverse"/>
         </svg>`;
 
         const shellIcon = new LabIcon({
@@ -1465,12 +1464,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
         });
       }
 
-      // Register batch files with custom black background and desaturated blue icon
+      // Register batch files with terminal-win icon (> prompt, blue background)
       if (settings.enableLanguageIcons) {
-        const batchSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-          <rect x="1" y="3" width="30" height="26" rx="2" fill="#1a1a1a"/>
-          <path fill="#80c8f0" d="M29.4 27.6H2.5V4.5h26.9Zm-25.9-1h24.9V5.5H3.5Z"/>
-          <path fill="#80c8f0" d="m6.077 19.316l-.555-.832l4.844-3.229l-4.887-4.071l.641-.768l5.915 4.928zM12.7 18.2h7.8v1h-7.8zM2.5 5.5h26.9v1.9H2.5z"/>
+        const batchSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+          <path fill="#0288D1" d="M20 19.8h160v159.9H20z" class="jp-console-icon-background-color jp-icon-selectable"/>
+          <path fill="#fff" d="M105 127.3h40v12.8h-40zM51.1 77 74 99.9l-23.3 23.3 10.5 10.5 23.3-23.3L95 99.9 84.5 89.4 61.6 66.5z" class="jp-console-icon-color jp-icon-selectable-inverse"/>
         </svg>`;
 
         const batchIcon = new LabIcon({
