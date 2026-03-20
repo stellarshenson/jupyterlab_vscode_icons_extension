@@ -1,5 +1,5 @@
-# Makefile for Jupyterlab extensions version 1.29
-# changelog: use jlpm instead of yarn, python -m twine, prettier after npm install, auto-commit after publish
+# Makefile for Jupyterlab extensions version 1.30
+# changelog: check twine in check_dependencies, ensure publish doesn't fail on missing twine
 # author: Stellars Henson <konrad.jelen@gmail.com>
 # License: MIT Open Source License
 
@@ -50,6 +50,7 @@ check_dependencies:
 	@MISSING=""; \
 	command -v node >/dev/null 2>&1 || MISSING="$$MISSING node"; \
 	command -v npm >/dev/null 2>&1 || MISSING="$$MISSING npm"; \
+	python -m twine --version >/dev/null 2>&1 || MISSING="$$MISSING twine"; \
 	if [ -n "$$MISSING" ]; then \
 		echo "Missing dependencies:$$MISSING"; \
 		echo "Installing missing dependencies..."; \
