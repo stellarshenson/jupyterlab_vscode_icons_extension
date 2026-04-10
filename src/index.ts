@@ -528,12 +528,19 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const venvSvg =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g transform="scale(-1,1) translate(-32,0)"><path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#9575cd"/><g transform="translate(22,22) scale(1.25)" fill="#bababa"><path d="M-1.2,-6 L1.2,-6 L1.5,-4.5 L2.8,-4 L4,-5 L5.5,-3.5 L4.5,-2.3 L5,-1 L6.5,-0.8 L6.5,1.2 L5,1.5 L4.5,2.8 L5.5,4 L4,5.5 L2.8,4.5 L1.5,5 L1.2,6.5 L-1.2,6.5 L-1.5,5 L-2.8,4.5 L-4,5.5 L-5.5,4 L-4.5,2.8 L-5,1.5 L-6.5,1.2 L-6.5,-0.8 L-5,-1 L-4.5,-2.3 L-5.5,-3.5 L-4,-5 L-2.8,-4 L-1.5,-4.5 Z"/><circle cx="0" cy="0" r="2.5" fill="#9575cd"/></g></g></svg>';
       const venvDataUri = `data:image/svg+xml;base64,${btoa(venvSvg)}`;
-      const srcFolderSvg =
+      // Src/test folder icons: dark mode (light glyphs) and light mode (black glyphs)
+      const srcFolderDarkSvg =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g transform="scale(-1,1) translate(-32,0)"><path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#2979b8"/><g transform="translate(22,22) scale(1.25)" fill="none" stroke="#d4d4d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="-4,-4 -7,0 -4,4"/><polyline points="4,-4 7,0 4,4"/></g></g></svg>';
-      const srcFolderDataUri = `data:image/svg+xml;base64,${btoa(srcFolderSvg)}`;
-      const testFolderSvg =
+      const srcFolderDarkDataUri = `data:image/svg+xml;base64,${btoa(srcFolderDarkSvg)}`;
+      const srcFolderLightSvg =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g transform="scale(-1,1) translate(-32,0)"><path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#2979b8"/><g transform="translate(22,22) scale(1.25)" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="-4,-4 -7,0 -4,4"/><polyline points="4,-4 7,0 4,4"/></g></g></svg>';
+      const srcFolderLightDataUri = `data:image/svg+xml;base64,${btoa(srcFolderLightSvg)}`;
+      const testFolderDarkSvg =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g transform="scale(-1,1) translate(-32,0)"><path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#c07818"/><g transform="translate(22,22) scale(1.25)" fill="none" stroke="#d4d4d4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="-5,0 -2,4 5,-4"/></g></g></svg>';
-      const testFolderDataUri = `data:image/svg+xml;base64,${btoa(testFolderSvg)}`;
+      const testFolderDarkDataUri = `data:image/svg+xml;base64,${btoa(testFolderDarkSvg)}`;
+      const testFolderLightSvg =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g transform="scale(-1,1) translate(-32,0)"><path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#c07818"/><g transform="translate(22,22) scale(1.25)" fill="none" stroke="#000000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="-5,0 -2,4 5,-4"/></g></g></svg>';
+      const testFolderLightDataUri = `data:image/svg+xml;base64,${btoa(testFolderLightSvg)}`;
       // Standalone play glyph for executable overlay (not a full icon replacement)
       const playGlyphSvg =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path fill="#00e676" stroke="#1b5e20" stroke-width="0.5" d="M1,0 L11,6 L1,12 Z"/></svg>';
@@ -775,7 +782,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           background-position: center;
         }
 
-        /* Override src folder icons */
+        /* Override src folder icons - dark mode (light glyphs) */
         .jp-DirListing-item[data-src-folder] .jp-DirListing-itemIcon svg,
         .jp-DirListing-item[data-src-folder] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
           display: none !important;
@@ -785,13 +792,17 @@ const plugin: JupyterFrontEndPlugin<void> = {
           display: inline-block;
           width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
-          background-image: url('${srcFolderDataUri}');
+          background-image: url('${srcFolderDarkDataUri}');
           background-size: contain;
           background-repeat: no-repeat;
           background-position: center;
         }
+        /* src folder - light mode (black glyphs) */
+        body[data-jp-theme-light="true"] .jp-DirListing-item[data-src-folder] .jp-DirListing-itemIcon::before {
+          background-image: url('${srcFolderLightDataUri}');
+        }
 
-        /* Override test folder icons */
+        /* Override test folder icons - dark mode (light glyphs) */
         .jp-DirListing-item[data-test-folder] .jp-DirListing-itemIcon svg,
         .jp-DirListing-item[data-test-folder] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
           display: none !important;
@@ -801,10 +812,14 @@ const plugin: JupyterFrontEndPlugin<void> = {
           display: inline-block;
           width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
-          background-image: url('${testFolderDataUri}');
+          background-image: url('${testFolderDarkDataUri}');
           background-size: contain;
           background-repeat: no-repeat;
           background-position: center;
+        }
+        /* test folder - light mode (black glyphs) */
+        body[data-jp-theme-light="true"] .jp-DirListing-item[data-test-folder] .jp-DirListing-itemIcon::before {
+          background-image: url('${testFolderLightDataUri}');
         }
 
         /* Universal executable overlay - small play glyph badge on any executable file */
