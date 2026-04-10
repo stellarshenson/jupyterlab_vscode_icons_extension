@@ -528,6 +528,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const venvSvg =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g transform="scale(-1,1) translate(-32,0)"><path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#9575cd"/><g transform="translate(22,22) scale(1.25)" fill="#bababa"><path d="M-1.2,-6 L1.2,-6 L1.5,-4.5 L2.8,-4 L4,-5 L5.5,-3.5 L4.5,-2.3 L5,-1 L6.5,-0.8 L6.5,1.2 L5,1.5 L4.5,2.8 L5.5,4 L4,5.5 L2.8,4.5 L1.5,5 L1.2,6.5 L-1.2,6.5 L-1.5,5 L-2.8,4.5 L-4,5.5 L-5.5,4 L-4.5,2.8 L-5,1.5 L-6.5,1.2 L-6.5,-0.8 L-5,-1 L-4.5,-2.3 L-5.5,-3.5 L-4,-5 L-2.8,-4 L-1.5,-4.5 Z"/><circle cx="0" cy="0" r="2.5" fill="#9575cd"/></g></g></svg>';
       const venvDataUri = `data:image/svg+xml;base64,${btoa(venvSvg)}`;
+      const srcFolderSvg =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#42a5f5"/><g transform="translate(22,22) scale(1.25)" fill="none" stroke="#e0e0e0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="-4,-4 -7,0 -4,4"/><polyline points="4,-4 7,0 4,4"/></g></svg>';
+      const srcFolderDataUri = `data:image/svg+xml;base64,${btoa(srcFolderSvg)}`;
+      const testFolderSvg =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#ffa726"/><g transform="translate(22,22) scale(1.25)" fill="none" stroke="#e0e0e0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="-5,0 -2,4 5,-4"/></g></svg>';
+      const testFolderDataUri = `data:image/svg+xml;base64,${btoa(testFolderSvg)}`;
       // Standalone play glyph for executable overlay (not a full icon replacement)
       const playGlyphSvg =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path fill="#00e676" stroke="#1b5e20" stroke-width="0.5" d="M1,0 L11,6 L1,12 Z"/></svg>';
@@ -764,6 +770,38 @@ const plugin: JupyterFrontEndPlugin<void> = {
           width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           background-image: url('${venvDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
+
+        /* Override src folder icons */
+        .jp-DirListing-item[data-src-folder] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-src-folder] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-src-folder] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          background-image: url('${srcFolderDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
+
+        /* Override test folder icons */
+        .jp-DirListing-item[data-test-folder] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-test-folder] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-test-folder] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          background-image: url('${testFolderDataUri}');
           background-size: contain;
           background-repeat: no-repeat;
           background-position: center;
@@ -1016,7 +1054,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
           // Mark executable files if setting is enabled (uses server API for +x detection)
           // Universal overlay: any executable file gets a play glyph badge (injected as DOM element)
           const iconContainer = item.querySelector('.jp-DirListing-itemIcon');
-          const existingBadge = iconContainer?.querySelector('.vscode-exec-badge');
+          const existingBadge =
+            iconContainer?.querySelector('.vscode-exec-badge');
           if (settings.enableExecutableIcons && executables.has(name)) {
             if (iconContainer && !existingBadge) {
               const badge = document.createElement('img');
@@ -1035,11 +1074,34 @@ const plugin: JupyterFrontEndPlugin<void> = {
           if (isDir) {
             // Check if folder is a venv folder (.venv, venv, .env, env)
             const venvNames = ['.venv', 'venv', '.env', 'env'];
+            const srcNames = ['src', 'lib', 'source'];
+            const testNames = [
+              'test',
+              'tests',
+              '__tests__',
+              'spec',
+              'specs',
+              'ui-tests'
+            ];
             if (venvNames.includes(nameLower)) {
               item.setAttribute('data-venv-folder', 'true');
               item.removeAttribute('data-python-package');
+              item.removeAttribute('data-src-folder');
+              item.removeAttribute('data-test-folder');
+            } else if (srcNames.includes(nameLower)) {
+              item.setAttribute('data-src-folder', 'true');
+              item.removeAttribute('data-venv-folder');
+              item.removeAttribute('data-python-package');
+              item.removeAttribute('data-test-folder');
+            } else if (testNames.includes(nameLower)) {
+              item.setAttribute('data-test-folder', 'true');
+              item.removeAttribute('data-venv-folder');
+              item.removeAttribute('data-python-package');
+              item.removeAttribute('data-src-folder');
             } else {
               item.removeAttribute('data-venv-folder');
+              item.removeAttribute('data-src-folder');
+              item.removeAttribute('data-test-folder');
               // Check if folder name matches a detected Python package
               if (pythonPackages.has(name)) {
                 item.setAttribute('data-python-package', 'true');
@@ -1050,6 +1112,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
           } else {
             item.removeAttribute('data-python-package');
             item.removeAttribute('data-venv-folder');
+            item.removeAttribute('data-src-folder');
+            item.removeAttribute('data-test-folder');
           }
         });
       };

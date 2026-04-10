@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="800px" height="800px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Amber folder base - same shape as python-package/venv -->
+  <path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#ffa726"/>
+  <!-- Checkmark decal - positioned bottom-right like venv gear -->
+  <g transform="translate(22, 22) scale(1.25)" fill="none" stroke="#e0e0e0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="-5,0 -2,4 5,-4"/>
+  </g>
+</svg>
