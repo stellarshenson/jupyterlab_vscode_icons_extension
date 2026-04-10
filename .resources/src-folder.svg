@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <svg width="800px" height="800px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-  <!-- Blue folder base - same shape as python-package/venv -->
-  <path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#42a5f5"/>
-  <!-- Code angle brackets decal - positioned bottom-right like venv gear -->
-  <g transform="translate(22, 22) scale(1.25)" fill="none" stroke="#e0e0e0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <polyline points="-4,-4 -7,0 -4,4"/>
-    <polyline points="4,-4 7,0 4,4"/>
+  <!-- Blue folder base - horizontally flipped to position decal at lower-left -->
+  <g transform="scale(-1,1) translate(-32,0)">
+    <path d="M27.4,5.5H18.1L16,9.7H4.3V26.5H29.5V5.5Zm0,4.2H19.2l1.1-2.1h7.1Z" fill="#2979b8"/>
+    <!-- Code angle brackets decal - positioned bottom-right, flipped to lower-left -->
+    <g transform="translate(22, 22) scale(1.25)" fill="none" stroke="#d4d4d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="-4,-4 -7,0 -4,4"/>
+      <polyline points="4,-4 7,0 4,4"/>
+    </g>
   </g>
 </svg>
