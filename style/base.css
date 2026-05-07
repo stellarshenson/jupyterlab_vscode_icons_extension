@@ -50,3 +50,12 @@
 .jp-DirListing-item[data-is-dot] {
   opacity: 0.55 !important;
 }
+
+/* joblib icon inner glyph - theme-aware */
+.joblib-glyph {
+  fill: #999;
+}
+
+body[data-jp-theme-light='true'] .joblib-glyph {
+  fill: #212121;
+}
