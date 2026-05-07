@@ -27,6 +27,7 @@ const correctedPattern = `^.*\\.(?:${JUPYTEXT_FORMATS.join('|')})$`;
 ```
 
 **Benefits**:
+
 - 7 extensions to maintain instead of 120+
 - New file types automatically get correct icons
 - Future-proof without manual updates
