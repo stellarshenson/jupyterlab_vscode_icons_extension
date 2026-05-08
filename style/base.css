@@ -53,7 +53,7 @@
 
 /* joblib icon inner glyph - theme-aware */
 .joblib-glyph {
-  fill: #999;
+  fill: #bbb;
 }
 
 body[data-jp-theme-light='true'] .joblib-glyph {
