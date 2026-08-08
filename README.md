@@ -62,7 +62,7 @@ Customize which icon groups to display via JupyterLab Settings:
 3. Toggle icon groups on/off:
    - Programming Language Icons (Python, JS, TS, Java, C++, Rust, Go, etc.)
    - Web Development Icons (HTML, CSS, Vue, Svelte)
-   - Data Format Icons (JSON, YAML, CSV, XML)
+   - Data Format Icons (JSON, TOML, XML, CSV, ML models)
    - Configuration File Icons (Dockerfile, .gitignore, Makefile, package.json)
    - Documentation Icons (Markdown, RST, PDF)
    - Image File Icons (PNG, JPG, SVG)

@@ -20,7 +20,7 @@
     "enableDataIcons": {
       "type": "boolean",
       "title": "Data Format Icons",
-      "description": "Enable icons for data files (JSON, YAML, TOML, XML, CSV)",
+      "description": "Enable icons for data files (JSON, TOML, XML, CSV, ML models)",
       "default": true
     },
     "enableConfigIcons": {

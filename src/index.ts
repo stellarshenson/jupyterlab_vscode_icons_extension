@@ -509,6 +509,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const powerpointSvg = powerpointIcon?.svgstr || '';
       const svgFileIcon = createLabIcon('file-type-image');
       const svgFileSvg = svgFileIcon?.svgstr || '';
+      // Database icons - file-type-db is light gray (#c4c7ce), unreadable on
+      // light themes, so file-type-light-db (#74777c) is swapped in via CSS
+      const dbDarkSvg = createLabIcon('file-type-db')?.svgstr || '';
+      const dbLightSvg = createLabIcon('file-type-light-db')?.svgstr || '';
+      const sqliteSvg = createLabIcon('file-type-sqlite')?.svgstr || '';
 
       // Create base64 encoded data URIs
       const pythonDataUri = `data:image/svg+xml;base64,${btoa(pythonSvg)}`;
@@ -530,6 +535,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
         : '';
       const svgFileDataUri = svgFileSvg
         ? `data:image/svg+xml;base64,${btoa(svgFileSvg)}`
+        : '';
+      const dbDarkDataUri = dbDarkSvg
+        ? `data:image/svg+xml;base64,${btoa(dbDarkSvg)}`
+        : '';
+      const dbLightDataUri = dbLightSvg
+        ? `data:image/svg+xml;base64,${btoa(dbLightSvg)}`
+        : '';
+      const sqliteDataUri = sqliteSvg
+        ? `data:image/svg+xml;base64,${btoa(sqliteSvg)}`
         : '';
       const uvSvg =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 330"><rect height="100%" width="100%" rx="66" fill="#26102f"/><path fill="#d256dc" d="M 65,65 h92 v130 h16 v-130 h92 v200 h-16 v-20 h-8 a20,20 0 0 1 -20,20 h-136 a20,20 0 0 1 -20,-20 z"/></svg>';
@@ -651,6 +665,41 @@ const plugin: JupyterFrontEndPlugin<void> = {
           background-size: contain;
           background-repeat: no-repeat;
           background-position: center;
+        }
+
+        /* Override database file icons with VSCode database icons.
+           jupyterlab_tabular_data_viewer_extension claims .db/.db3/.sqlite/.sqlite3
+           via iconClass, which JupyterLab paints as a background-image on the icon
+           container itself with no child element - so clearing that background is
+           required in addition to hiding the usual svg/img child. */
+        .jp-DirListing-item[data-vscode-db] .jp-DirListing-itemIcon,
+        .jp-DirListing-item[data-vscode-sqlite] .jp-DirListing-itemIcon {
+          background-image: none !important;
+        }
+        .jp-DirListing-item[data-vscode-db] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-vscode-db] .jp-DirListing-itemIcon img:not(.vscode-exec-badge),
+        .jp-DirListing-item[data-vscode-sqlite] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-vscode-sqlite] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-vscode-db] .jp-DirListing-itemIcon::before,
+        .jp-DirListing-item[data-vscode-sqlite] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
+        .jp-DirListing-item[data-vscode-db] .jp-DirListing-itemIcon::before {
+          background-image: url('${dbDarkDataUri}');
+        }
+        body[data-jp-theme-light="true"] .jp-DirListing-item[data-vscode-db] .jp-DirListing-itemIcon::before {
+          background-image: url('${dbLightDataUri}');
+        }
+        .jp-DirListing-item[data-vscode-sqlite] .jp-DirListing-itemIcon::before {
+          background-image: url('${sqliteDataUri}');
         }
 
         /* Override TXT file icon with custom document icon */
@@ -1035,6 +1084,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
           item.removeAttribute('data-vscode-excel');
           item.removeAttribute('data-vscode-powerpoint');
           item.removeAttribute('data-vscode-txt');
+          item.removeAttribute('data-vscode-db');
+          item.removeAttribute('data-vscode-sqlite');
 
           // Set the correct attribute based on extension
           if (nameLower.endsWith('.pdf')) {
@@ -1057,6 +1108,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
             item.setAttribute('data-vscode-powerpoint', 'true');
           } else if (nameLower.endsWith('.txt')) {
             item.setAttribute('data-vscode-txt', 'true');
+          } else if (
+            nameLower.endsWith('.sqlite') ||
+            nameLower.endsWith('.sqlite3')
+          ) {
+            item.setAttribute('data-vscode-sqlite', 'true');
+          } else if (nameLower.endsWith('.db') || nameLower.endsWith('.db3')) {
+            item.setAttribute('data-vscode-db', 'true');
           }
 
           // Force SVG icon for .svg files (override any incorrect file type detection)

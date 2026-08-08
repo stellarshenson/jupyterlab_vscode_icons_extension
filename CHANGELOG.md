@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.105 (2026-08-08)
+
+### Features
+
+- Added database file icons for `.db`, `.db3`, `.sqlite` and `.sqlite3`
+- `.sqlite`/`.sqlite3` use the SQLite brand logo; `.db`/`.db3` use the generic database cylinder, since `.db` is an overloaded extension
+- Database cylinder is theme-aware - `file-type-db` on dark themes, `file-type-light-db` on light themes
+
+### Bug Fixes
+
+- Cleared the icon container's own `background-image` so file types registered by other extensions via `iconClass` (such as `jupyterlab_tabular_data_viewer_extension`) no longer show through beneath the overridden icon
+- Corrected the `enableDataIcons` setting description, which advertised YAML and database coverage that the setting does not gate
+
 ## 1.1.49 (2025-01-27)
 
 ### Features
