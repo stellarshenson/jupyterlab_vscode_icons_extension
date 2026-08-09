@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.106 (2026-08-09)
+
+### Enhancements
+
+- Unified database icons - `.db`, `.db3`, `.sqlite` and `.sqlite3` now share a single blue cylinder instead of a separate SQLite brand logo and grey cylinder
+- Recoloured the cylinder to `#4a86c5`, which clears the 3:1 contrast bar on both light (3.81:1) and dark (4.22:1) themes
+
+### Maintenance
+
+- Removed the light-theme database icon variant and its `body[data-jp-theme-light]` swap, no longer needed now that one colour works on both themes
+
 ## 1.1.105 (2026-08-08)
 
 ### Features
