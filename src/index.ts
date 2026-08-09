@@ -509,13 +509,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const powerpointSvg = powerpointIcon?.svgstr || '';
       const svgFileIcon = createLabIcon('file-type-image');
       const svgFileSvg = svgFileIcon?.svgstr || '';
-      // Database icon - one cylinder for every database format, recoloured from
-      // the stock light gray (#c4c7ce, unreadable on light themes) to a blue that
-      // clears 3:1 on both light (3.81:1) and dark (4.22:1), so no variant swap
-      const dbSvg = (createLabIcon('file-type-db')?.svgstr || '').replace(
-        /#c4c7ce/g,
-        '#4a86c5'
-      );
+      // Database icon - one cylinder for every database format. Derived from the
+      // bundled vscode-icons `file-type-db` by dropping its third band and pulling
+      // the base up one band pitch (6.705), giving 3 slices instead of 4 and a
+      // shorter cylinder, then re-centred in the viewBox (translate 3.35).
+      // Recoloured from the stock light gray (#c4c7ce, only 1.69:1 on white) to a
+      // blue clearing 3:1 on both light (3.36:1) and dark (4.80:1) - so unlike the
+      // stock icon it needs no separate light-theme variant.
+      const dbSvg =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g transform="translate(0,3.35)"><ellipse cx="16" cy="5.894" rx="9.963" ry="3.894" fill="#5890ca"/><path fill="#5890ca" d="M8.562 15.256A21.2 21.2 0 0 0 16 16.449a21.2 21.2 0 0 0 7.438-1.194c1.864-.727 2.525-1.535 2.525-2V9.7a10.4 10.4 0 0 1-2.084 1.076A22.3 22.3 0 0 1 16 12.078a22.4 22.4 0 0 1-7.879-1.3A10.3 10.3 0 0 1 6.037 9.7v3.55c0 .474.663 1.278 2.525 2.006M16 23.295c5.5 0 9.963-1.744 9.963-3.894v-2.837a10.5 10.5 0 0 1-1.535.762l-.157.063A23.5 23.5 0 0 1 16 18.74a23.4 23.4 0 0 1-8.271-1.351l-.157-.063a10.5 10.5 0 0 1-1.535-.762v2.837C6.037 21.551 10.5 23.295 16 23.295"/></g></svg>';
 
       // Create base64 encoded data URIs
       const pythonDataUri = `data:image/svg+xml;base64,${btoa(pythonSvg)}`;
@@ -538,7 +540,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const svgFileDataUri = svgFileSvg
         ? `data:image/svg+xml;base64,${btoa(svgFileSvg)}`
         : '';
-      const dbDataUri = dbSvg ? `data:image/svg+xml;base64,${btoa(dbSvg)}` : '';
+      const dbDataUri = `data:image/svg+xml;base64,${btoa(dbSvg)}`;
       const uvSvg =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 330"><rect height="100%" width="100%" rx="66" fill="#26102f"/><path fill="#d256dc" d="M 65,65 h92 v130 h16 v-130 h92 v200 h-16 v-20 h-8 a20,20 0 0 1 -20,20 h-136 a20,20 0 0 1 -20,-20 z"/></svg>';
       const uvDataUri = `data:image/svg+xml;base64,${btoa(uvSvg)}`;

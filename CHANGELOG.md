@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.108 (2026-08-09)
+
+### Enhancements
+
+- Database icon is now a 3-slice cylinder instead of 4, and noticeably shorter (77% of the previous height, same width)
+- Lightened the database blue from `#4a86c5` to `#5890ca`, which still clears the 3:1 contrast bar on both light (3.36:1) and dark (4.80:1) themes so no light-theme variant is needed
+
 ## 1.1.107 (2026-08-09)
 
 ### Maintenance
