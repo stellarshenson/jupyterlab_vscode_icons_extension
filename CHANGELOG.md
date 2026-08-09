@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.107 (2026-08-09)
+
+### Maintenance
+
+- Upgraded the build Makefile from template 1.31 to 1.37 - it now creates a project-local `.nodeenv/` instead of overwriting the Python prefix's node, fixing a `Text file busy` build failure when the node binary is held open by another process
+- Pinned the build toolchain to node 24.19.0 through the project-local nodeenv
+- Added `.nodeenv/` to `.gitignore`
+
+No functional change to the extension itself - build tooling only.
+
 ## 1.1.106 (2026-08-09)
 
 ### Enhancements
