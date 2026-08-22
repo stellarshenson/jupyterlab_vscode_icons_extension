@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.109 (2026-08-22)
+
+### Bug Fixes
+
+- Database icon no longer disappears into the file browser's selection highlight - it now turns white when its row is selected, matching what JupyterLab does to its own icons
+- The blue cylinder measured 1.07:1 against the selection band (`--jp-brand-color1`); the white variant measures 3.12:1 on dark and 4.60:1 on light
+
 ## 1.1.108 (2026-08-09)
 
 ### Enhancements

@@ -541,6 +541,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
         ? `data:image/svg+xml;base64,${btoa(svgFileSvg)}`
         : '';
       const dbDataUri = `data:image/svg+xml;base64,${btoa(dbSvg)}`;
+      // Selected-row variant. The file browser paints --jp-brand-color1 behind a
+      // selected item (#2196f3 dark, #1976d2 light) and the blue cylinder measures
+      // only 1.07:1 against it - it disappears into the highlight. JupyterLab
+      // handles this for its own icons with
+      // `.jp-mod-selected .jp-icon-selectable[fill] { fill: #fff }`, which a
+      // background-image cannot inherit, so swap in a white recolour of the same
+      // artwork instead (3.12:1 on dark, 4.60:1 on light).
+      const dbSelectedDataUri = `data:image/svg+xml;base64,${btoa(
+        dbSvg.replace(/#5890ca/g, '#ffffff')
+      )}`;
       const uvSvg =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 330"><rect height="100%" width="100%" rx="66" fill="#26102f"/><path fill="#d256dc" d="M 65,65 h92 v130 h16 v-130 h92 v200 h-16 v-20 h-8 a20,20 0 0 1 -20,20 h-136 a20,20 0 0 1 -20,-20 z"/></svg>';
       const uvDataUri = `data:image/svg+xml;base64,${btoa(uvSvg)}`;
@@ -684,6 +694,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
           background-size: contain;
           background-repeat: no-repeat;
           background-position: center;
+        }
+        .jp-DirListing-item[data-vscode-db].jp-mod-selected
+          .jp-DirListing-itemIcon::before {
+          background-image: url('${dbSelectedDataUri}');
         }
 
         /* Override TXT file icon with custom document icon */
