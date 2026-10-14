@@ -1,6 +1,6 @@
 {
     "name": "jupyterlab_vscode_icons_extension",
-    "version": "1.1.110",
+    "version": "1.2.2",
     "description": "Jupyterlab extension with a shameless rip-off of the vscode-icons into our beloved environment",
     "keywords": [
         "jupyter",
@@ -50,14 +50,19 @@
         "prettier:check": "jlpm prettier:base --check",
         "stylelint": "jlpm stylelint:check --fix",
         "stylelint:check": "stylelint --cache \"style/**/*.css\"",
-        "test": "jlpm eslint:check && jlpm stylelint:check && jest --coverage",
+        "test": "jlpm prettier:check && jlpm eslint:check && jlpm stylelint:check && jest --coverage",
         "watch": "run-p watch:src watch:labextension",
         "watch:src": "tsc -w --sourceMap",
         "watch:labextension": "jupyter-builder watch ."
     },
     "dependencies": {
         "@iconify-json/vscode-icons": "^1.2.33",
-        "@jupyterlab/application": "^4.0.0"
+        "@jupyterlab/application": "^4.0.0",
+        "@jupyterlab/coreutils": "^6.0.0",
+        "@jupyterlab/filebrowser": "^4.0.0",
+        "@jupyterlab/services": "^7.4.0",
+        "@jupyterlab/settingregistry": "^4.0.0",
+        "@jupyterlab/ui-components": "^4.0.0"
     },
     "devDependencies": {
         "@eslint/js": "^9.0.0",
