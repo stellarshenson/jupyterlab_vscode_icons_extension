@@ -240,5 +240,43 @@ export function getIconSVG(iconName: string): string {
 export function generateIconSVG(iconName: string, className = ''): string {
   const body = getIconSVG(iconName);
   const classAttr = className ? ` class="${className}"` : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"${classAttr}>${body}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${getIconViewBox(
+    iconName
+  )}"${classAttr}>${body}</svg>`;
+}
+
+/**
+ * The drawing box an icon's body is written in.
+ *
+ * Most of the set is 32x32, the collection default, but 38 entries carry their
+ * own width and height - file-type-go is 254.5x225 - and a body written in that
+ * space draws nothing inside a 32x32 window. Every svg this extension builds
+ * reads its box from the record rather than assuming the default.
+ *
+ * @param iconName - The icon name
+ * @returns The viewBox attribute value
+ */
+export function getIconViewBox(iconName: string): string {
+  const icons = iconsData.icons as {
+    [key: string]: {
+      body?: string;
+      parent?: string;
+      width?: number;
+      height?: number;
+    };
+  };
+  const aliases = (iconsData as any).aliases as {
+    [key: string]: { parent?: string };
+  };
+
+  const alias = aliases?.[iconName];
+  let icon = alias?.parent ? icons[alias.parent] : icons[iconName];
+  if (icon?.parent) {
+    icon = icons[icon.parent];
+  }
+
+  const defaults = iconsData as unknown as { width?: number; height?: number };
+  const width = icon?.width ?? defaults.width ?? 32;
+  const height = icon?.height ?? defaults.height ?? 32;
+  return `0 0 ${width} ${height}`;
 }

@@ -3,22 +3,6 @@
  * Shameless ripoff of VSCode icons for JupyterLab file browser
  */
 
-/* Icon container */
-.jp-vscode-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-}
-
-/* SVG icon styling */
-.jp-vscode-svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
 /* Ensure icons don't interfere with file browser layout */
 .jp-DirListing-item .jp-DirListing-itemIcon {
   display: inline-flex;
@@ -28,34 +12,58 @@
   position: relative;
 }
 
-/* Ensure proper spacing in breadcrumbs and other locations */
-.jp-BreadCrumbs .jp-vscode-icon {
-  width: 14px;
-  height: 14px;
-  margin-right: 4px;
-}
-
-/* Icon size adjustments for different contexts */
-.jp-DirListing-item[data-file-type='file'] .jp-vscode-icon {
-  width: 18px;
-  height: 18px;
-}
-
-.jp-DirListing-item[data-file-type='notebook'] .jp-vscode-icon {
-  width: 18px;
-  height: 18px;
-}
-
 /* Make hidden items darker (items starting with .) */
 .jp-DirListing-item[data-is-dot] {
   opacity: 0.55 !important;
 }
 
-/* joblib icon inner glyph - theme-aware */
-.joblib-glyph {
-  fill: #bbb;
+/* Makefile sheet on a selected row - DEF-COLOUR-21.
+   Only renders where this extension's own vscode-makefile icon does:
+   jupyterlab_makefile_file_type_extension registers the same name with its own
+   copy of the sheet and no class, and JupyterLab keeps the first pattern match,
+   so on a lab with that extension installed this rule has nothing to colour.
+   The sheet is #c2544f, which is 1.02:1 against the light selection band
+   #1976d2, so the glyph disappears on a selected row exactly as the database
+   cylinder did before ACC-COLOUR-13. The unselected artwork is unchanged; only
+   the selected state is recoloured, the same remedy the cylinder got. */
+.jp-DirListing-item.jp-mod-selected .makefile-glyph {
+  fill: #fff;
 }
 
-body[data-jp-theme-light='true'] .joblib-glyph {
+/* The joblib ink and the shell tile carry their colours in the artwork, not in
+   a theme rule: both icons are also painted onto tabs as a background-image
+   data URI, which document CSS cannot reach, so a class-only fill rendered
+   black there. The baked values clear 3:1 on both themes measured - #767676
+   reads 4.54:1 on the light panel and 3.55:1 on the dark one, #e15617 reads
+   3.79:1 and 4.25:1 - which is why nothing per-theme is needed. The maintainer
+   chose this over the class mechanism.
+
+   Only the selected row still needs a rule: the file browser paints
+   --jp-brand-color1 behind it and the drawn colours collapse to 1.01:1
+   (#767676) and 1.22:1 (#e15617) against that band. This is the remedy
+   ACC-COLOUR-13 established for the database cylinder. A tab has no selection
+   band, so nothing is lost on the copy. */
+.jp-DirListing-item.jp-mod-selected .joblib-glyph,
+.jp-DirListing-item.jp-mod-selected .shell-tile {
+  fill: #fff;
+}
+
+.jp-DirListing-item.jp-mod-selected .shell-glyph {
+  /* The band's own colour, not the light theme's literal: the tile above has
+     turned white, so the prompt reads as the selection on it, on both themes. */
+  fill: var(--jp-brand-color1, #1976d2);
+}
+
+/* .mcp.json glyph - theme-aware, DEF-COLOUR-21.
+   The artwork is #eee, which reads 13.9:1 on the dark panel and 1.16:1 on the
+   light one, where the glyph cannot be seen. The dark theme keeps the artwork
+   as drawn; the light theme gets JupyterLab's own body colour, the same shape
+   of fix as .joblib-glyph above. */
+
+/* #212121 rather than #424242 because .mcp.json is always a dotfile, and the
+   dotfile rule above dims the whole row to 55%: #424242 composites to
+   (150,150,150) on white, 2.96:1 measured, just under the bar this project sets
+   itself, where #212121 composites to roughly 3.5:1. */
+body[data-jp-theme-light='true'] .mcp-glyph {
   fill: #212121;
 }

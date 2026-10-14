@@ -134,3 +134,8 @@ dmypy.json
 # Regenerating test and tool artefacts (DEF-BUILD-1)
 junit.xml
 uv.lock
+
+# Not produced by any target since Makefile template 1.41 (DEF-BUILD-2)
+package-lock.json
+graphify-out/
+src/graphify-out/

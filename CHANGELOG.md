@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.2.2 (2026-10-14)
+
+### Enhancements
+
+- `.bpmn` files now take this extension's own process mark on file browser rows and on document tabs, ahead of the Camunda modeller extension's icon where that extension is installed
+- The BPMN mark is redrawn: a square tile in a paler orange, carrying a start event, a task and an end event joined by sequence flows
+- Document tab icons are padded to the same 16px box JupyterLab gives its own, so a painted tab glyph no longer sits 2px short of a stock one
+- `requirements.txt` shows the Python glyph on its row as well as its tab, instead of the generic text sheet on one and Python on the other
+- The letter in the Markdown icon is shorter, leaving more of the sheet visible around it
+- Shell script and joblib icons carry their colours in the artwork, so a tab icon matches its file browser row instead of rendering black
+- Glyphs that cannot be seen against the panel they sit on get a thin outline, on file browser rows as well as tabs, and the outline now follows a theme switch
+
+### Bug Fixes
+
+- Icons whose artwork is not 32x32 render again - `file-type-go` drew nothing at all, because every icon was scaled as if it shared one viewBox
+- Renaming an open file updates its icon; the old name's glyph used to stay until the listing changed
+- A file browser row reused for another file drops the previous file's artwork on the first frame rather than after two server round-trips
+- The joblib mark no longer loses part of itself on a selected row, where one of its two inked paths kept a colour that measures 1.22:1 against the selection band
+- Switching the theme no longer leaves outline markers decided by the previous theme
+
+### Maintenance
+
+- Four `@jupyterlab` packages the source imports are now declared dependencies rather than relying on hoisting
+- Added a contrast module with unit tests, and acceptance criteria and defect trackers under `docs/`
+
 ## 1.1.110 (2026-10-14)
 
 ### Bug Fixes

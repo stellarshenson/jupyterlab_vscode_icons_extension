@@ -25,6 +25,8 @@ This extension brings 1414 beautiful file type icons from the vscode-icons proje
 - Lightweight integration using Iconify's JSON icon format
 - Compatible with Jupytext - properly displays Python and Markdown icons for .py and .md notebook files; includes hotfix for jupytext 1.19.1 catch-all pattern bug that breaks standard file icons
 - Python package folder detection - folders declared in `pyproject.toml` or `setup.py` get a special Python package icon
+- Document tab icons matching the file browser - an open file carries the same glyph on its tab as on its row, and an icon another extension registered is kept rather than replaced
+- Readable on both themes - a glyph that cannot be seen against the panel it sits on is given a thin outline, decided per theme and re-decided when the theme changes
 
 ## Requirements
 

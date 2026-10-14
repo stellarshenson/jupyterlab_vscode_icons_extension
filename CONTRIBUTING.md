@@ -2,6 +2,16 @@
 
 ## Development install
 
+This project builds through its `Makefile`, which pins node in a project-local
+`.nodeenv/` and owns the release path: `make install_dependencies` sets the
+toolchain up, `make build` builds, `make test` runs the checks and
+`make publish` releases. `make install` installs the built wheel but raises the
+patch version in `package.json` first, so a local install is not a neutral
+step - use `jlpm build` plus `jupyter-builder develop . --overwrite` for a
+development loop. The steps below are the upstream template's
+generic instructions; prefer the make targets, and do not run `npm ci` - this
+project does not maintain `package-lock.json`.
+
 Note: You will need Node.js to build the extension package.
 You may install it from [nodejs.org](https://nodejs.org/en/download). We
 recommend using the latest LTS version of Node.js.

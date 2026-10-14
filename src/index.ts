@@ -2,11 +2,18 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import { PageConfig, URLExt } from '@jupyterlab/coreutils';
+import { URLExt } from '@jupyterlab/coreutils';
+import { ServerConnection } from '@jupyterlab/services';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { IDefaultFileBrowser } from '@jupyterlab/filebrowser';
-import { LabIcon, markdownIcon } from '@jupyterlab/ui-components';
-import { getIconSVG } from './icons';
+import { fileIcon, LabIcon, markdownIcon } from '@jupyterlab/ui-components';
+
+import { needsOutlineOn } from './contrast';
+// Loaded eagerly on purpose: activate() registers every mapped file type up
+// front, so the icon map is needed before the application starts. The directive
+// must sit on the line immediately above the import to attach to it.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
+import { generateIconSVG, getIconForFile, getIconSVG } from './icons';
 import { parsePyprojectToml, parseSetupPy } from './parsers';
 import { applyJupytext1191Hotfix } from './hotfixes';
 
@@ -27,12 +34,11 @@ interface IIconSettings {
  * Create a LabIcon from vscode-icons SVG data
  */
 function createLabIcon(iconName: string): LabIcon {
-  const svgBody = getIconSVG(iconName);
-  const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">${svgBody}</svg>`;
-
+  // generateIconSVG reads the icon's own drawing box; 38 keys in the bundled
+  // set are not 32x32 and draw nothing inside one.
   return new LabIcon({
     name: `vscode-icons:${iconName}`,
-    svgstr: svgStr
+    svgstr: generateIconSVG(iconName)
   });
 }
 
@@ -236,6 +242,34 @@ const fileTypeConfigs: IFileTypeConfig[] = [
     iconName: 'file-type-csv',
     group: 'enableDataIcons'
   },
+  // Declaration-only rows, the `custom-` convention: registerFileTypes skips
+  // them because their icons are registered by hand further down, but groupFor
+  // reads this table, so without a row here the family has no group and the
+  // fallback painter treats it as ungoverned - measured: with
+  // enableLanguageIcons off, a .sh row still painted file-type-shell and a .bat
+  // row painted the unix shell glyph (DEF-CONFIG-26).
+  {
+    extensions: [],
+    pattern: '^\\.mcp\\.json(\\..*)?$',
+    iconName: 'custom-mcp',
+    group: 'enableConfigIcons'
+  },
+  {
+    extensions: ['.sh', '.bash', '.zsh', '.fish', '.csh', '.nu'],
+    iconName: 'custom-shell',
+    group: 'enableLanguageIcons'
+  },
+  {
+    extensions: ['.bat', '.cmd'],
+    iconName: 'custom-batch',
+    group: 'enableLanguageIcons'
+  },
+  {
+    extensions: [],
+    pattern: '^(LICENSE|LICENCE|license|licence)(\\..*)?$',
+    iconName: 'custom-license',
+    group: 'enableDocIcons'
+  },
   {
     extensions: ['.onnx'],
     iconName: 'custom-onnx',
@@ -435,6 +469,37 @@ const fileTypeConfigs: IFileTypeConfig[] = [
   }
 ];
 
+// BPMN process mark. Defined here, not at the file-type registration
+// below, because three readers need it: the row ::before override, the
+// tab painter's artwork table and the LabIcon handed to docRegistry.
+//
+// The maintainer drew this one himself. style/bpmn-icon.svg is his working
+// copy; this constant is that file with the Inkscape metadata stripped and
+// every coordinate kept. A diagonal process reads better at 16px than the
+// horizontal row it replaced: start event top left, two right-angled
+// sequence flows, the task in the centre, the filled end event bottom
+// right. The whole mark is inset to 87.5 percent of the box, the share of
+// its own box the bundled image glyph fills, so the tile is the same size
+// as the image icon. The tile is a square in a paler orange than the
+// camunda #fc5d0d it started from - both his decisions, and ACC-COLOUR-12
+// records the measured cost of the paler tile.
+const bpmnSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <g transform="translate(6.25,6.25) scale(0.875)">
+    <path fill="#fd7430" d="M -0.25177813,-0.44507674 H 99.748212 V 99.554923 H -0.25177813 Z"/>
+    <g fill="none" stroke="#ffffff" stroke-linecap="round" transform="matrix(0.91132727,0,0,0.91132727,0.12629147,-20.843682)">
+      <circle cx="27.524347" cy="50" r="9" stroke-width="6"/>
+      <path d="M 36.639252,50 H 55.726081" stroke-width="5.44281"/>
+      <path d="M 55.231087,50.132831 V 73.327594" stroke-width="6"/>
+    </g>
+    <g fill="none" stroke="#ffffff" stroke-linecap="round" transform="matrix(-0.91132727,0,0,-0.91132727,100.25208,120.71562)">
+      <circle cx="27.91214" cy="49.612206" r="9" stroke-width="6" fill="#ffffff"/>
+      <path d="M 32,50 H 55.194763" stroke-width="6"/>
+      <path d="M 55.231087,50.132831 V 73.327594" stroke-width="6"/>
+    </g>
+    <rect x="36.083298" y="36.081635" width="28" height="27.253645" rx="5" fill="#ffffff"/>
+  </g>
+</svg>`;
+
 const plugin: JupyterFrontEndPlugin<void> = {
   id: PLUGIN_ID,
   description:
@@ -459,7 +524,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // Custom Markdown icon (from markdown.svg - purple M with arrow, #8a2ea5)
       const markdownSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 309 327">
         <path fill="#8a2ea5" opacity="1" stroke="none" d="m 138.68393,230.48651 c 36.58836,3.1e-4 72.68422,3.1e-4 108.78008,3.1e-4 0.13988,0.49669 0.0821,0.12537 -3.34406,3.81472 -27.34165,24.16766 -54.43119,49.41695 -81.72391,73.62893 -2.65146,2.35216 -4.5582,3.21609 -7.64686,0.37229 -26.89754,-24.76539 -75.191307,-68.40096 -80.889724,-74.12425 -0.744118,-0.74735 -1.274501,-1.57204 -2.95867,-3.69233 23.309236,0 45.299954,0 67.783144,3.3e-4 z"/>
-        <path fill="#8a2ea5" d="m 61.156397,14.443673 h 69.176263 q 14.81059,56.661581 23.29958,97.452667 l 5.96036,-27.150338 q 3.61233,-15.870486 7.76652,-30.954008 l 10.6564,-39.348321 H 248.6367 L 276.09047,189.5437 H 221.90541 L 207.27544,69.137838 173.50009,189.5437 H 136.47364 L 101.07273,68.875516 86.984609,189.5437 H 35.147571 Z"/>
+        <path fill="#8a2ea5" transform="translate(0,36.013303) scale(1,0.81)" d="m 61.156397,14.443673 h 69.176263 q 14.81059,56.661581 23.29958,97.452667 l 5.96036,-27.150338 q 3.61233,-15.870486 7.76652,-30.954008 l 10.6564,-39.348321 H 248.6367 L 276.09047,189.5437 H 221.90541 L 207.27544,69.137838 173.50009,189.5437 H 136.47364 L 101.07273,68.875516 86.984609,189.5437 H 35.147571 Z"/>
       </svg>`;
 
       // Custom PDF icon (document with folded corner and red PDF banner)
@@ -496,10 +561,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
         <path fill="url(#py-y)" d="M55,110c26,0,26-10,26-12V85H54v-4h37c8,0,18-5,18-26 0-23-11-27-16-27h-9v13c0,6-3,16-16,16H42c-4,0-15,2-15,14v24c0,3,0,14,28,14zM70,101c-3,0-5-2-5-5s2-5,5-5 5,2,5,5S73,101,70,101z"/>
       </svg>`;
 
-      // Custom README icon (info icon - purple background #912bac, gray "i" #bdbdbd)
-      const readmeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-        <rect x="9.5" y="9.3" width="82" height="81.2" rx="4" fill="#912bac"/>
-        <path fill="#bdbdbd" d="m 45.736283,20.566722 h 11.01003 l 2.116667,2.116667 0,7.619586 -2.116667,2.116667 h -11.01003 l -2.116667,-2.116667 v -7.619586 z m -6.168542,19.478681 h 23.084596 l 2.116667,2.116667 v 5.700733 l -2.116597,2.09951 -3.175139,-0.02574 -2.116597,2.09951 V 67.32187 l 2.116667,2.116667 h 4.211629 l 2.116667,2.116667 v 5.567219 L 63.688967,79.23909 H 38.509408 l -2.116667,-2.116667 v -6.096386 l 2.116667,-2.116667 h 4.968955 L 45.59503,66.792703 V 52.096294 l -2.116667,-2.116667 h -3.910622 l -2.116667,-2.116667 0,-5.70089 z"/>
+      // Custom README icon
+      // One README artwork, drawn once: this is the same circle the registered
+      // vscode-readme icon uses further down, so a README.md row looks the same
+      // whether or not jupytext is installed and claiming the row (DEF-ICONS-28).
+      const readmeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+        <circle cx="16" cy="16" r="11" fill="#9826c8"/>
+        <text x="16" y="22" font-size="18" font-weight="bold" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif">i</text>
       </svg>`;
 
       // Get SVG content from VSCode icons
@@ -507,6 +575,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const wordSvg = wordIcon?.svgstr || '';
       const excelSvg = excelIcon?.svgstr || '';
       const powerpointSvg = powerpointIcon?.svgstr || '';
+      // 1.1.110 painted the generic picture glyph here. The vscode svg tile
+      // (createLabIcon('file-type-svg')) is what the registered file type uses,
+      // so switching this constant would make the row and the tab agree - but it
+      // changes an icon the project already had, which is the maintainer's call
+      // (DEF-ICONS-25).
       const svgFileIcon = createLabIcon('file-type-image');
       const svgFileSvg = svgFileIcon?.svgstr || '';
       // Database icon - one cylinder for every database format. Derived from the
@@ -580,6 +653,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const playGlyphSvg =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path fill="#00e676" stroke="#1b5e20" stroke-width="0.5" d="M1,0 L11,6 L1,12 Z"/></svg>';
       const playGlyphDataUri = `data:image/svg+xml;base64,${btoa(playGlyphSvg)}`;
+
+      const bpmnDataUri = `data:image/svg+xml;base64,${btoa(bpmnSvg)}`;
 
       // Inject CSS that overrides icons for .py and .md files
       // Note: Jupytext marks .py and .md files with data-file-type="notebook" or
@@ -675,9 +750,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         /* Override database file icons with a single VSCode database cylinder.
            jupyterlab_tabular_data_viewer_extension claims .db/.db3/.sqlite/.sqlite3
-           via iconClass, which JupyterLab paints as a background-image on the icon
-           container itself with no child element - so clearing that background is
-           required in addition to hiding the usual svg/img child. */
+           with an icon and an iconClass. LabIcon drops the iconClass whenever the
+           icon resolves, so that viewer renders an svg child and no background:
+           clearing the background here is a guard against an iconClass-only
+           provider, not a live fix. */
         .jp-DirListing-item[data-vscode-db] .jp-DirListing-itemIcon {
           background-image: none !important;
         }
@@ -700,6 +776,85 @@ const plugin: JupyterFrontEndPlugin<void> = {
           background-image: url('${dbSelectedDataUri}');
         }
 
+        /* File browser rows whose icon JupyterLab supplied and this extension
+           replaces. The glyph is an inline background-image set per row by
+           markRowIcons; these rules size it and hide what is underneath. The
+           selector carries one class more than the jupytext hotfix rule that
+           forces icon children visible, so it wins on specificity. */
+        .jp-DirListing-item .jp-DirListing-itemIcon[data-vscode-row-icon] {
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
+        /* The svg is hidden with visibility, not display, and that is
+           load-bearing. JupyterLab 4.6.4 makes the row itself
+           display: inline-grid with grid-auto-columns max-content, which makes
+           the flex basis of 20px its own stylesheet puts on the host inert: the
+           host is as wide as its in-flow children, so removing the svg from
+           flow collapses it and the background paints nothing. Keeping the svg
+           in flow and merely invisible keeps its 16px box. On this workstation
+           the host measures 20 x 19.5 either way, but only because
+           jupyterlab_change_ui_font_size_fix sets the row to display: flex;
+           that is one installed extension, not a property of JupyterLab. The
+           Galata test 'a painted row has a box the background can fill' is the
+           guard. The tab host has no in-flow child to size it once its svg is
+           hidden, which is why the tab rule below supplies a height. */
+        .jp-DirListing-item .jp-DirListing-itemIcon[data-vscode-row-icon] > svg,
+        .jp-DirListing-item
+          .jp-DirListing-itemIcon[data-vscode-row-icon]
+          > img:not(.vscode-exec-badge) {
+          visibility: hidden !important;
+        }
+        /* Document tab icons. The glyph is an inline background-image set per
+           tab by markTabIcons; these two rules only size it and hide the icon
+           JupyterLab renders underneath. One pair of rules serves every file
+           type, so the stylesheet does not carry a copy of each icon. */
+        /* A painted tab glyph is vendor artwork drawn for VSCode's dark sidebar,
+           and some of it is invisible on a JupyterLab tab bar: measured in the
+           running lab, the yaml wordmark's best pixel is 1.20:1 against a white
+           tab. The same artwork is excellent on the dark bar (13:1), so this is
+           not a per-glyph list but a per-theme test the painter runs - it sets
+           data-vscode-tab-outline when the artwork cannot clear 3:1 against the
+           bar it is about to sit on, and this rule gives those glyphs an edge.
+           Measured with it: 19.69:1 best, 16.5% of the box at or above 3:1, and the
+           artwork's own colours are untouched (DEF-COLOUR-32). */
+        /* One rule for both painted hosts: the row marker and the tab marker
+           are decided by the same measure and want the same edge. */
+        .jp-DirListing-itemIcon[data-vscode-row-outline],
+        .lm-TabBar-tabIcon[data-vscode-tab-outline] {
+          filter: drop-shadow(0.5px 0 0 var(--jp-ui-font-color1, #212121))
+            drop-shadow(-0.5px 0 0 var(--jp-ui-font-color1, #212121))
+            drop-shadow(0 0.5px 0 var(--jp-ui-font-color1, #212121))
+            drop-shadow(0 -0.5px 0 var(--jp-ui-font-color1, #212121));
+        }
+        .lm-TabBar-tabIcon[data-vscode-tab-icon] {
+          /* JupyterLab gives this host no height and lets the inline svg size
+             it; that svg is hidden below, so without a height the box is 14x0
+             and the background paints nothing at all. */
+          height: 16px;
+        }
+        /* Lab sizes this host at 14px through a three-class selector while its
+           own tab icons are inline svgs at their intrinsic 16px, so a painted
+           tab sat 2px short of a stock one (DEF-TABS-33-1). The maintainer
+           asked for padding rather than scaling: the box grows to 16px and the
+           glyph keeps the 14px lab draws it at, centred in the new box. That
+           matches the ink, because lab's own 16px svgs carry their own internal
+           padding, and 16+2 keeps the label exactly where 14+4 put it. These
+           selectors carry one attribute more than lab's, so they win. */
+        .lm-DockPanel-tabBar
+          .lm-TabBar-tab
+          .lm-TabBar-tabIcon[data-vscode-tab-icon],
+        .lm-TabPanel-tabBar
+          .lm-TabBar-tab
+          .lm-TabBar-tabIcon[data-vscode-tab-icon] {
+          width: 16px;
+          margin-right: 2px;
+          background-position: center;
+        }
+        .lm-TabBar-tabIcon[data-vscode-tab-icon] > svg {
+          display: none !important;
+        }
+
         /* Override TXT file icon with custom document icon */
         .jp-DirListing-item[data-vscode-txt] .jp-DirListing-itemIcon svg,
         .jp-DirListing-item[data-vscode-txt] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
@@ -708,10 +863,21 @@ const plugin: JupyterFrontEndPlugin<void> = {
         .jp-DirListing-item[data-vscode-txt] .jp-DirListing-itemIcon::before {
           content: '';
           display: inline-block;
-          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
-          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          width: calc(
+            var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5)
+          );
+          height: calc(
+            var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5)
+          );
           background-image: url('${txtDataUri}');
-          background-size: contain;
+          /* The text sheet is full-bleed where the pdf and svg glyphs are not,
+             so it reads large beside them. The sheet is taller than it is wide
+             (viewBox 3800x4800), so the 85% goes on the HEIGHT and the width
+             follows: a single-value background-size sets the width and leaves the
+             height auto, which made the glyph 7% larger than before and clipped
+             it top and bottom. The box stays at the shared scale either way, so
+             every override row keeps one width and one label indent. */
+          background-size: auto 85%;
           background-repeat: no-repeat;
           background-position: center;
         }
@@ -775,6 +941,26 @@ const plugin: JupyterFrontEndPlugin<void> = {
           width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
           background-image: url('${svgFileDataUri}');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
+
+        /* Override the .bpmn icon with this extension's process mark.
+           jupyterlab_camunda_modeller_extension registers .bpmn with its own
+           rounded-square LabIcon, which is a specific icon, so neither
+           markRowIcons nor docRegistry ordering displaces it - this ::before
+           does. The maintainer's decision, in his words: "we use ours". */
+        .jp-DirListing-item[data-vscode-bpmn] .jp-DirListing-itemIcon svg,
+        .jp-DirListing-item[data-vscode-bpmn] .jp-DirListing-itemIcon img:not(.vscode-exec-badge) {
+          display: none !important;
+        }
+        .jp-DirListing-item[data-vscode-bpmn] .jp-DirListing-itemIcon::before {
+          content: '';
+          display: inline-block;
+          width: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          height: calc(var(--jp-ui-font-size1, 13px) * var(--jp-custom-icon-scale, 1.5));
+          background-image: url('${bpmnDataUri}');
           background-size: contain;
           background-repeat: no-repeat;
           background-position: center;
@@ -907,7 +1093,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // Add CSS to make JavaScript and .env icons less bright
       style.textContent += `
         /* Reduce brightness of JavaScript and .env icons */
-        .jp-DirListing-item[data-file-type*="js"] .jp-DirListing-itemIcon svg,
         .jp-DirListing-item[data-file-type="vscode-file-type-js-official"] .jp-DirListing-itemIcon svg,
         .jp-DirListing-item[data-file-type="vscode-file-type-dotenv"] .jp-DirListing-itemIcon svg {
           filter: brightness(0.85) saturate(0.85);
@@ -919,10 +1104,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
 
 
-        /* Make hidden items darker (items starting with .) */
-        .jp-DirListing-item[data-is-dot] {
-          opacity: 55% !important;
-        }
+        /* The dot-file dimming lives in style/base.css, which is the sheet for
+           rules that need no runtime data URI. */
       `;
 
       // Cache for Python package detection (per directory)
@@ -999,10 +1182,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
         const executables = new Set<string>();
 
         try {
-          const baseUrl = PageConfig.getBaseUrl();
-          const apiUrl = URLExt.join(baseUrl, 'vscode-icons', 'executables');
-          const response = await fetch(
-            `${apiUrl}?path=${encodeURIComponent(currentPath)}`
+          const serverSettings = ServerConnection.makeSettings();
+          const apiUrl = URLExt.join(
+            serverSettings.baseUrl,
+            'vscode-icons',
+            'executables'
+          );
+          const response = await ServerConnection.makeRequest(
+            `${apiUrl}?path=${encodeURIComponent(currentPath)}`,
+            {},
+            serverSettings
           );
           if (response.ok) {
             const files: string[] = await response.json();
@@ -1025,11 +1214,50 @@ const plugin: JupyterFrontEndPlugin<void> = {
       }
 
       // Add a MutationObserver to mark special files in the file browser
-      const markSpecialFiles = async () => {
-        // Get Python packages for current directory (cached)
-        const pythonPackages = await detectPythonPackages();
-        // Get executable files for current directory (cached, only if setting enabled)
-        const executables = await detectExecutables();
+      // Which settings group owns each name-based override. The ::before blocks
+      // these attributes drive are the older painting path and read no settings
+      // of their own, so a group switched off left its artwork on the row with
+      // JupyterLab's own glyph still hidden underneath (DEF-CONFIG-22). The four
+      // folder attributes are not in the map: a folder is not a file-icon
+      // family and no toggle names one.
+      const overrideGroups: Record<string, keyof IIconSettings> = {
+        'data-claude-md': 'enableDocIcons',
+        'data-readme-md': 'enableDocIcons',
+        'data-jupytext-md': 'enableDocIcons',
+        'data-jupytext-py': 'enableLanguageIcons',
+        'data-vscode-pdf': 'enableDocIcons',
+        'data-vscode-word': 'enableDocIcons',
+        'data-vscode-excel': 'enableDocIcons',
+        'data-vscode-powerpoint': 'enableDocIcons',
+        'data-vscode-txt': 'enableDocIcons',
+        'data-vscode-db': 'enableDataIcons',
+        'data-vscode-svg-override': 'enableImageIcons',
+        'data-uv-lock': 'enableConfigIcons',
+        'data-pytest': 'enableConfigIcons',
+        'data-vscode-bpmn': 'enableConfigIcons'
+      };
+
+      const setOverride = (item: Element, attribute: string): void => {
+        const group = overrideGroups[attribute];
+        if (group && !settings[group]) {
+          return;
+        }
+        item.setAttribute(attribute, 'true');
+      };
+
+      // The pass splits in two because only two of its decisions need the
+      // server. markSpecialFilesPass does the DOM work; `fetched` carries the
+      // python packages and the executables when they are known and is null on
+      // the pass that runs before the round-trips, which leaves those two
+      // decisions exactly as they are rather than guessing them.
+      const markSpecialFilesPass = (
+        fetched: {
+          pythonPackages: Set<string>;
+          executables: Set<string>;
+        } | null
+      ) => {
+        const pythonPackages = fetched ? fetched.pythonPackages : null;
+        const executables = fetched ? fetched.executables : null;
 
         // Process ALL items - clear wrong attributes and set correct ones
         const allItems = document.querySelectorAll('.jp-DirListing-item');
@@ -1057,13 +1285,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
             // Set the correct attribute based on filename
             if (name === 'CLAUDE.md') {
-              item.setAttribute('data-claude-md', 'true');
+              setOverride(item, 'data-claude-md');
             } else if (name === 'README.md') {
-              item.setAttribute('data-readme-md', 'true');
+              setOverride(item, 'data-readme-md');
             } else if (name.endsWith('.py')) {
-              item.setAttribute('data-jupytext-py', 'true');
+              setOverride(item, 'data-jupytext-py');
             } else if (name.endsWith('.md')) {
-              item.setAttribute('data-jupytext-md', 'true');
+              setOverride(item, 'data-jupytext-md');
             }
           } else {
             // Not a notebook - clear notebook attributes
@@ -1086,44 +1314,59 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
           // Set the correct attribute based on extension
           if (nameLower.endsWith('.pdf')) {
-            item.setAttribute('data-vscode-pdf', 'true');
+            setOverride(item, 'data-vscode-pdf');
           } else if (
             nameLower.endsWith('.doc') ||
             nameLower.endsWith('.docx')
           ) {
-            item.setAttribute('data-vscode-word', 'true');
+            setOverride(item, 'data-vscode-word');
           } else if (
             nameLower.endsWith('.xls') ||
             nameLower.endsWith('.xlsx') ||
             nameLower.endsWith('.xlsm')
           ) {
-            item.setAttribute('data-vscode-excel', 'true');
+            setOverride(item, 'data-vscode-excel');
           } else if (
             nameLower.endsWith('.ppt') ||
             nameLower.endsWith('.pptx')
           ) {
-            item.setAttribute('data-vscode-powerpoint', 'true');
-          } else if (nameLower.endsWith('.txt')) {
-            item.setAttribute('data-vscode-txt', 'true');
+            setOverride(item, 'data-vscode-powerpoint');
+          } else if (
+            nameLower.endsWith('.txt') &&
+            !(fileType || '').startsWith('vscode-')
+          ) {
+            // DEF-TABS-23-2: a .txt this extension registered under its own
+            // file type - requirements.txt takes file-type-python - was getting
+            // the generic text sheet painted over that specific icon here. The
+            // maintainer's answer, in his words: "python everywhere", so the
+            // generic sheet yields to any vscode-* type this extension set.
+            setOverride(item, 'data-vscode-txt');
           } else if (
             nameLower.endsWith('.db') ||
             nameLower.endsWith('.db3') ||
             nameLower.endsWith('.sqlite') ||
             nameLower.endsWith('.sqlite3')
           ) {
-            item.setAttribute('data-vscode-db', 'true');
+            setOverride(item, 'data-vscode-db');
           }
 
           // Force SVG icon for .svg files (override any incorrect file type detection)
           item.removeAttribute('data-vscode-svg-override');
           if (nameLower.endsWith('.svg')) {
-            item.setAttribute('data-vscode-svg-override', 'true');
+            setOverride(item, 'data-vscode-svg-override');
+          }
+
+          // Force this extension's mark on .bpmn ahead of the camunda
+          // modeller extension's own icon ("we use ours").
+          item.removeAttribute('data-vscode-bpmn');
+          if (nameLower.endsWith('.bpmn')) {
+            setOverride(item, 'data-vscode-bpmn');
           }
 
           // Force UV icon for uv.lock file
           item.removeAttribute('data-uv-lock');
           if (nameLower === 'uv.lock') {
-            item.setAttribute('data-uv-lock', 'true');
+            setOverride(item, 'data-uv-lock');
           }
 
           // Force pytest icon for pytest-related files
@@ -1133,7 +1376,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             nameLower === 'pytest.ini' ||
             nameLower === 'conftest.py'
           ) {
-            item.setAttribute('data-pytest', 'true');
+            setOverride(item, 'data-pytest');
           }
 
           // Mark executable files if setting is enabled (uses server API for +x detection)
@@ -1141,14 +1384,34 @@ const plugin: JupyterFrontEndPlugin<void> = {
           const iconContainer = item.querySelector('.jp-DirListing-itemIcon');
           const existingBadge =
             iconContainer?.querySelector('.vscode-exec-badge');
-          if (settings.enableExecutableIcons && executables.has(name)) {
-            if (iconContainer && !existingBadge) {
-              const badge = document.createElement('img');
-              badge.className = 'vscode-exec-badge';
-              badge.src = playGlyphDataUri;
-              iconContainer.appendChild(badge);
+          if (executables) {
+            if (settings.enableExecutableIcons && executables.has(name)) {
+              if (iconContainer && !existingBadge) {
+                const badge = document.createElement('img');
+                badge.className = 'vscode-exec-badge';
+                badge.src = playGlyphDataUri;
+                // The badge records the file it was added for, which is what
+                // lets the early pass below tell a stale badge from a correct
+                // one without the detector's answer.
+                badge.dataset.for = name;
+                iconContainer.appendChild(badge);
+              } else if (existingBadge) {
+                (existingBadge as HTMLElement).dataset.for = name;
+              }
+            } else if (existingBadge) {
+              existingBadge.remove();
             }
-          } else if (existingBadge) {
+          } else if (
+            existingBadge &&
+            (existingBadge as HTMLElement).dataset.for !== name
+          ) {
+            // The pass that runs before the detectors answer: a badge whose
+            // file is not this row's file belongs to the row's previous
+            // occupant, so it goes now rather than after the round-trips
+            // (DEF-ICONS-37). A badge that matches is left alone - removing it
+            // and letting the debounced pass put it back made the two passes
+            // drive each other, since appending one is a childList mutation
+            // this observer watches.
             existingBadge.remove();
           }
 
@@ -1188,8 +1451,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
               item.removeAttribute('data-src-folder');
               item.removeAttribute('data-test-folder');
               // Check if folder name matches a detected Python package
-              if (pythonPackages.has(name)) {
-                item.setAttribute('data-python-package', 'true');
+              if (pythonPackages) {
+                if (pythonPackages.has(name)) {
+                  item.setAttribute('data-python-package', 'true');
+                } else {
+                  item.removeAttribute('data-python-package');
+                }
               } else {
                 item.removeAttribute('data-python-package');
               }
@@ -1204,29 +1471,601 @@ const plugin: JupyterFrontEndPlugin<void> = {
       };
 
       // Debounce timeout for MutationObserver
+      const markSpecialFiles = async () => {
+        // The two detectors are per-directory, and a navigation during their
+        // round-trips would otherwise paint the previous directory's answers
+        // onto the new listing: a folder in /B whose name a manifest in /A
+        // declared would take the python-package glyph and keep it, since
+        // nothing re-runs until the listing next changes. The observer has
+        // already scheduled the pass for the new path, so dropping this one is
+        // the whole fix (DEF-ICONS-42).
+        const pathAtEntry = defaultFileBrowser?.model.path;
+        const pythonPackages = await detectPythonPackages();
+        // Checked between the two as well: each detector reads the path at its
+        // own start, so A then B then back to A would otherwise pair A's
+        // packages with B's executables and pass the exit check.
+        if (defaultFileBrowser?.model.path !== pathAtEntry) {
+          return;
+        }
+        const executables = await detectExecutables();
+        if (defaultFileBrowser?.model.path !== pathAtEntry) {
+          return;
+        }
+        markSpecialFilesPass({ pythonPackages, executables });
+      };
+
       let markSpecialFilesTimeout: ReturnType<typeof setTimeout> | null = null;
 
-      // Watch for changes in the file browser (debounced)
+      // Watch for changes in the file browser.
+      //
+      // markRowIcons runs on the spot: the browser reuses its row nodes, so
+      // until it runs a reused row still carries the previous file's marker,
+      // its background, and the CSS rule that attribute keys hides the glyph
+      // JupyterLab just resolved - a wrong icon beside the new name for the
+      // length of the debounce. It is a querySelectorAll pass with no server
+      // call, and it sets attributes and inline styles, which this observer
+      // does not watch, so it cannot feed itself.
+      //
+      // markSpecialFiles stays debounced: it awaits the contents API to find
+      // python packages and executables, and that is what the 100 ms is for.
+      // It runs markRowIcons again afterwards to repaint rows the pass may have
+      // re-ordered. markSpecialFiles is not awaited, so the painter actually
+      // runs first; it does not read the attributes that pass sets - it
+      // re-derives the artwork match itself - so there is no dependency to
+      // order. Do not add an await here: that would put the paint behind two
+      // round trips, which is the defect DEF-ICONS-31-1 removed.
       const observer = new MutationObserver(() => {
+        // Both halves of the override pass run on the spot, because the browser
+        // reuses its row nodes: until they run, a reused row carries the
+        // previous file's marker and its ::before artwork while the CSS keyed
+        // on that attribute hides the glyph JupyterLab just resolved. Measured
+        // before this ran here: a wrong icon for 136 ms on localhost and 717 ms
+        // with 150 ms of latency, because the attribute reset sat behind two
+        // server round-trips it does not need (DEF-ICONS-31-1).
+        markSpecialFilesPass(null);
+        markRowIcons();
         if (markSpecialFilesTimeout) {
           clearTimeout(markSpecialFilesTimeout);
         }
+        // The debounced pass is for the two decisions that do need the server:
+        // the executable badge and the python-package folder.
         markSpecialFilesTimeout = setTimeout(() => {
           markSpecialFiles();
+          markRowIcons();
         }, 100);
       });
 
-      // Start observing when the file browser is ready
-      setTimeout(() => {
-        const fileBrowser = document.querySelector('.jp-DirListing-content');
-        if (fileBrowser) {
-          observer.observe(fileBrowser, {
-            childList: true,
-            subtree: true
-          });
-          markSpecialFiles();
+      // Start observing when the file browser is ready. The listing is the
+      // only entry point the row painters have, so a single probe that misses
+      // it would leave the browser unpainted for the whole session: the pass
+      // runs from `app.restored`, which fires once the saved layout is back,
+      // and the timer stays as the backstop for a lab that restores before the
+      // listing is in the DOM. Both are idempotent - `startBrowserPass` leaves
+      // after the first success, and the painters re-mark what is already
+      // marked. This mirrors the tab path above.
+      let browserPassStarted = false;
+      const startBrowserPass = (): boolean => {
+        if (browserPassStarted) {
+          return true;
         }
+        const fileBrowser = document.querySelector('.jp-DirListing-content');
+        if (!fileBrowser) {
+          return false;
+        }
+        browserPassStarted = true;
+        observer.observe(fileBrowser, {
+          childList: true,
+          subtree: true,
+          // A rename rewrites the label in place - JupyterLab renders the name
+          // through a Lumino VirtualText node - and where its own glyph does
+          // not change, LabIcon.element returns without touching the DOM. With
+          // childList alone neither produces a record, so the row kept the
+          // previous name's glyph: measured, renamed.log became renamed.jar
+          // and still showed file-type-log.
+          characterData: true
+        });
+        markSpecialFiles();
+        markRowIcons();
+        return true;
+      };
+
+      void app.restored.then(() => {
+        startBrowserPass();
+      });
+      setTimeout(startBrowserPass, 1000);
+
+      // Document tab icons.
+      //
+      // A file editor tab carries JupyterLab's own `ui-components:text-editor`
+      // glyph: the editor factory sets the title icon, so the icon on the
+      // registered file type never reaches the tab. Measured against lab 4.6.4
+      // on `babel.config.js`, which the file browser shows with the JavaScript
+      // glyph while its tab shows the editor glyph.
+      //
+      // Priority: a generic icon loses to a specific one. Lab's own glyphs sit
+      // in the `ui-components:` namespace and are replaced; an icon from any
+      // other namespace is a specific one another extension delivered, and is
+      // kept. Only `data-type="document-title"` tabs are touched, so terminals,
+      // launchers and panels keep their own icons whatever they are named.
+      // Which settings group a file belongs to is resolved from the same two
+      // fields registration uses, pattern first and extension second - the order
+      // the document registry itself resolves in. Deriving it from the extension
+      // alone let every pattern-only config escape its toggle (Dockerfile,
+      // .gitignore, yarn.lock, requirements.txt kept painting with their group
+      // off) and sent package.json to the data group while its registration
+      // followed the config group.
+      const groupMatchers = fileTypeConfigs.map(config => ({
+        re: config.pattern ? new RegExp(config.pattern) : null,
+        exts: config.extensions.map(ext => ext.toLowerCase()),
+        group: config.group
+      }));
+
+      const groupFor = (fileName: string): keyof IIconSettings | null => {
+        const lower = fileName.toLowerCase();
+        for (const matcher of groupMatchers) {
+          if (matcher.re && matcher.re.test(fileName)) {
+            return matcher.group;
+          }
+        }
+        for (const matcher of groupMatchers) {
+          if (matcher.exts.some(ext => lower.endsWith(ext))) {
+            return matcher.group;
+          }
+        }
+        return null;
+      };
+
+      // The label is the whole name this needs: DocumentRegistry's
+      // getFileTypesForPath takes the basename on its first line and matches
+      // every pattern and extension against that alone, so the `Path:` line of
+      // the tooltip bought nothing - and parsing it depended on an English
+      // tooltip, since that string is translated.
+      const nameForTab = (tab: Element): string => {
+        const label = tab.querySelector('.lm-TabBar-tabLabel');
+        return label && label.textContent ? label.textContent.trim() : '';
+      };
+
+      // The document registry is the same resolver the file browser uses, so
+      // asking it is what lets a tab mirror its row: measured, LICENSE mirrors
+      // (registry:vscode-license), and so does another extension's icon. A name
+      // whose extension JupyterLab itself claims does not mirror - README.md and
+      // CHANGELOG.md keep lab's markdown glyph on the tab while their rows show
+      // this extension's custom icons - because the specific-icon guard in
+      // markTabIcons returns before the registry is asked. A group toggled off
+      // is not registered on the next page load, so the registry stops offering
+      // its types then - until that reload it still answers while the painters
+      // and the ::before path already honour the new value, which is what the
+      // refresh alert exists to cover.
+      const registryIconFor = (
+        path: string
+      ): { key: string; svgstr: string; owner: string } | null => {
+        try {
+          const types = docRegistry.getFileTypesForPath(path);
+          for (const type of types) {
+            const icon = type.icon as any;
+            if (
+              icon?.svgstr &&
+              type.name !== 'default' &&
+              type.name !== 'text'
+            ) {
+              return {
+                key: `registry:${type.name}`,
+                svgstr: icon.svgstr,
+                owner: icon.name || ''
+              };
+            }
+          }
+        } catch {
+          // A registry without this lookup must not break the tab bar.
+        }
+        return null;
+      };
+
+      // One resolver for a file browser row and for a document tab. They can
+      // still differ for a type JupyterLab claims: the row keeps lab's specific
+      // icon and the tab, which only ever gets the generic editor glyph, takes
+      // this extension's - sanctioned, and recorded in the rejection of
+      // DEF-TABS-19. Both callers ask it only for a
+      // slot that holds a generic JupyterLab glyph - a specific icon, whoever
+      // supplied it, is kept untouched - so the order here is: hand artwork,
+      // then any registered icon outside the ui-components namespace, then the
+      // bundled vscode glyph, and abstain if none of those applies. A file
+      // editor tab is the one place where a type JupyterLab claims (.md, .py,
+      // .json) still reaches the bundled glyph, because the editor factory
+      // puts the generic text-editor icon there rather than the type's own.
+      // The row paints these six through a ::before override built from
+      // hand-written artwork, not from a bundled key, so the tab resolver had no
+      // path to them and the two showed different art for the same file. The
+      // maintainer's decision is that the row artwork wins, so the tab reads the
+      // same constants. Matching follows the same tests markSpecialFiles uses to
+      // set the override attributes.
+      const rowArtwork: Array<{
+        key: string;
+        attr: string;
+        svg: string;
+        matches: (name: string) => boolean;
+      }> = [
+        {
+          key: 'artwork:pdf',
+          attr: 'data-vscode-pdf',
+          svg: pdfSvg,
+          matches: n => n.endsWith('.pdf')
+        },
+        {
+          key: 'artwork:db',
+          attr: 'data-vscode-db',
+          svg: dbSvg,
+          matches: n =>
+            n.endsWith('.db') ||
+            n.endsWith('.db3') ||
+            n.endsWith('.sqlite') ||
+            n.endsWith('.sqlite3')
+        },
+        {
+          key: 'artwork:uv',
+          attr: 'data-uv-lock',
+          svg: uvSvg,
+          matches: n => n === 'uv.lock'
+        },
+        {
+          key: 'artwork:pytest',
+          attr: 'data-pytest',
+          svg: pytestSvg,
+          matches: n =>
+            n === 'conftest.py' || n === 'pytest.ini' || n === '.coverage'
+        },
+        {
+          key: 'artwork:svg',
+          attr: 'data-vscode-svg-override',
+          svg: svgFileSvg,
+          matches: n => n.endsWith('.svg')
+        },
+        {
+          key: 'artwork:bpmn',
+          attr: 'data-vscode-bpmn',
+          svg: bpmnSvg,
+          matches: n => n.endsWith('.bpmn')
+        }
+      ];
+
+      // The two glyphs the painters below treat as replaceable: the plain file
+      // glyph, and the text-editor glyph a file editor tab gets regardless of
+      // file type. A specific icon - JupyterLab's own or another extension's -
+      // is left alone by markRowIcons and markTabIcons, because replacing
+      // those changed files the maintainer had deliberately left alone.
+      //
+      // This governs the painters only. markSpecialFiles and the ::before
+      // blocks it drives are a separate, older path that overrides by file name
+      // with no such test, and they do displace specific icons on purpose:
+      // measured, .pdf and .svg replace lab's own glyphs, conftest.py replaces
+      // ui-components:python, and .xlsx and .db replace the tabular data
+      // viewer's. That artwork is the project's own and is kept deliberately;
+      // ACC-ICONS-35 and ACC-CLASH-9 record the exception.
+      const labGenericIcons = new Set([
+        'ui-components:file',
+        'ui-components:text-editor'
+      ]);
+
+      const resolveIcon = (
+        fileName: string
+      ): { key: string; svgstr: string } | null => {
+        // The hand artwork is consulted first, ahead of this extension's own
+        // registrations: .ini is registered as vscode-file-type-ini and would
+        // otherwise win for pytest.ini, painting the bundled INI glyph on the
+        // tab while the row painted the pytest bars. The maintainer's decision
+        // is that the row artwork wins, and it only wins if it is asked first.
+        const lower = fileName.toLowerCase();
+        const artwork = rowArtwork.find(
+          entry => entry.svg && entry.matches(lower)
+        );
+        if (artwork) {
+          // The row paints this artwork through a ::before that setOverride
+          // gates, so the tab has to read the same group or a toggled-off
+          // family keeps its artwork on the tab while its row goes bare.
+          const artworkGroup = overrideGroups[artwork.attr];
+          if (!artworkGroup || settings[artworkGroup]) {
+            return { key: artwork.key, svgstr: artwork.svg };
+          }
+        }
+
+        const registered = registryIconFor(fileName);
+        if (registered && !registered.owner.startsWith('ui-components:')) {
+          return registered;
+        }
+        // A JupyterLab-owned registry hit is discarded rather than handed
+        // through on purpose. DEF-TABS-19 proposed mirroring it onto the tab
+        // and was rejected: copying lab's svg into a data-URI background drops
+        // the jp-icon-contrast class that themes it, so the tab would carry a
+        // glyph that does not follow the theme.
+
+        const iconName = getIconForFile(fileName);
+        const group = groupFor(fileName);
+        // A family no fileTypeConfigs entry claims - .log, .jar, .class and
+        // the rest of the bundled map - has no group of its own, so it cannot
+        // follow one toggle. It follows all of them instead: switching every
+        // group off leaves stock JupyterLab, which is what the settings
+        // promise, while any group on keeps these gap fillers painted.
+        const gated = group
+          ? settings[group]
+          : (Object.keys(settings) as Array<keyof IIconSettings>).some(
+              key => key !== 'enableExecutableIcons' && settings[key]
+            );
+        if (iconName !== 'default-file' && gated) {
+          const svgstr = generateIconSVG(iconName);
+          // Five mapped keys have no body in the bundled vscode-icons set
+          // (file-type-pdf, -lock, -csv, -rst, -hpp) and getIconSVG substitutes
+          // the default-file body for them, so painting this would replace an
+          // icon JupyterLab did supply with a blank page.
+          if (svgstr !== generateIconSVG('default-file')) {
+            return { key: iconName, svgstr };
+          }
+        }
+
+        // Abstain rather than re-encode an icon JupyterLab rendered. Three of
+        // lab's filetype svgs take their colour from document CSS, which a
+        // data-URI background cannot reach, so copying one freezes it - vega's
+        // baked #212121 is invisible on the dark panel, where lab draws white.
+        // Leaving it alone keeps the themed svg the caller already has.
+        return null;
+      };
+
+      // The icon is painted on the host element rather than written into it:
+      // Lumino re-renders a tab's children on every layout change and reverts
+      // anything written there, but it leaves the host node, its attributes
+      // and its inline style in place.
+      const clearTabIcon = (host: HTMLElement): void => {
+        if (host.hasAttribute('data-vscode-tab-icon')) {
+          host.removeAttribute('data-vscode-tab-icon');
+          host.removeAttribute('data-vscode-tab-outline');
+          host.style.backgroundImage = '';
+        }
+      };
+
+      // The glyph is painted as a background image, which the page's
+      // stylesheet cannot reach into, so the artwork's own colours decide
+      // whether it can be seen. src/contrast.ts holds the measurement and its
+      // unit tests; this only resolves the background to measure against.
+      const paintTabIcon = (
+        host: HTMLElement,
+        tab: Element,
+        key: string,
+        svgstr: string
+      ): void => {
+        // The outline is decided on every pass, before the key guard below.
+        // Deciding it once per key left a tab painted on the dark theme with no
+        // outline after a switch to the light one, where the same artwork
+        // measures 1.06:1 - the very symptom this rule exists to prevent - and
+        // it also froze the measurement to whichever background the tab had
+        // when it was first painted, current or inactive.
+        if (needsOutlineOn(svgstr, getComputedStyle(tab).backgroundColor)) {
+          host.setAttribute('data-vscode-tab-outline', '');
+        } else {
+          host.removeAttribute('data-vscode-tab-outline');
+        }
+        if (host.getAttribute('data-vscode-tab-icon') === key) {
+          return;
+        }
+        host.setAttribute('data-vscode-tab-icon', key);
+        host.style.backgroundImage = `url("data:image/svg+xml;utf8,${encodeURIComponent(
+          svgstr
+        )}")`;
+      };
+
+      const markTabIcons = (): void => {
+        document
+          .querySelectorAll('.lm-TabBar-tab[data-type="document-title"]')
+          .forEach(tab => {
+            const host = tab.querySelector(
+              '.lm-TabBar-tabIcon'
+            ) as HTMLElement | null;
+            if (!host) {
+              return;
+            }
+
+            const path = nameForTab(tab);
+            if (!path) {
+              return;
+            }
+            const fileName = path.split('/').pop() || '';
+
+            const owner = host.querySelector('svg[data-icon]');
+            const namespace = owner
+              ? owner.getAttribute('data-icon') || ''
+              : '';
+            if (namespace && !labGenericIcons.has(namespace)) {
+              // A specific icon is already on the tab - JupyterLab's own or
+              // another extension's. Leave it, and drop any earlier paint.
+              clearTabIcon(host);
+              return;
+            }
+
+            const resolved = resolveIcon(fileName);
+            if (resolved) {
+              paintTabIcon(host, tab, resolved.key, resolved.svgstr);
+              return;
+            }
+
+            // Abstaining must also undo any earlier paint on this node: Lumino
+            // reuses tab nodes, so a rename, or another extension claiming the
+            // type late, would otherwise leave the previous glyph on top of the
+            // icon JupyterLab has since rendered.
+            clearTabIcon(host);
+
+            // Nothing specific anywhere. A tab still shows an icon. Lab's own
+            // fileIcon carries fill #616161, which measures 6.19:1 on a light
+            // tab and 2.60:1 on a dark one, so the contrast measure outlines it
+            // on dark and leaves it alone on light (DEF-COLOUR-34).
+            if (!owner) {
+              paintTabIcon(host, tab, 'generic-file', fileIcon.svgstr);
+            }
+          });
+      };
+
+      // File browser rows. Only a row whose icon JupyterLab itself supplied is
+      // repainted; one already showing this extension's own registered icon, or
+      // another extension's, is left exactly as the registry rendered it. The
+      // listing reuses row nodes, so a row that no longer qualifies is cleared
+      // rather than left carrying the previous file's glyph.
+      // The listing's background, which is what a painted row glyph sits on.
+      // The host itself carries no background colour, so the panel's is the
+      // honest comparison.
+      const rowBackground = (): string => {
+        const panel = document.querySelector('.jp-DirListing-content');
+        return panel
+          ? getComputedStyle(panel).backgroundColor
+          : 'rgb(255, 255, 255)';
+      };
+
+      const markRowIcons = (): void => {
+        // Read once per pass: reading it inside the loop forced a style flush
+        // after every row this pass had already painted.
+        const background = rowBackground();
+        document.querySelectorAll('.jp-DirListing-item').forEach(item => {
+          const host = item.querySelector(
+            '.jp-DirListing-itemIcon'
+          ) as HTMLElement | null;
+          const nameSpan = item.querySelector('.jp-DirListing-itemText');
+          const clear = (): void => {
+            if (host && host.hasAttribute('data-vscode-row-icon')) {
+              host.removeAttribute('data-vscode-row-icon');
+              host.removeAttribute('data-vscode-row-outline');
+              host.style.backgroundImage = '';
+            }
+          };
+          if (!host || !nameSpan || !nameSpan.textContent) {
+            return;
+          }
+          if (item.getAttribute('data-file-type') === 'directory') {
+            clear();
+            return;
+          }
+
+          const fileName = nameSpan.textContent.trim();
+          const owner = host.querySelector('svg[data-icon]');
+          const ownerName = owner ? owner.getAttribute('data-icon') || '' : '';
+          if (ownerName && !labGenericIcons.has(ownerName)) {
+            // A specific icon is already on the row - JupyterLab's own or
+            // another extension's. Leave it.
+            clear();
+            return;
+          }
+
+          const resolved = resolveIcon(fileName);
+          // `registry:` means the row already renders that icon itself, and
+          // `artwork:` means a ::before override already paints it - in both
+          // cases this pass has nothing to add.
+          if (
+            !resolved ||
+            resolved.key.startsWith('registry:') ||
+            resolved.key.startsWith('artwork:')
+          ) {
+            clear();
+            return;
+          }
+          // The same measure the tab painter runs, for the same reason: this
+          // artwork was drawn for VSCode's dark sidebar and some of it cannot
+          // be seen on a light listing - measured, file-type-gradle is 1.33:1,
+          // file-type-log 2.21:1 and file-type-class 2.93:1 against
+          // --jp-layout-color1, where the glyph JupyterLab drew before this
+          // painter existed was 6.19:1. The measure reads the artwork's stated
+          // colours, so the painted-and-marked set on a white listing is .yaml
+          // at 1.23:1, build.gradle at 1.51:1 and .log at 2.54:1;
+          // file-type-class states #e76f00, which is 3.15:1, so it is left
+          // alone although a 20px render of it measures 2.93:1 - one sample of
+          // the gap between stated and rendered colour, not a rule to change.
+          // Re-decided on every pass, but a theme change schedules no pass, so
+          // a marker stays as the previous theme left it until the listing next
+          // mutates - a click in it is enough (DEF-COLOUR-43, DEF-COLOUR-48).
+          if (needsOutlineOn(resolved.svgstr, background)) {
+            host.setAttribute('data-vscode-row-outline', '');
+          } else {
+            host.removeAttribute('data-vscode-row-outline');
+          }
+          if (host.getAttribute('data-vscode-row-icon') === resolved.key) {
+            return;
+          }
+          host.setAttribute('data-vscode-row-icon', resolved.key);
+          host.style.backgroundImage = `url("data:image/svg+xml;utf8,${encodeURIComponent(
+            resolved.svgstr
+          )}")`;
+        });
+      };
+
+      let markTabIconsTimeout: ReturnType<typeof setTimeout> | null = null;
+      const scheduleTabIcons = (): void => {
+        if (markTabIconsTimeout) {
+          clearTimeout(markTabIconsTimeout);
+        }
+        markTabIconsTimeout = setTimeout(() => {
+          // A split pane creates a new tab bar; pick it up before marking.
+          watchTabBars();
+          markTabIcons();
+        }, 100);
+      };
+
+      // `layoutModified` fires when a tab is opened, closed, moved or activated
+      // - every event that makes Lumino rebuild a tab node. Watching the dock
+      // panel with a MutationObserver instead would fire on every keystroke in
+      // an open editor, since the editor content lives in the same subtree.
+      const shell = app.shell as any;
+      if (shell && shell.layoutModified && shell.layoutModified.connect) {
+        shell.layoutModified.connect(scheduleTabIcons);
+      }
+
+      // Lumino re-renders a tab's children whenever its title, dirty marker or
+      // selection changes, which drops the icon JupyterLab had rendered and
+      // puts a fresh one back. The observer re-applies after each of those, and
+      // is scoped to the tab bars so editor keystrokes never reach it. New tab
+      // bars appear when a pane is split, so the set is refreshed on each run.
+      const watchedBars = new WeakSet<Element>();
+      const tabObserver = new MutationObserver(scheduleTabIcons);
+      const watchTabBars = (): void => {
+        document.querySelectorAll('.lm-DockPanel-tabBar').forEach(bar => {
+          if (!watchedBars.has(bar)) {
+            watchedBars.add(bar);
+            // characterData for the same reason as the browser observer: a
+            // rename rewrites the tab label in place and leaves the icon host
+            // untouched, so a childList-only watch never re-marks the tab.
+            tabObserver.observe(bar, {
+              childList: true,
+              subtree: true,
+              characterData: true
+            });
+          }
+        });
+      };
+
+      // Tabs restored from the previous session are already in the DOM when
+      // this plugin activates, so the first pass cannot wait for a mutation.
+      // On a fixed 1000 ms timer alone every restored tab showed the generic
+      // editor glyph for about a second before swapping. app.restored resolves
+      // once the shell has put the saved layout back; the timer stays as the
+      // backstop for the case where it resolves before the tab nodes exist.
+      void app.restored.then(() => {
+        watchTabBars();
+        markTabIcons();
+      });
+      setTimeout(() => {
+        watchTabBars();
+        markTabIcons();
       }, 1000);
+
+      // A theme switch changes the background both outline measures are taken
+      // against, and it fires nothing the painters already watch: measured,
+      // .jp-DirListing-content emitted no mutation records in the 20 seconds
+      // after a switch, so a row kept the previous theme's marker until the
+      // listing next changed (DEF-COLOUR-48). JupyterLab writes the theme onto
+      // the body element, which is the one place a switch is observable, and
+      // both painters re-decide their marker above the key guard, so re-running
+      // them is enough - neither repaints artwork that has not changed.
+      const themeObserver = new MutationObserver(() => {
+        markRowIcons();
+        markTabIcons();
+      });
+      themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['data-jp-theme-light', 'data-jp-theme-name']
+      });
 
       // Remove existing override style if present
       const existing = document.getElementById(
@@ -1271,6 +2110,14 @@ const plugin: JupyterFrontEndPlugin<void> = {
           return;
         }
 
+        // Three mapped keys have no body in the bundled set, so createLabIcon
+        // would build a blank page and register it. JupyterLab claims csv and
+        // pdf first so those are inert, but nothing claims .rst and the blank
+        // page is what a .rst row showed. Leave the type unregistered instead.
+        if (getIconSVG(config.iconName) === getIconSVG('default-file')) {
+          return;
+        }
+
         const icon = createLabIcon(config.iconName);
         const fileTypeName = `vscode-${config.iconName}`;
 
@@ -1300,7 +2147,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       // Register Makefile with custom icon (document with gears, from text-x-makefile-svgrepo-com.svg)
       const makefileSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="19 7 90 114">
-        <path fill="#c2544f" d="m 29.09375,11.234375 c -3.183804,0 -5.71875,2.566196 -5.71875,5.75 l 0,94.031255 c 0,3.1838 2.534946,5.75 5.71875,5.75 l 69.8125,0 c 3.1838,0 5.71875,-2.5662 5.71875,-5.75 l 0,-70.656255 -21.03125,0 c -4.306108,0 -8.0625,-3.141109 -8.0625,-7.3125 l 0,-21.8125 -46.4375,0 z m 50.4375,0 0,21.8125 c 0,1.714122 1.631968,3.3125 4.0625,3.3125 l 21.03125,0 -25.09375,-25.125 z m -32.34375,29.3125 1.71875,0 1.65625,3.5 0.03125,0.75 -0.53125,2.4375 3.25,1.3125 1.3125,-2.0625 0.59375,-0.53125 3.59375,-1.25 1.25,1.21875 -1.28125,3.59375 -0.5,0.59375 -2.0625,1.3125 1.3125,3.28125 2.40625,-0.5625 0.78125,0.03125 3.46875,1.65625 0,1.75 -3.46875,1.65625 -0.78125,0 -2.40625,-0.5 -1.3125,3.21875 2.0625,1.375 0.5,0.59375 1.28125,3.59375 -1.25,1.25 -3.59375,-1.28125 -0.59375,-0.5625 -1.3125,-2.0625 -3.25,1.34375 0.53125,2.40625 -0.03125,0.78125 -1.65625,3.4375 -1.71875,0 -1.65625,-3.4375 -0.0625,-0.78125 0.53125,-2.40625 -3.25,-1.34375 -1.3125,2.0625 -0.59375,0.5625 -3.59375,1.28125 -1.25,-1.25 1.28125,-3.59375 0.5625,-0.59375 2.0625,-1.375 -1.34375,-3.21875 -2.40625,0.5 -0.8125,0 -3.46875,-1.65625 0,-1.75 3.46875,-1.65625 0.8125,-0.03125 2.40625,0.5625 1.34375,-3.28125 -2.0625,-1.3125 -0.5625,-0.59375 L 36,45.921875 l 1.25,-1.21875 3.59375,1.25 0.59375,0.53125 1.3125,2.0625 3.25,-1.3125 -0.53125,-2.4375 0.0625,-0.75 1.65625,-3.5 z m 0.875,10.875 c -2.927972,0 -5.34375,2.353278 -5.34375,5.28125 0,2.927972 2.415778,5.3125 5.34375,5.3125 2.927972,0 5.28125,-2.384528 5.28125,-5.3125 0,-2.927972 -2.353278,-5.28125 -5.28125,-5.28125 z m 18.15625,10.3125 3.09375,3.34375 0.46875,1.15625 0.40625,2.75 4.46875,0 0.40625,-2.75 0.4375,-1.15625 3.125,-3.34375 2.25,0.71875 0.53125,4.53125 -0.28125,1.21875 -1.3125,2.4375 3.625,2.65625 1.90625,-2 1.0625,-0.625 4.5,-0.90625 1.375,1.90625 -2.21875,3.96875 -0.96875,0.8125 -2.46875,1.1875 1.40625,4.28125 2.71875,-0.46875 1.21875,0.09375 4.15625,1.90625 0,2.34375 -4.15625,1.9375 -1.21875,0.09375 -2.71875,-0.46875 -1.40625,4.25 2.46875,1.21875 0.96875,0.78125 2.21875,4.03125 -1.375,1.875 -4.5,-0.875 -1.0625,-0.65625 -1.90625,-2 -3.625,2.65625 1.3125,2.406255 0.28125,1.21875 -0.53125,4.5625 -2.25,0.75 -3.125,-3.40625 -0.4375,-1.125 -0.40625,-2.71875 -4.46875,0 -0.40625,2.71875 -0.46875,1.125 -3.09375,3.40625 -2.25,-0.75 -0.53125,-4.5625 0.3125,-1.21875 1.28125,-2.406255 -3.625,-2.65625 -1.9375,2 -1.0625,0.65625 -4.46875,0.875 -1.375,-1.875 2.21875,-4.03125 0.9375,-0.78125 2.46875,-1.21875 -1.34375,-4.25 -2.71875,0.46875 -1.21875,-0.09375 -4.1875,-1.9375 0,-2.34375 4.1875,-1.90625 1.21875,-0.09375 2.71875,0.46875 1.34375,-4.28125 -2.46875,-1.1875 -0.9375,-0.8125 -2.21875,-3.96875 1.375,-1.90625 4.46875,0.90625 1.0625,0.625 1.9375,2 3.625,-2.65625 -1.28125,-2.4375 -0.3125,-1.21875 0.53125,-4.53125 2.25,-0.71875 z m 6.1875,14.09375 c -4.866236,0 -8.8125,3.946264 -8.8125,8.8125 0,4.866238 3.946264,8.8125 8.8125,8.8125 4.866237,0 8.8125,-3.946262 8.8125,-8.8125 0,-4.866236 -3.946263,-8.8125 -8.8125,-8.8125 z"/>
+        <path class="makefile-glyph" fill="#c2544f" d="m 29.09375,11.234375 c -3.183804,0 -5.71875,2.566196 -5.71875,5.75 l 0,94.031255 c 0,3.1838 2.534946,5.75 5.71875,5.75 l 69.8125,0 c 3.1838,0 5.71875,-2.5662 5.71875,-5.75 l 0,-70.656255 -21.03125,0 c -4.306108,0 -8.0625,-3.141109 -8.0625,-7.3125 l 0,-21.8125 -46.4375,0 z m 50.4375,0 0,21.8125 c 0,1.714122 1.631968,3.3125 4.0625,3.3125 l 21.03125,0 -25.09375,-25.125 z m -32.34375,29.3125 1.71875,0 1.65625,3.5 0.03125,0.75 -0.53125,2.4375 3.25,1.3125 1.3125,-2.0625 0.59375,-0.53125 3.59375,-1.25 1.25,1.21875 -1.28125,3.59375 -0.5,0.59375 -2.0625,1.3125 1.3125,3.28125 2.40625,-0.5625 0.78125,0.03125 3.46875,1.65625 0,1.75 -3.46875,1.65625 -0.78125,0 -2.40625,-0.5 -1.3125,3.21875 2.0625,1.375 0.5,0.59375 1.28125,3.59375 -1.25,1.25 -3.59375,-1.28125 -0.59375,-0.5625 -1.3125,-2.0625 -3.25,1.34375 0.53125,2.40625 -0.03125,0.78125 -1.65625,3.4375 -1.71875,0 -1.65625,-3.4375 -0.0625,-0.78125 0.53125,-2.40625 -3.25,-1.34375 -1.3125,2.0625 -0.59375,0.5625 -3.59375,1.28125 -1.25,-1.25 1.28125,-3.59375 0.5625,-0.59375 2.0625,-1.375 -1.34375,-3.21875 -2.40625,0.5 -0.8125,0 -3.46875,-1.65625 0,-1.75 3.46875,-1.65625 0.8125,-0.03125 2.40625,0.5625 1.34375,-3.28125 -2.0625,-1.3125 -0.5625,-0.59375 L 36,45.921875 l 1.25,-1.21875 3.59375,1.25 0.59375,0.53125 1.3125,2.0625 3.25,-1.3125 -0.53125,-2.4375 0.0625,-0.75 1.65625,-3.5 z m 0.875,10.875 c -2.927972,0 -5.34375,2.353278 -5.34375,5.28125 0,2.927972 2.415778,5.3125 5.34375,5.3125 2.927972,0 5.28125,-2.384528 5.28125,-5.3125 0,-2.927972 -2.353278,-5.28125 -5.28125,-5.28125 z m 18.15625,10.3125 3.09375,3.34375 0.46875,1.15625 0.40625,2.75 4.46875,0 0.40625,-2.75 0.4375,-1.15625 3.125,-3.34375 2.25,0.71875 0.53125,4.53125 -0.28125,1.21875 -1.3125,2.4375 3.625,2.65625 1.90625,-2 1.0625,-0.625 4.5,-0.90625 1.375,1.90625 -2.21875,3.96875 -0.96875,0.8125 -2.46875,1.1875 1.40625,4.28125 2.71875,-0.46875 1.21875,0.09375 4.15625,1.90625 0,2.34375 -4.15625,1.9375 -1.21875,0.09375 -2.71875,-0.46875 -1.40625,4.25 2.46875,1.21875 0.96875,0.78125 2.21875,4.03125 -1.375,1.875 -4.5,-0.875 -1.0625,-0.65625 -1.90625,-2 -3.625,2.65625 1.3125,2.406255 0.28125,1.21875 -0.53125,4.5625 -2.25,0.75 -3.125,-3.40625 -0.4375,-1.125 -0.40625,-2.71875 -4.46875,0 -0.40625,2.71875 -0.46875,1.125 -3.09375,3.40625 -2.25,-0.75 -0.53125,-4.5625 0.3125,-1.21875 1.28125,-2.406255 -3.625,-2.65625 -1.9375,2 -1.0625,0.65625 -4.46875,0.875 -1.375,-1.875 2.21875,-4.03125 0.9375,-0.78125 2.46875,-1.21875 -1.34375,-4.25 -2.71875,0.46875 -1.21875,-0.09375 -4.1875,-1.9375 0,-2.34375 4.1875,-1.90625 1.21875,-0.09375 2.71875,0.46875 1.34375,-4.28125 -2.46875,-1.1875 -0.9375,-0.8125 -2.21875,-3.96875 1.375,-1.90625 4.46875,0.90625 1.0625,0.625 1.9375,2 3.625,-2.65625 -1.28125,-2.4375 -0.3125,-1.21875 0.53125,-4.53125 2.25,-0.71875 z m 6.1875,14.09375 c -4.866236,0 -8.8125,3.946264 -8.8125,8.8125 0,4.866238 3.946264,8.8125 8.8125,8.8125 4.866237,0 8.8125,-3.946262 8.8125,-8.8125 0,-4.866236 -3.946263,-8.8125 -8.8125,-8.8125 z"/>
       </svg>`;
 
       const makefileIcon = new LabIcon({
@@ -1308,16 +2155,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
         svgstr: makefileSvg
       });
 
-      docRegistry.addFileType({
-        name: 'vscode-makefile',
-        displayName: 'Makefile',
-        extensions: ['.mk', '.mak', '.make'],
-        pattern: '^(Makefile|makefile|GNUmakefile)$',
-        fileFormat: 'text',
-        contentType: 'file',
-        mimeTypes: ['text/x-makefile'],
-        icon: makefileIcon
-      });
+      if (settings.enableConfigIcons) {
+        docRegistry.addFileType({
+          name: 'vscode-makefile',
+          displayName: 'Makefile',
+          extensions: ['.mk', '.mak', '.make'],
+          pattern: '^(Makefile|makefile|GNUmakefile)$',
+          fileFormat: 'text',
+          contentType: 'file',
+          mimeTypes: ['text/x-makefile'],
+          icon: makefileIcon
+        });
+      }
 
       // Register LICENSE with document + seal icon
       const licenseSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 490 490">
@@ -1347,28 +2196,32 @@ const plugin: JupyterFrontEndPlugin<void> = {
         svgstr: licenseSvg
       });
 
-      docRegistry.addFileType({
-        name: 'vscode-license',
-        displayName: 'License',
-        pattern: '^(LICENSE|LICENCE|LICENSE\\..*|LICENCE\\..*)$',
-        fileFormat: 'text',
-        contentType: 'file',
-        mimeTypes: ['text/plain'],
-        icon: licenseIcon
-      });
+      if (settings.enableDocIcons) {
+        docRegistry.addFileType({
+          name: 'vscode-license',
+          displayName: 'License',
+          pattern: '^(LICENSE|LICENCE|LICENSE\\..*|LICENCE\\..*)$',
+          fileFormat: 'text',
+          contentType: 'file',
+          mimeTypes: ['text/plain'],
+          icon: licenseIcon
+        });
+      }
 
       // Register CLAUDE.md with Claude icon (always register, not conditional on settings)
       const claudeIcon = createLabIcon('file-type-claude');
       if (claudeIcon) {
-        docRegistry.addFileType({
-          name: 'vscode-claude-md',
-          displayName: 'Claude Configuration',
-          pattern: '^CLAUDE\\.md$',
-          fileFormat: 'text',
-          contentType: 'file',
-          mimeTypes: ['text/markdown'],
-          icon: claudeIcon
-        });
+        if (settings.enableDocIcons) {
+          docRegistry.addFileType({
+            name: 'vscode-claude-md',
+            displayName: 'Claude Configuration',
+            pattern: '^CLAUDE\\.md$',
+            fileFormat: 'text',
+            contentType: 'file',
+            mimeTypes: ['text/markdown'],
+            icon: claudeIcon
+          });
+        }
       } else {
         console.error('[VSCode Icons] Failed to create CLAUDE.md icon');
       }
@@ -1384,15 +2237,17 @@ const plugin: JupyterFrontEndPlugin<void> = {
         svgstr: readmeSvg
       });
 
-      docRegistry.addFileType({
-        name: 'vscode-readme',
-        displayName: 'README',
-        pattern: '^README\\.md$',
-        fileFormat: 'text',
-        contentType: 'file',
-        mimeTypes: ['text/markdown'],
-        icon: readmeIcon
-      });
+      if (settings.enableDocIcons) {
+        docRegistry.addFileType({
+          name: 'vscode-readme',
+          displayName: 'README',
+          pattern: '^README\\.md$',
+          fileFormat: 'text',
+          contentType: 'file',
+          mimeTypes: ['text/markdown'],
+          icon: readmeIcon
+        });
+      }
 
       // Register CHANGELOG with document + list icon
       const changelogSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
@@ -1416,37 +2271,43 @@ const plugin: JupyterFrontEndPlugin<void> = {
         svgstr: changelogSvg
       });
 
-      docRegistry.addFileType({
-        name: 'vscode-changelog',
-        displayName: 'Changelog',
-        pattern: '^CHANGELOG(\\.md)?$',
-        fileFormat: 'text',
-        contentType: 'file',
-        mimeTypes: ['text/plain'],
-        icon: changelogIcon
-      });
+      if (settings.enableDocIcons) {
+        docRegistry.addFileType({
+          name: 'vscode-changelog',
+          displayName: 'Changelog',
+          pattern: '^CHANGELOG(\\.md)?$',
+          fileFormat: 'text',
+          contentType: 'file',
+          mimeTypes: ['text/plain'],
+          icon: changelogIcon
+        });
+      }
 
       // Register RELEASE without .md extension (same icon as CHANGELOG)
-      docRegistry.addFileType({
-        name: 'vscode-release',
-        displayName: 'Release Notes',
-        pattern: '^RELEASE$',
-        fileFormat: 'text',
-        contentType: 'file',
-        mimeTypes: ['text/plain'],
-        icon: changelogIcon
-      });
+      if (settings.enableDocIcons) {
+        docRegistry.addFileType({
+          name: 'vscode-release',
+          displayName: 'Release Notes',
+          pattern: '^RELEASE$',
+          fileFormat: 'text',
+          contentType: 'file',
+          mimeTypes: ['text/plain'],
+          icon: changelogIcon
+        });
+      }
 
       // Register RELEASE.md with markdown icon
-      docRegistry.addFileType({
-        name: 'vscode-release-md',
-        displayName: 'Release Notes',
-        pattern: '^RELEASE\\.md$',
-        fileFormat: 'text',
-        contentType: 'file',
-        mimeTypes: ['text/markdown'],
-        icon: markdownIcon
-      });
+      if (settings.enableDocIcons) {
+        docRegistry.addFileType({
+          name: 'vscode-release-md',
+          displayName: 'Release Notes',
+          pattern: '^RELEASE\\.md$',
+          fileFormat: 'text',
+          contentType: 'file',
+          mimeTypes: ['text/markdown'],
+          icon: markdownIcon
+        });
+      }
 
       // Register Draw.io files with custom orange diagram icon
       if (settings.enableConfigIcons) {
@@ -1474,14 +2335,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       // Register BPMN files with custom process notation icon
       if (settings.enableConfigIcons) {
-        const bpmnSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-          <path fill="#fc5d0d" d="M80.472 0c10.785 0 19.528 8.743 19.528 19.528v60.944c0 10.785-8.743 19.528-19.528 19.528H19.528C8.743 100 0 91.257 0 80.472V19.528C0 8.743 8.743 0 19.528 0h60.944z"/>
-          <circle cx="20.86" cy="50" r="8.5" fill="#fff"/>
-          <circle cx="79.08" cy="50" r="8.5" fill="#fff"/>
-          <rect x="32.46" y="43.45" width="13.18" height="13.14" fill="#fff"/>
-          <path fill="#fff" d="M58.95 40.7l-9.3 9.29 9.3 9.3 9.3-9.3z"/>
-        </svg>`;
-
         const bpmnIcon = new LabIcon({
           name: 'bpmn-icon',
           svgstr: bpmnSvg
@@ -1552,8 +2405,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // Register joblib pickle files with custom icon
       if (settings.enableDataIcons) {
         const joblibSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 862.47913 794.92072">
-          <path fill="#e15617" d="m 179.48711,704.51315 c 25.6731,-6.687 45.51106,-24.97067 53.132,-48.96915 12.83348,-40.41288 -8.98799,-82.06777 -49.59456,-94.67082 -6.41612,-1.99137 -9.52324,-2.31714 -21.5,-2.25423 -12.51769,0.0658 -14.84703,0.36274 -22,2.80489 -4.4,1.50225 -11.15,4.57589 -15,6.83032 -8.35561,4.89277 -21.59533,17.98205 -26.365256,26.06569 -9.34902,15.84382 -12.610358,37.48469 -8.251105,54.7508 7.764823,30.75489 31.211191,52.11946 62.592911,57.03531 6.26718,0.98173 20.27622,0.15487 26.98601,-1.59281 z m -78.96256,84.65966 -15.999996,-6.65958 0.0403,-5.48391 c 0.02217,-3.01615 0.417864,-12.69774 0.879328,-21.51464 l 0.839026,-16.03074 -6.962465,-5.69621 c -6.98244,-5.71255 -14.099832,-12.87932 -19.98088,-20.1195 l -3.149351,-3.87717 -20.146587,1.27785 c -17.166889,1.08886 -20.338047,1.0707 -21.441108,-0.12282 C 12.667365,708.85192 1.8414234,680.96502 2.3994101,679.51093 2.6647965,678.81935 9.3586728,672.79322 17.274691,666.11954 L 31.667451,653.98557 31.498964,633.76549 31.330478,613.54541 16.213087,600.53098 C 7.8985222,593.37305 0.63503592,587.05589 0.07200642,586.49286 -0.98889987,585.43196 9.9853168,556.85054 12.449679,554.25627 c 0.999421,-1.05211 4.98014,-1.04255 21.64973,0.052 l 20.425145,1.34107 3,-3.07786 c 1.65,-1.69282 5.7,-6.01731 9,-9.60997 3.3,-3.59266 8.654668,-8.81112 11.899262,-11.59657 l 5.899262,-5.06446 -1.318617,-22.21385 c -1.134391,-19.11032 -1.120316,-22.33892 0.100738,-23.10905 3.438949,-2.16898 29.356251,-12.0066 30.913751,-11.73417 0.94958,0.1661 7.91336,7.60386 15.47507,16.52835 l 13.74855,16.22634 13.64099,-0.57548 c 7.50254,-0.31651 16.34099,-0.12864 19.64099,0.41749 3.3,0.54613 6.675,0.61675 7.5,0.15693 0.825,-0.45982 7.125,-7.57713 14,-15.81625 6.875,-8.23912 13.07737,-15.23171 13.78304,-15.53909 1.20338,-0.52418 30.81392,10.68955 32.48906,12.30385 0.42466,0.40923 0.10089,10.60687 -0.71948,22.66142 l -1.49158,21.91735 9.25705,9.01055 c 5.09138,4.95579 11.28485,11.35981 13.76327,14.23113 4.09932,4.74918 4.81832,5.18046 7.96243,4.77609 7.33264,-0.94306 39.89391,-2.65321 40.72597,-2.13898 0.48217,0.298 3.73673,7.59984 7.23234,16.2263 l 6.35567,15.68449 -4.43716,4.11575 c -2.44044,2.26367 -10.13344,8.93174 -17.09555,14.81794 l -12.65839,10.70217 -0.36753,17.79783 c -0.20215,9.7888 -0.12715,18.30001 0.16666,18.91379 0.29381,0.61378 7.2842,6.83478 15.5342,13.82444 8.25,6.98966 15.2994,13.24193 15.66532,13.89393 0.59939,1.06797 -10.81429,30.64796 -12.46125,32.29492 -0.37624,0.37624 -10.05007,0.10939 -21.4974,-0.59299 l -20.81333,-1.27707 -14.7268,14.7268 -14.7268,14.7268 1.12016,17.1436 c 0.61608,9.42898 0.96714,18.9222 0.78013,21.09605 l -0.34003,3.95244 -15.46617,6.18322 c -8.5064,3.40077 -15.9314,5.97807 -16.5,5.72734 -0.56861,-0.25073 -6.78161,-7.28678 -13.80667,-15.63566 l -12.77284,-15.17979 -19.20867,0.26723 c -13.6557,0.18997 -19.5325,0.6236 -20.32883,1.5 -0.61609,0.67802 -6.43305,7.53277 -12.92657,15.23277 -6.49353,7.7 -12.29777,14.51457 -12.89833,15.14348 -0.81221,0.85056 -5.19058,-0.56247 -17.09192,-5.51608 z"/>
-          <path class="joblib-glyph" d="m 467.65426,634.81886 c -0.79593,-1.2504 -3.98822,-10.14845 -7.09399,-19.77345 -3.10577,-9.625 -6.18435,-18.02015 -6.84129,-18.65589 -0.65694,-0.63574 -6.14443,-1.90756 -12.19443,-2.82625 -6.05,-0.9187 -15.3914,-2.74543 -20.75867,-4.0594 -5.36727,-1.31397 -10.31727,-2.15177 -11,-1.86177 -0.68273,0.28999 -7.09133,7.51488 -14.24133,16.0553 -7.15,8.54042 -13.35877,15.75224 -13.79727,16.02626 -1.32598,0.8286 -31.82974,-11.84565 -32.45954,-13.48688 -0.32197,-0.83906 -0.0137,-10.77991 0.68496,-22.09077 1.21473,-19.66466 1.18938,-20.62267 -0.57889,-21.87713 -1.01709,-0.72155 -6.34926,-4.07568 -11.84926,-7.45362 -5.5,-3.37795 -13.88845,-8.98305 -18.641,-12.45578 -4.75255,-3.47274 -9.37035,-6.31407 -10.26176,-6.31407 -0.89142,0 -8.81018,3.6 -17.59724,8 -8.78706,4.4 -16.5513,8 -17.25387,8 -1.64589,0 -24.74613,-23.12824 -24.74613,-24.77613 0,-0.68535 3.84242,-8.92089 8.53872,-18.3012 l 8.53871,-17.05512 -5.39951,-7.18378 c -6.53098,-8.68912 -16.6375,-24.00152 -20.38006,-30.87783 l -2.73541,-5.02586 -14.53123,0.84247 c -7.99217,0.46336 -17.45622,0.85034 -21.03122,0.85996 l -6.5,0.0175 -6.16912,-15 c -3.39301,-8.25 -6.20551,-15.54828 -6.25,-16.21839 -0.0445,-0.67012 6.10662,-6.4771 13.66912,-12.9044 7.5625,-6.4273 14.5843,-12.46332 15.604,-13.41338 1.80287,-1.67975 1.78223,-2.04094 -0.74828,-13.09561 -1.43125,-6.25253 -3.30567,-15.86823 -4.16537,-21.36823 -0.8597,-5.5 -2.00736,-10.45 -2.55035,-11 -0.543,-0.55 -9.62789,-3.925 -20.18864,-7.5 l -19.20136,-6.5 v -17.91646 -17.91647 l 20,-6.66624 20,-6.66624 2.09877,-12.4173 c 1.15433,-6.82951 3.06683,-16.61378 4.25,-21.74282 1.18318,-5.12904 2.15123,-9.93253 2.15123,-10.67442 0,-0.74189 -6.975,-7.28127 -15.5,-14.53196 -8.525,-7.25068 -15.488,-13.69719 -15.47334,-14.32557 0.0147,-0.62839 2.83392,-7.89252 6.26502,-16.14252 l 6.23836,-15 7.98498,0.006 c 4.39174,0.003 14.03282,0.22816 21.42462,0.5 l 13.43965,0.494 6.42976,-10.5 c 3.53636,-5.775 9.18852,-14.25831 12.56035,-18.85181 3.37183,-4.59349 6.71812,-9.16101 7.4362,-10.15004 1.13731,-1.56644 0.20273,-4.00111 -7.25,-18.88709 -4.70558,-9.39886 -8.5556,-17.64958 -8.5556,-18.33493 0,-1.64749 23.10003,-24.77613 24.74548,-24.77613 0.7022,0 8.96672,3.85002 18.36558,8.5556 14.86044,7.43994 17.32112,8.38536 18.87001,7.25 14.41389,-10.56547 23.20349,-16.55807 31.26893,-21.31859 l 9.75,-5.75481 -0.009,-5.6161 c -0.005,-3.08886 -0.46136,-11.89349 -1.01452,-19.56586 -0.79291,-11.00074 -0.7382,-14.19298 0.259,-15.10024 1.74954,-1.59175 28.59423,-12.45 30.77994,-12.45 1.0578,0 6.73943,5.89557 14.05909,14.58849 14.07251,16.71268 10.61016,15.42694 29.92549,11.11279 6.325,-1.41271 15.32297,-3.08501 19.99548,-3.71621 4.67252,-0.63121 9.03374,-1.59436 9.69161,-2.14034 0.65786,-0.54598 3.73818,-8.61962 6.84514,-17.94142 L 468.20579,0 l 17.57668,0.27271 17.57667,0.2727 5.58271,16.52288 c 3.07048,9.08758 5.92729,17.04358 6.34846,17.68001 0.42117,0.63642 3.34617,1.45889 6.5,1.8277 7.45074,0.87128 34.52791,6.25037 37.88173,7.52548 3.28758,1.24994 3.09565,1.41493 16.0016,-13.75445 5.75635,-6.76589 11.08026,-12.30162 11.8309,-12.30162 0.75064,0 8.14972,2.7594 16.4424,6.13201 l 15.07761,6.132 -0.10021,7.618 c -0.0551,4.18989 -0.39262,12.09466 -0.75,17.56616 -0.52952,8.10683 -0.37215,10.24964 0.85021,11.57694 0.825,0.89583 6.25472,4.44227 12.06604,7.88098 5.81133,3.43871 15.17058,9.64125 20.79835,13.78343 l 10.2323,7.53124 16.85784,-8.61038 c 9.27182,-4.73571 17.4696,-8.61038 18.21729,-8.61038 1.70249,0 24.82818,23.07781 24.82818,24.77678 0,0.68571 -3.6,8.43616 -8,17.22322 -4.4,8.78706 -8,16.84724 -8,17.91151 0,1.06427 1.06241,3.20707 2.36092,4.76176 3.71959,4.45348 16.89524,24.13375 21.21528,31.68895 l 3.9238,6.86223 15.5,-0.80768 c 8.525,-0.44422 17.29886,-0.83222 19.49746,-0.86222 l 3.99746,-0.0546 6.17165,15 c 3.39442,8.25 6.20806,15.68242 6.25255,16.51649 0.0445,0.83407 -6.21912,6.8378 -13.91912,13.34161 -8.66681,7.32044 -14,12.52784 -14,13.66981 0,1.01457 1.11279,6.44038 2.47287,12.05735 1.36008,5.61697 3.1895,15.20814 4.06539,21.31371 0.87589,6.10556 1.93264,11.74909 2.34835,12.54116 0.41571,0.79207 8.37378,3.97931 17.68461,7.08274 l 16.92878,5.64262 0.27165,17.93147 0.27164,17.93148 -17.52079,5.80829 c -14.79237,4.90379 -17.59423,6.14738 -17.99235,7.98578 -0.25935,1.19762 -1.37902,7.71272 -2.48814,14.47801 -1.10913,6.76528 -2.92232,15.9396 -4.0293,20.38738 -1.10699,4.44777 -2.01271,8.5988 -2.01271,9.2245 0,0.62571 6.3,6.4672 14,12.9811 7.7,6.5139 14.00518,12.35264 14.01151,12.97498 0.0218,2.14818 -12.36343,31.55241 -13.43601,31.89879 -0.59152,0.19103 -8.7255,-0.15768 -18.0755,-0.77491 -9.35,-0.61723 -17.54328,-0.93974 -18.2073,-0.7167 -0.66401,0.22305 -4.20924,5.42727 -7.87829,11.56494 -3.66905,6.13767 -9.98826,15.73218 -14.0427,21.32114 -4.05444,5.58901 -7.37171,10.8818 -7.37171,11.76181 0,0.88001 3.6,8.78944 8,17.5765 4.4,8.78706 8,16.77661 8,17.75455 0,2.29652 -21.97786,24.24545 -24.27741,24.24545 -0.96036,0 -8.93553,-3.6 -17.72259,-8 -8.78706,-4.4 -16.68564,-8 -17.55239,-8 -0.86674,0 -6.54697,3.59736 -12.62271,7.99412 -6.07574,4.39677 -15.03022,10.29309 -19.89883,13.10293 -4.86862,2.80985 -9.37768,5.74218 -10.02015,6.5163 -0.89115,1.07378 -0.87928,5.93673 0.0501,20.51 0.66999,10.50638 0.84148,19.43697 0.38109,19.84575 -0.83352,0.74006 -30.72669,13.0309 -31.69315,13.0309 -0.27911,0 -6.23847,-6.75 -13.24302,-15 -7.00454,-8.25 -13.26821,-15 -13.91927,-15 -0.65105,0 -5.63827,1.09069 -11.0827,2.42375 -5.44443,1.33306 -14.84897,3.17759 -20.89897,4.09894 -6.05,0.92136 -11.45,2.09947 -12,2.61802 -0.55,0.51855 -3.96216,9.81153 -7.58258,20.65106 l -6.58259,19.70823 -17.129,0.27345 c -16.86561,0.26924 -17.15125,0.23849 -18.57612,-2 z m 52.89656,-176.31101 c 5.8585,-1.56174 17.8418,-6.39607 26.62956,-10.74297 36.29609,-17.95404 61.01702,-46.79506 74.21828,-86.58779 4.93957,-14.88936 5.41065,-18.39001 5.53474,-41.12882 0.11416,-20.91675 -0.51185,-27.10425 -3.95152,-39.05668 -11.92855,-41.45037 -39.82461,-74.68677 -77.57681,-92.42792 -23.21334,-10.9088 -36.75942,-13.9373 -62.13563,-13.89168 -22.47773,0.0405 -34.8381,2.37713 -54.4269,10.2894 -18.37668,7.42268 -30.35375,15.70139 -47.74601,33.00267 -15.01679,14.93824 -17.99949,19.00377 -26.05234,35.51032 -12.43769,25.49443 -15.43565,38.28405 -15.39721,65.68624 0.0243,17.36418 0.87386,25.17569 3.90535,35.91119 15.5763,55.16052 60.01109,96.07296 115.31392,106.17299 12.17536,2.22358 49.24635,0.57875 61.68457,-2.73695 z"/>
+          <path class="joblib-glyph" fill="#e15617" d="m 179.48711,704.51315 c 25.6731,-6.687 45.51106,-24.97067 53.132,-48.96915 12.83348,-40.41288 -8.98799,-82.06777 -49.59456,-94.67082 -6.41612,-1.99137 -9.52324,-2.31714 -21.5,-2.25423 -12.51769,0.0658 -14.84703,0.36274 -22,2.80489 -4.4,1.50225 -11.15,4.57589 -15,6.83032 -8.35561,4.89277 -21.59533,17.98205 -26.365256,26.06569 -9.34902,15.84382 -12.610358,37.48469 -8.251105,54.7508 7.764823,30.75489 31.211191,52.11946 62.592911,57.03531 6.26718,0.98173 20.27622,0.15487 26.98601,-1.59281 z m -78.96256,84.65966 -15.999996,-6.65958 0.0403,-5.48391 c 0.02217,-3.01615 0.417864,-12.69774 0.879328,-21.51464 l 0.839026,-16.03074 -6.962465,-5.69621 c -6.98244,-5.71255 -14.099832,-12.87932 -19.98088,-20.1195 l -3.149351,-3.87717 -20.146587,1.27785 c -17.166889,1.08886 -20.338047,1.0707 -21.441108,-0.12282 C 12.667365,708.85192 1.8414234,680.96502 2.3994101,679.51093 2.6647965,678.81935 9.3586728,672.79322 17.274691,666.11954 L 31.667451,653.98557 31.498964,633.76549 31.330478,613.54541 16.213087,600.53098 C 7.8985222,593.37305 0.63503592,587.05589 0.07200642,586.49286 -0.98889987,585.43196 9.9853168,556.85054 12.449679,554.25627 c 0.999421,-1.05211 4.98014,-1.04255 21.64973,0.052 l 20.425145,1.34107 3,-3.07786 c 1.65,-1.69282 5.7,-6.01731 9,-9.60997 3.3,-3.59266 8.654668,-8.81112 11.899262,-11.59657 l 5.899262,-5.06446 -1.318617,-22.21385 c -1.134391,-19.11032 -1.120316,-22.33892 0.100738,-23.10905 3.438949,-2.16898 29.356251,-12.0066 30.913751,-11.73417 0.94958,0.1661 7.91336,7.60386 15.47507,16.52835 l 13.74855,16.22634 13.64099,-0.57548 c 7.50254,-0.31651 16.34099,-0.12864 19.64099,0.41749 3.3,0.54613 6.675,0.61675 7.5,0.15693 0.825,-0.45982 7.125,-7.57713 14,-15.81625 6.875,-8.23912 13.07737,-15.23171 13.78304,-15.53909 1.20338,-0.52418 30.81392,10.68955 32.48906,12.30385 0.42466,0.40923 0.10089,10.60687 -0.71948,22.66142 l -1.49158,21.91735 9.25705,9.01055 c 5.09138,4.95579 11.28485,11.35981 13.76327,14.23113 4.09932,4.74918 4.81832,5.18046 7.96243,4.77609 7.33264,-0.94306 39.89391,-2.65321 40.72597,-2.13898 0.48217,0.298 3.73673,7.59984 7.23234,16.2263 l 6.35567,15.68449 -4.43716,4.11575 c -2.44044,2.26367 -10.13344,8.93174 -17.09555,14.81794 l -12.65839,10.70217 -0.36753,17.79783 c -0.20215,9.7888 -0.12715,18.30001 0.16666,18.91379 0.29381,0.61378 7.2842,6.83478 15.5342,13.82444 8.25,6.98966 15.2994,13.24193 15.66532,13.89393 0.59939,1.06797 -10.81429,30.64796 -12.46125,32.29492 -0.37624,0.37624 -10.05007,0.10939 -21.4974,-0.59299 l -20.81333,-1.27707 -14.7268,14.7268 -14.7268,14.7268 1.12016,17.1436 c 0.61608,9.42898 0.96714,18.9222 0.78013,21.09605 l -0.34003,3.95244 -15.46617,6.18322 c -8.5064,3.40077 -15.9314,5.97807 -16.5,5.72734 -0.56861,-0.25073 -6.78161,-7.28678 -13.80667,-15.63566 l -12.77284,-15.17979 -19.20867,0.26723 c -13.6557,0.18997 -19.5325,0.6236 -20.32883,1.5 -0.61609,0.67802 -6.43305,7.53277 -12.92657,15.23277 -6.49353,7.7 -12.29777,14.51457 -12.89833,15.14348 -0.81221,0.85056 -5.19058,-0.56247 -17.09192,-5.51608 z"/>
+          <path class="joblib-glyph" fill="#e15617" d="m 467.65426,634.81886 c -0.79593,-1.2504 -3.98822,-10.14845 -7.09399,-19.77345 -3.10577,-9.625 -6.18435,-18.02015 -6.84129,-18.65589 -0.65694,-0.63574 -6.14443,-1.90756 -12.19443,-2.82625 -6.05,-0.9187 -15.3914,-2.74543 -20.75867,-4.0594 -5.36727,-1.31397 -10.31727,-2.15177 -11,-1.86177 -0.68273,0.28999 -7.09133,7.51488 -14.24133,16.0553 -7.15,8.54042 -13.35877,15.75224 -13.79727,16.02626 -1.32598,0.8286 -31.82974,-11.84565 -32.45954,-13.48688 -0.32197,-0.83906 -0.0137,-10.77991 0.68496,-22.09077 1.21473,-19.66466 1.18938,-20.62267 -0.57889,-21.87713 -1.01709,-0.72155 -6.34926,-4.07568 -11.84926,-7.45362 -5.5,-3.37795 -13.88845,-8.98305 -18.641,-12.45578 -4.75255,-3.47274 -9.37035,-6.31407 -10.26176,-6.31407 -0.89142,0 -8.81018,3.6 -17.59724,8 -8.78706,4.4 -16.5513,8 -17.25387,8 -1.64589,0 -24.74613,-23.12824 -24.74613,-24.77613 0,-0.68535 3.84242,-8.92089 8.53872,-18.3012 l 8.53871,-17.05512 -5.39951,-7.18378 c -6.53098,-8.68912 -16.6375,-24.00152 -20.38006,-30.87783 l -2.73541,-5.02586 -14.53123,0.84247 c -7.99217,0.46336 -17.45622,0.85034 -21.03122,0.85996 l -6.5,0.0175 -6.16912,-15 c -3.39301,-8.25 -6.20551,-15.54828 -6.25,-16.21839 -0.0445,-0.67012 6.10662,-6.4771 13.66912,-12.9044 7.5625,-6.4273 14.5843,-12.46332 15.604,-13.41338 1.80287,-1.67975 1.78223,-2.04094 -0.74828,-13.09561 -1.43125,-6.25253 -3.30567,-15.86823 -4.16537,-21.36823 -0.8597,-5.5 -2.00736,-10.45 -2.55035,-11 -0.543,-0.55 -9.62789,-3.925 -20.18864,-7.5 l -19.20136,-6.5 v -17.91646 -17.91647 l 20,-6.66624 20,-6.66624 2.09877,-12.4173 c 1.15433,-6.82951 3.06683,-16.61378 4.25,-21.74282 1.18318,-5.12904 2.15123,-9.93253 2.15123,-10.67442 0,-0.74189 -6.975,-7.28127 -15.5,-14.53196 -8.525,-7.25068 -15.488,-13.69719 -15.47334,-14.32557 0.0147,-0.62839 2.83392,-7.89252 6.26502,-16.14252 l 6.23836,-15 7.98498,0.006 c 4.39174,0.003 14.03282,0.22816 21.42462,0.5 l 13.43965,0.494 6.42976,-10.5 c 3.53636,-5.775 9.18852,-14.25831 12.56035,-18.85181 3.37183,-4.59349 6.71812,-9.16101 7.4362,-10.15004 1.13731,-1.56644 0.20273,-4.00111 -7.25,-18.88709 -4.70558,-9.39886 -8.5556,-17.64958 -8.5556,-18.33493 0,-1.64749 23.10003,-24.77613 24.74548,-24.77613 0.7022,0 8.96672,3.85002 18.36558,8.5556 14.86044,7.43994 17.32112,8.38536 18.87001,7.25 14.41389,-10.56547 23.20349,-16.55807 31.26893,-21.31859 l 9.75,-5.75481 -0.009,-5.6161 c -0.005,-3.08886 -0.46136,-11.89349 -1.01452,-19.56586 -0.79291,-11.00074 -0.7382,-14.19298 0.259,-15.10024 1.74954,-1.59175 28.59423,-12.45 30.77994,-12.45 1.0578,0 6.73943,5.89557 14.05909,14.58849 14.07251,16.71268 10.61016,15.42694 29.92549,11.11279 6.325,-1.41271 15.32297,-3.08501 19.99548,-3.71621 4.67252,-0.63121 9.03374,-1.59436 9.69161,-2.14034 0.65786,-0.54598 3.73818,-8.61962 6.84514,-17.94142 L 468.20579,0 l 17.57668,0.27271 17.57667,0.2727 5.58271,16.52288 c 3.07048,9.08758 5.92729,17.04358 6.34846,17.68001 0.42117,0.63642 3.34617,1.45889 6.5,1.8277 7.45074,0.87128 34.52791,6.25037 37.88173,7.52548 3.28758,1.24994 3.09565,1.41493 16.0016,-13.75445 5.75635,-6.76589 11.08026,-12.30162 11.8309,-12.30162 0.75064,0 8.14972,2.7594 16.4424,6.13201 l 15.07761,6.132 -0.10021,7.618 c -0.0551,4.18989 -0.39262,12.09466 -0.75,17.56616 -0.52952,8.10683 -0.37215,10.24964 0.85021,11.57694 0.825,0.89583 6.25472,4.44227 12.06604,7.88098 5.81133,3.43871 15.17058,9.64125 20.79835,13.78343 l 10.2323,7.53124 16.85784,-8.61038 c 9.27182,-4.73571 17.4696,-8.61038 18.21729,-8.61038 1.70249,0 24.82818,23.07781 24.82818,24.77678 0,0.68571 -3.6,8.43616 -8,17.22322 -4.4,8.78706 -8,16.84724 -8,17.91151 0,1.06427 1.06241,3.20707 2.36092,4.76176 3.71959,4.45348 16.89524,24.13375 21.21528,31.68895 l 3.9238,6.86223 15.5,-0.80768 c 8.525,-0.44422 17.29886,-0.83222 19.49746,-0.86222 l 3.99746,-0.0546 6.17165,15 c 3.39442,8.25 6.20806,15.68242 6.25255,16.51649 0.0445,0.83407 -6.21912,6.8378 -13.91912,13.34161 -8.66681,7.32044 -14,12.52784 -14,13.66981 0,1.01457 1.11279,6.44038 2.47287,12.05735 1.36008,5.61697 3.1895,15.20814 4.06539,21.31371 0.87589,6.10556 1.93264,11.74909 2.34835,12.54116 0.41571,0.79207 8.37378,3.97931 17.68461,7.08274 l 16.92878,5.64262 0.27165,17.93147 0.27164,17.93148 -17.52079,5.80829 c -14.79237,4.90379 -17.59423,6.14738 -17.99235,7.98578 -0.25935,1.19762 -1.37902,7.71272 -2.48814,14.47801 -1.10913,6.76528 -2.92232,15.9396 -4.0293,20.38738 -1.10699,4.44777 -2.01271,8.5988 -2.01271,9.2245 0,0.62571 6.3,6.4672 14,12.9811 7.7,6.5139 14.00518,12.35264 14.01151,12.97498 0.0218,2.14818 -12.36343,31.55241 -13.43601,31.89879 -0.59152,0.19103 -8.7255,-0.15768 -18.0755,-0.77491 -9.35,-0.61723 -17.54328,-0.93974 -18.2073,-0.7167 -0.66401,0.22305 -4.20924,5.42727 -7.87829,11.56494 -3.66905,6.13767 -9.98826,15.73218 -14.0427,21.32114 -4.05444,5.58901 -7.37171,10.8818 -7.37171,11.76181 0,0.88001 3.6,8.78944 8,17.5765 4.4,8.78706 8,16.77661 8,17.75455 0,2.29652 -21.97786,24.24545 -24.27741,24.24545 -0.96036,0 -8.93553,-3.6 -17.72259,-8 -8.78706,-4.4 -16.68564,-8 -17.55239,-8 -0.86674,0 -6.54697,3.59736 -12.62271,7.99412 -6.07574,4.39677 -15.03022,10.29309 -19.89883,13.10293 -4.86862,2.80985 -9.37768,5.74218 -10.02015,6.5163 -0.89115,1.07378 -0.87928,5.93673 0.0501,20.51 0.66999,10.50638 0.84148,19.43697 0.38109,19.84575 -0.83352,0.74006 -30.72669,13.0309 -31.69315,13.0309 -0.27911,0 -6.23847,-6.75 -13.24302,-15 -7.00454,-8.25 -13.26821,-15 -13.91927,-15 -0.65105,0 -5.63827,1.09069 -11.0827,2.42375 -5.44443,1.33306 -14.84897,3.17759 -20.89897,4.09894 -6.05,0.92136 -11.45,2.09947 -12,2.61802 -0.55,0.51855 -3.96216,9.81153 -7.58258,20.65106 l -6.58259,19.70823 -17.129,0.27345 c -16.86561,0.26924 -17.15125,0.23849 -18.57612,-2 z m 52.89656,-176.31101 c 5.8585,-1.56174 17.8418,-6.39607 26.62956,-10.74297 36.29609,-17.95404 61.01702,-46.79506 74.21828,-86.58779 4.93957,-14.88936 5.41065,-18.39001 5.53474,-41.12882 0.11416,-20.91675 -0.51185,-27.10425 -3.95152,-39.05668 -11.92855,-41.45037 -39.82461,-74.68677 -77.57681,-92.42792 -23.21334,-10.9088 -36.75942,-13.9373 -62.13563,-13.89168 -22.47773,0.0405 -34.8381,2.37713 -54.4269,10.2894 -18.37668,7.42268 -30.35375,15.70139 -47.74601,33.00267 -15.01679,14.93824 -17.99949,19.00377 -26.05234,35.51032 -12.43769,25.49443 -15.43565,38.28405 -15.39721,65.68624 0.0243,17.36418 0.87386,25.17569 3.90535,35.91119 15.5763,55.16052 60.01109,96.07296 115.31392,106.17299 12.17536,2.22358 49.24635,0.57875 61.68457,-2.73695 z"/>
         </svg>`;
 
         const joblibIcon = new LabIcon({
@@ -1599,8 +2452,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // Register MCP config files with custom icon
       if (settings.enableConfigIcons) {
         const mcpSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-          <path fill="#eee" d="M15.688 2.343a2.588 2.588 0 00-3.61 0l-9.626 9.44a.863.863 0 01-1.203 0 .823.823 0 010-1.18l9.626-9.44a4.313 4.313 0 016.016 0 4.116 4.116 0 011.204 3.54 4.3 4.3 0 013.609 1.18l.05.05a4.115 4.115 0 010 5.9l-8.706 8.537a.274.274 0 000 .393l1.788 1.754a.823.823 0 010 1.18.863.863 0 01-1.203 0l-1.788-1.753a1.92 1.92 0 010-2.754l8.706-8.538a2.47 2.47 0 000-3.54l-.05-.049a2.588 2.588 0 00-3.607-.003l-7.172 7.034-.002.002-.098.097a.863.863 0 01-1.204 0 .823.823 0 010-1.18l7.273-7.133a2.47 2.47 0 00-.003-3.537z"/>
-          <path fill="#eee" d="M14.485 4.703a.823.823 0 000-1.18.863.863 0 00-1.204 0l-7.119 6.982a4.115 4.115 0 000 5.9 4.314 4.314 0 006.016 0l7.12-6.982a.823.823 0 000-1.18.863.863 0 00-1.204 0l-7.119 6.982a2.588 2.588 0 01-3.61 0 2.47 2.47 0 010-3.54l7.12-6.982z"/>
+          <path class="mcp-glyph" fill="#eee" d="M15.688 2.343a2.588 2.588 0 00-3.61 0l-9.626 9.44a.863.863 0 01-1.203 0 .823.823 0 010-1.18l9.626-9.44a4.313 4.313 0 016.016 0 4.116 4.116 0 011.204 3.54 4.3 4.3 0 013.609 1.18l.05.05a4.115 4.115 0 010 5.9l-8.706 8.537a.274.274 0 000 .393l1.788 1.754a.823.823 0 010 1.18.863.863 0 01-1.203 0l-1.788-1.753a1.92 1.92 0 010-2.754l8.706-8.538a2.47 2.47 0 000-3.54l-.05-.049a2.588 2.588 0 00-3.607-.003l-7.172 7.034-.002.002-.098.097a.863.863 0 01-1.204 0 .823.823 0 010-1.18l7.273-7.133a2.47 2.47 0 00-.003-3.537z"/>
+          <path class="mcp-glyph" fill="#eee" d="M14.485 4.703a.823.823 0 000-1.18.863.863 0 00-1.204 0l-7.119 6.982a4.115 4.115 0 000 5.9 4.314 4.314 0 006.016 0l7.12-6.982a.823.823 0 000-1.18.863.863 0 00-1.204 0l-7.119 6.982a2.588 2.588 0 01-3.61 0 2.47 2.47 0 010-3.54l7.12-6.982z"/>
         </svg>`;
 
         const mcpIcon = new LabIcon({
@@ -1667,8 +2520,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // Register shell scripts with terminal-linux icon ($ prompt, theme-aware via jp- classes)
       if (settings.enableLanguageIcons) {
         const shellSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-          <path fill="#333" d="M2 2h20v20H2z" class="jp-terminal-icon-background-color jp-icon-selectable"/>
-          <path fill="#fff" d="M9.01 14.762q0-.246-.077-.434a.9.9 0 0 0-.234-.351 1.6 1.6 0 0 0-.422-.288 5 5 0 0 0-.627-.263q-.592-.211-1.078-.446a3.5 3.5 0 0 1-.832-.544 2.2 2.2 0 0 1-.528-.721 2.4 2.4 0 0 1-.187-.985q0-.498.17-.908a2.1 2.1 0 0 1 .48-.72q.31-.306.75-.493.44-.188.979-.24V7.11h.937v1.272q.527.07.95.287.421.217.714.568.3.345.457.82.165.47.164 1.055H8.998q0-.709-.323-1.072-.322-.37-.873-.37-.299 0-.521.083a.9.9 0 0 0-.358.223.9.9 0 0 0-.21.334q-.066.194-.065.421 0 .23.064.41a.9.9 0 0 0 .229.329q.165.152.428.293.263.134.656.275.591.223 1.072.463.48.235.82.55.346.312.528.727.187.41.187.973 0 .515-.17.932-.17.41-.486.709t-.762.48a3.7 3.7 0 0 1-.996.229v1.148h-.931V17.1a4 4 0 0 1-.967-.217 2.6 2.6 0 0 1-.832-.504 2.4 2.4 0 0 1-.574-.826q-.217-.505-.217-1.207h1.635q0 .421.123.709.123.281.316.45.2.165.451.235.252.07.516.07.627 0 .949-.292a.98.98 0 0 0 .322-.756m8.36 3.51h-5.343V17h5.344z" class="jp-terminal-icon-color jp-icon-selectable-inverse"/>
+          <path fill="#767676" d="M2 2h20v20H2z" class="shell-tile jp-terminal-icon-background-color jp-icon-selectable"/>
+          <path fill="#fff" d="M9.01 14.762q0-.246-.077-.434a.9.9 0 0 0-.234-.351 1.6 1.6 0 0 0-.422-.288 5 5 0 0 0-.627-.263q-.592-.211-1.078-.446a3.5 3.5 0 0 1-.832-.544 2.2 2.2 0 0 1-.528-.721 2.4 2.4 0 0 1-.187-.985q0-.498.17-.908a2.1 2.1 0 0 1 .48-.72q.31-.306.75-.493.44-.188.979-.24V7.11h.937v1.272q.527.07.95.287.421.217.714.568.3.345.457.82.165.47.164 1.055H8.998q0-.709-.323-1.072-.322-.37-.873-.37-.299 0-.521.083a.9.9 0 0 0-.358.223.9.9 0 0 0-.21.334q-.066.194-.065.421 0 .23.064.41a.9.9 0 0 0 .229.329q.165.152.428.293.263.134.656.275.591.223 1.072.463.48.235.82.55.346.312.528.727.187.41.187.973 0 .515-.17.932-.17.41-.486.709t-.762.48a3.7 3.7 0 0 1-.996.229v1.148h-.931V17.1a4 4 0 0 1-.967-.217 2.6 2.6 0 0 1-.832-.504 2.4 2.4 0 0 1-.574-.826q-.217-.505-.217-1.207h1.635q0 .421.123.709.123.281.316.45.2.165.451.235.252.07.516.07.627 0 .949-.292a.98.98 0 0 0 .322-.756m8.36 3.51h-5.343V17h5.344z" class="shell-glyph jp-terminal-icon-color jp-icon-selectable-inverse"/>
         </svg>`;
 
         const shellIcon = new LabIcon({

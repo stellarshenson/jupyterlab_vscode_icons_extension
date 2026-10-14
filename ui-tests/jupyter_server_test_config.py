@@ -4,9 +4,31 @@
 opens the server to the world and provide access to JupyterLab
 JavaScript objects through the global window variable.
 """
+import os
+from tempfile import mkdtemp
+
 from jupyterlab.galata import configure_jupyter_server
 
 configure_jupyter_server(c)
+
+# `or`, not a get() default: an exported-but-empty JUPYTER_TEST_PORT would raise
+# ValueError here while Playwright waited happily on 8888.
+c.ServerApp.port = int(os.environ.get("JUPYTER_TEST_PORT") or "8888")
+
+# configure_jupyter_server moves the workspaces folder and the server root to
+# temporary folders but not the user settings folder. Without this the test
+# server reads and writes the developer's own ~/.jupyter/lab/user-settings, so a
+# settings write during a test - a theme switch, a font size - lands in their
+# lab and applies on its next page load.
+c.LabApp.user_settings_dir = mkdtemp(prefix="galata-settings-")
+
+# Galata's waitForApplication waits for the splash to detach and then for the
+# Launcher tab to be active. An extension that opens its own tab at startup - the
+# GalaxaHub message of the day on this workstation image - keeps the Launcher
+# inactive, so every test times out inside page.goto with the same signature as a
+# galata/lab version mismatch. traitlets ignores this line where the extension is
+# not installed, as in CI.
+c.GalaxaHubMotd.open_on_start = False
 
 # Uncomment to set server log level to debug level
 # c.ServerApp.log_level = "DEBUG"

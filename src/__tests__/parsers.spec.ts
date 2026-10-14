@@ -340,3 +340,31 @@ setup(name  =  "my-pkg",packages  =  ["pkg1"])
     });
   });
 });
+
+describe('malformed manifests - ACC-PYPKG-17', () => {
+  it('returns an empty set for a truncated pyproject.toml', () => {
+    const content = '[proj';
+    expect(() => parsePyprojectToml(content)).not.toThrow();
+    expect(parsePyprojectToml(content).size).toBe(0);
+  });
+
+  it('returns an empty set for a pyproject.toml cut mid-value', () => {
+    const content = '[project]\nname = "half';
+    expect(() => parsePyprojectToml(content)).not.toThrow();
+    expect(parsePyprojectToml(content).size).toBe(0);
+  });
+
+  it('returns an empty set for a truncated setup.py', () => {
+    const content = 'setup(\n    name="half';
+    expect(() => parseSetupPy(content)).not.toThrow();
+    expect(parseSetupPy(content).size).toBe(0);
+  });
+
+  it('returns an empty set for binary noise', () => {
+    const content = '\u0000\u0001\u0002 not a manifest ÿ';
+    expect(() => parsePyprojectToml(content)).not.toThrow();
+    expect(() => parseSetupPy(content)).not.toThrow();
+    expect(parsePyprojectToml(content).size).toBe(0);
+    expect(parseSetupPy(content).size).toBe(0);
+  });
+});

@@ -165,3 +165,14 @@ cd ./ui-tests
 jlpm up "@playwright/test"
 jlpm playwright install
 ```
+
+## Running the suite while another JupyterLab holds port 8888
+
+The test server pins port 8888 and does not retry, so the suite cannot start
+while your own lab is on that port. Pass another one:
+
+```bash
+JUPYTER_TEST_PORT=8899 jlpm playwright test
+```
+
+The variable drives both the Playwright base URL and the test server.
