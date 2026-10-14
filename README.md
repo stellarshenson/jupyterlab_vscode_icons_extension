@@ -88,3 +88,7 @@ All icon assets remain under their original licenses (MIT for code, CC BY-SA for
 ## Why This Exists
 
 Because JupyterLab deserves pretty icons too. That's it. That's the whole justification
+
+## Contributing
+
+If you would like to contribute to this extension, please refer to the [Contributing Guide](CONTRIBUTING.md).

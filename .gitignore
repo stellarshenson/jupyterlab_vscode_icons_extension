@@ -130,3 +130,7 @@ dmypy.json
 
 # Project-local node environment (created by `make install_dependencies`)
 .nodeenv/
+
+# Regenerating test and tool artefacts (DEF-BUILD-1)
+junit.xml
+uv.lock

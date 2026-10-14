@@ -1,24 +1,36 @@
-# Release Notes
+# Making a new release of jupyterlab_vscode_icons_extension
 
-## Version 1.0.62
+## Release
 
-Fixed persistent icon color swapping issue where non-shell files incorrectly displayed shell script styling.
+This project releases with `make publish`, which raises the patch version, builds the wheel and the sdist, runs the test suite, commits the version metadata and then uploads to both npm and PyPI. Do not move the version or upload by hand - that forks the two registries and creates a tag this project does not use.
 
-### Bug Fixes
+## Automated releases with the Jupyter Releaser
 
-- Fixed JavaScript, PNG, and TOML files incorrectly showing orange shell script color filter
-- Changed CSS selectors to require both `data-file-type="vscode-file-type-shell"` AND `data-shell-type` attributes
-- Refactored `markSpecialFiles()` function to actively remove incorrect attributes from non-matching files
-- Prevents race conditions where DOM element reuse causes attribute persistence after file type changes
+The extension repository should already be compatible with the Jupyter Releaser. But
+the GitHub repository and the package managers need to be properly set up. Please
+follow the instructions of the Jupyter Releaser [checklist](https://jupyter-releaser.readthedocs.io/en/latest/how_to_guides/convert_repo_from_repo.html).
 
-### Technical Details
+For the release workflows in this repository, make sure GitHub is configured with:
 
-The issue occurred when JupyterLab's virtual scrolling reused DOM elements between different file types. The previous implementation cleared all attributes at the start of the observer function, but JupyterLab could update the `data-file-type` attribute after our observer ran, leaving stale `data-shell-type` attributes on non-shell files.
+- a `release` environment
+- an `APP_PRIVATE_KEY` secret
+- an `APP_ID` repository variable
 
-The solution implements defensive attribute handling - for each item, the function now checks the current `data-file-type` and actively removes `data-shell-type` if the item is not a shell file. Shell-type attributes are only set when both the file type AND file extension match shell script patterns.
+When using [npm trusted publishing](https://docs.npmjs.com/trusted-publishers), `NPM_TOKEN` is not required (and trusted publishing is recommended). Configure `NPM_TOKEN` only if you are publishing without trusted publishers.
 
-### Compatibility
+Here is a summary of the steps to cut a new release:
 
-- JupyterLab 4.0+
-- Works with Jupytext extension
-- Compatible with both light and dark themes
+- Go to the Actions panel
+- Run the "Step 1: Prep Release" workflow
+- Check the draft changelog
+- Run the "Step 2: Publish Release" workflow
+
+> [!NOTE]
+> Check out the [workflow documentation](https://jupyter-releaser.readthedocs.io/en/latest/get_started/making_release_from_repo.html)
+> for more information.
+
+## Publishing to `conda-forge`
+
+If the package is not on conda forge yet, check the documentation to learn how to add it: https://conda-forge.org/docs/maintainer/adding_pkgs.html
+
+Otherwise a bot should pick up the new version publish to PyPI, and open a new PR on the feedstock repository automatically.

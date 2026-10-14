@@ -4,3 +4,7 @@ node_modules
 **/package.json
 !/package.json
 jupyterlab_vscode_icons_extension
+eslint.config.mjs
+.venv
+docs/acc-crit*.md
+docs/defects*.md

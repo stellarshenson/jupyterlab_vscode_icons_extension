@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.110 (2026-10-14)
+
+### Bug Fixes
+
+- eslint and stylelint now actually run before a release - `jlpm test` was `jest --coverage` alone, so the eslint 9 flat config this release adopts would have gated nothing, on the maintainer's machine and in CI alike
+- Restored the author association gate on the snapshot workflow, which the template update had removed; without it any GitHub user could run code in this repository by commenting the trigger phrase
+- `RELEASE.md` no longer documents a manual `hatch version` / `twine upload` path that contradicts `make publish` and would fork the two registries
+
+### Maintenance
+
+- Upgraded the build Makefile from template 1.37 to 1.45: `increment_version` moved off `build` and onto `install`, so a build no longer consumes a version, and `publish` now runs the test suite and commits the version metadata before writing to either registry
+- Updated the copier project template from `jupyterlab/extension-template` v4.5.0 to v4.6.5: build backend moved from `jupyterlab` to `jupyter-builder`, eslint 8 replaced by an eslint 9 flat config, `@jupyterlab/builder` replaced by `@jupyter/builder`, `requires-python` raised to 3.10, `CONTRIBUTING.md` added and `setup.py` removed
+- Refreshed the npm toolchain within the declared ranges and kept TypeScript at 5.8 rather than the template's 5.5
+- Added acceptance criteria and defect trackers under `docs/`, written through `pm-tools`
+
+No functional change to the extension itself - build tooling and documentation only.
+
 ## 1.1.109 (2026-08-22)
 
 ### Bug Fixes
