@@ -326,6 +326,16 @@ Which file gets which glyph in the file browser and on tabs
   - test-tags: MANUAL
   - log: 2026-10-14T16:08:21Z @kj added
   - log: 2026-10-14T16:08:21Z @kj rejected: accepted as out of bar: a directory named after a file extension is not an input this extension is for; reason: the behaviour is eight families old and predates this change set; the bpmn arm only joined the existing block. Fixing it means moving the whole stamping block inside the directory branch, which touches all eight at once for a case nobody has hit
+- [x] `DEF-ICONS-49` **CHANGELOG.md registers as a plain text file** - MEDIUM; a CHANGELOG.md row is typed as text, not markdown: it resolves to the vscode-changelog type, mime type text/plain, and draws the grey text-page glyph instead of the markdown icon
+  - evidence: activation.spec.ts 'types CHANGELOG.md as markdown and the bare CHANGELOG as text' and file-browser-icons.spec.ts 'CHANGELOG.md is markdown, the bare CHANGELOG is text' pass: CHANGELOG.md row is vscode-changelog-md, ui-components:markdown, text/markdown; 128 unit and 43 Galata green, logs/galata-2140.log
+  - test-tags: UNIT, FUNCTIONAL
+  - repro: upload CHANGELOG.md and notes.md to one folder: CHANGELOG.md resolves to vscode-changelog:text/plain with icon changelog-icon, notes.md to markdown:text/markdown with ui-components:markdown
+  - root-cause: 2026-10-14T19:19:18Z @kj src/index.ts:2278 registers vscode-changelog with pattern ^CHANGELOG(\.md)?$ and mimeTypes ['text/plain']; one type covers the extensionless CHANGELOG and CHANGELOG.md, and a pattern match is returned before lab's markdown type; README.md, CLAUDE.md and RELEASE.md register text/markdown
+  - log: 2026-10-14T19:19:18Z @kj added
+  - log: 2026-10-14T19:25:11Z @kj edited text "a CHANGELOG.md file is typed as text, not markdown; JupyterLab resolves it to the vscode-changelog type, whose mime type is text/plain, so the editor opens it without markdown mode" -> "MEDIUM; a CHANGELOG.md row is typed as text, not markdown: it resolves to the vscode-changelog type, mime type text/plain, and draws the grey text-page glyph instead of the markdown icon"; repro "with enableDocIcons on, open CHANGELOG.md in the editor and read the language in the status bar: it shows plain text, where README.md shows Markdown" -> "upload CHANGELOG.md and notes.md to one folder: CHANGELOG.md resolves to vscode-changelog:text/plain with icon changelog-icon, notes.md to markdown:text/markdown with ui-components:markdown"; test-tags added "UNIT, FUNCTIONAL"; reason: replaced the editor status-bar repro, which the Galata probe did not confirm, with what the probe measured
+  - log: 2026-10-14T19:25:11Z @kj reproduced with a Galata probe on port 8931: CHANGELOG.md row data-file-type vscode-changelog, data-icon changelog-icon, first registry type vscode-changelog:text/plain; logs/probe-changelog-2130.log
+  - log: 2026-10-14T19:25:11Z @kj fixed: vscode-changelog now matches only ^CHANGELOG$; new vscode-changelog-md matches ^CHANGELOG\.md$ with text/markdown and lab's markdownIcon, the same registration RELEASE.md has
+  - log: 2026-10-14T19:27:37Z @kj closed
 
 ## Settings and icon groups `CONFIG`
 

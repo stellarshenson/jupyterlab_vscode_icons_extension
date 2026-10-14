@@ -16,7 +16,9 @@ import { expect, test } from '@jupyterlab/galata';
 const FIXTURES: Array<[string, string]> = [
   ['sample.js', 'vscode-file-type-js-official'],
   ['sample.ts', 'vscode-file-type-typescript-official'],
-  ['sample.vue', 'vscode-file-type-vue']
+  ['sample.vue', 'vscode-file-type-vue'],
+  // ACC-ICONS-36: an Arduino sketch takes the C++ type
+  ['sketch.ino', 'vscode-file-type-cpp']
 ];
 
 // JupyterLab writes a row's label synchronously but resolves its icon inside
@@ -260,6 +262,49 @@ test.describe('icon ownership', () => {
     expect(types['CLAUDE.md']).toBe('vscode-claude-md');
     expect(types['plain.md']).not.toBe('vscode-readme');
     expect(types['plain.md']).not.toBe('vscode-claude-md');
+  });
+
+  // DEF-ICONS-49: CHANGELOG.md is a markdown file. It takes the markdown
+  // mime type and lab's markdown glyph, as RELEASE.md does; only the bare
+  // CHANGELOG keeps the text-page glyph.
+  test('CHANGELOG.md is markdown, the bare CHANGELOG is text', async ({
+    page,
+    tmpPath
+  }) => {
+    await page.contents.uploadContent('x', 'text', `${tmpPath}/CHANGELOG.md`);
+    await page.contents.uploadContent('x', 'text', `${tmpPath}/CHANGELOG`);
+    await page.filebrowser.openDirectory(tmpPath);
+    await page.waitForSelector(
+      '.jp-DirListing-item[data-file-type="vscode-changelog-md"]'
+    );
+    await settleIcons(page);
+    const rows = await page.evaluate(() => {
+      const reg = (window as any).jupyterapp.docRegistry;
+      const out: Record<string, any> = {};
+      document.querySelectorAll('.jp-DirListing-item').forEach(row => {
+        const n = row.querySelector('.jp-DirListing-itemText');
+        const svg = row.querySelector('.jp-DirListing-itemIcon svg');
+        if (n && n.textContent) {
+          const name = n.textContent.trim();
+          out[name] = {
+            fileType: row.getAttribute('data-file-type'),
+            icon: svg ? svg.getAttribute('data-icon') : 'no-svg',
+            mime: reg.getFileTypesForPath(name)[0].mimeTypes
+          };
+        }
+      });
+      return out;
+    });
+    expect(rows['CHANGELOG.md']).toEqual({
+      fileType: 'vscode-changelog-md',
+      icon: 'ui-components:markdown',
+      mime: ['text/markdown']
+    });
+    expect(rows['CHANGELOG']).toEqual({
+      fileType: 'vscode-changelog',
+      icon: 'changelog-icon',
+      mime: ['text/plain']
+    });
   });
 
   // ACC-TABS-31 / ACC-CLASH-9: an icon another extension registered is

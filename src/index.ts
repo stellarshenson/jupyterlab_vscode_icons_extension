@@ -97,7 +97,7 @@ const fileTypeConfigs: IFileTypeConfig[] = [
     group: 'enableLanguageIcons'
   },
   {
-    extensions: ['.cpp', '.cc', '.cxx'],
+    extensions: ['.cpp', '.cc', '.cxx', '.ino'],
     iconName: 'file-type-cpp',
     group: 'enableLanguageIcons'
   },
@@ -1628,9 +1628,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // The document registry is the same resolver the file browser uses, so
       // asking it is what lets a tab mirror its row: measured, LICENSE mirrors
       // (registry:vscode-license), and so does another extension's icon. A name
-      // whose extension JupyterLab itself claims does not mirror - README.md and
-      // CHANGELOG.md keep lab's markdown glyph on the tab while their rows show
-      // this extension's custom icons - because the specific-icon guard in
+      // whose extension JupyterLab itself claims does not mirror - README.md
+      // keeps lab's markdown glyph on the tab while its row shows this
+      // extension's custom icon - because the specific-icon guard in
       // markTabIcons returns before the registry is asked. A group toggled off
       // is not registered on the next page load, so the registry stops offering
       // its types then - until that reload it still answers while the painters
@@ -2275,11 +2275,24 @@ const plugin: JupyterFrontEndPlugin<void> = {
         docRegistry.addFileType({
           name: 'vscode-changelog',
           displayName: 'Changelog',
-          pattern: '^CHANGELOG(\\.md)?$',
+          pattern: '^CHANGELOG$',
           fileFormat: 'text',
           contentType: 'file',
           mimeTypes: ['text/plain'],
           icon: changelogIcon
+        });
+      }
+
+      // Register CHANGELOG.md with markdown icon (as RELEASE.md below)
+      if (settings.enableDocIcons) {
+        docRegistry.addFileType({
+          name: 'vscode-changelog-md',
+          displayName: 'Changelog',
+          pattern: '^CHANGELOG\\.md$',
+          fileFormat: 'text',
+          contentType: 'file',
+          mimeTypes: ['text/markdown'],
+          icon: markdownIcon
         });
       }
 

@@ -50,6 +50,13 @@ Which file gets which vscode-icons glyph in the file browser
   - log: 2026-10-14T11:41:35Z @kj closed
   - log: 2026-10-14T11:50:26Z @kj mechanism recorded; reason: records the registration-versus-painting decision the architect lens raised, with the fileFormat fact that settles it
   - log: 2026-10-14T12:56:50Z @kj mechanism updated "2026-10-14T11:50:26Z @kj the 37 mapped families no fileTypeConfigs entry claims are painted, not registered: registration declares fileFormat text and mimeTypes text/plain, which for .zip, .jar, .class, .wasm, .tar, .gz and .pyc would tell JupyterLab a binary file is text; painting carries no format claim, so one mechanism covers both kinds" -> "the mapped families no fileTypeConfigs entry claims are painted, not registered: registration declares fileFormat text and mimeTypes text/plain, which for .zip, .jar, .class, .wasm, .tar, .gz and .pyc would tell JupyterLab a binary file is text; painting carries no format claim, so one mechanism covers both kinds"
+- [x] `ACC-ICONS-36` **An Arduino sketch shows the C++ icon** - MEDIUM; a .ino file resolves to the C++ file type and shows the vscode C++ glyph
+  - evidence: activation.spec.ts 'maps .ino to the C++ file type' and the sketch.ino fixture in file-browser-icons.spec.ts 'a mapped extension resolves to this extension file type' pass, row data-file-type vscode-file-type-cpp; logs/galata-2140.log
+  - test: upload sketch.ino, assert its row's data-file-type is vscode-file-type-cpp
+  - test-tags: UNIT, FUNCTIONAL
+  - mechanism: 2026-10-14T19:24:59Z @kj fileTypeConfigs lists .ino with .cpp, .cc and .cxx under file-type-cpp, so registerFileTypes adds it to the vscode-file-type-cpp type
+  - log: 2026-10-14T19:24:59Z @kj added
+  - log: 2026-10-14T19:27:37Z @kj closed
 
 ## Settings and icon groups `CONFIG`
 
@@ -143,6 +150,7 @@ Icon colours, theme variants and contrast against the backgrounds the icons sit 
   - log: 2026-10-14T15:32:47Z @kj same correction: the mcp figure in the evidence line is the rejected #424242 value, not the shipped #212121
   - log: 2026-10-14T15:41:38Z @kj the maintainer redrew the bpmn mark on 2026-10-14: a diagonal process - start ring top left, two right-angled flows, rounded task centre, filled end event bottom right - on the same square #fd7430 tile, so the measured exception this criterion records is unchanged
   - log: 2026-10-14T15:48:52Z @kj edited evidence "icon-contrast.spec.ts covers the database cylinder on both panels and both selection bands, the BPMN tile pinned at its chosen 2.72:1, and the Makefile selected-row variant; the mcp glyph reads 10.05:1 light and 13.88:1 dark" -> "icon-contrast.spec.ts covers the database cylinder on both panels and both selection bands, the BPMN tile at its accepted 2.72:1, the Makefile selected-row variant, and the mcp glyph at 16.10:1 flat on light - 3.69:1 through the dotfile dim - and 13.88:1 dark"
+  - log: 2026-10-14T17:04:03Z @kj correction: the 14:40 log on this item is false where it says the exception carve-out 'the maintainer has decided' was never said - he asked for the square paler #fd7430 tile and for the shorter markdown M himself, and the 13:58 log on this item records the first of the two; reason: two claude processes ran on one session id and the writer could not see the live conversation, so real maintainer decisions looked unsourced; logged after that process stood down and confirmed it
 - [x] `ACC-COLOUR-13` **Database icon on a selected row** - HIGH; the database icon turns white on a selected file browser row instead of blending into --jp-brand-color1
   - evidence: src/__tests__/icon-contrast.spec.ts asserts the white selected-row variant clears 3:1 on both selection bands, and that the blue it replaces fails at 1.07:1 on the dark band
   - test: select a .db row on the dark theme, assert the cylinder is visible against the highlight

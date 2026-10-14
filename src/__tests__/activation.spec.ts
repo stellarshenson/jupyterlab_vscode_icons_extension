@@ -89,6 +89,38 @@ describe('activate without the optional services', () => {
     );
   });
 
+  // DEF-ICONS-49: one pattern covered CHANGELOG and CHANGELOG.md, so the
+  // markdown file was typed text/plain and drew the text-page glyph.
+  it('types CHANGELOG.md as markdown and the bare CHANGELOG as text', () => {
+    const { app, registry } = fakeApp();
+    plugin.activate!(app, null, null);
+    const types = registry.types as Array<{
+      name: string;
+      pattern?: string;
+      mimeTypes?: string[];
+      icon?: { name: string };
+    }>;
+    const claiming = (file: string) =>
+      types.filter(t => t.pattern && new RegExp(t.pattern).test(file));
+    const md = claiming('CHANGELOG.md');
+    expect(md.map(t => t.name)).toEqual(['vscode-changelog-md']);
+    expect(md[0].mimeTypes).toEqual(['text/markdown']);
+    expect(md[0].icon!.name).toBe('ui-components:markdown');
+    const bare = claiming('CHANGELOG');
+    expect(bare.map(t => t.name)).toEqual(['vscode-changelog']);
+    expect(bare[0].mimeTypes).toEqual(['text/plain']);
+  });
+
+  // ACC-ICONS-36: an Arduino sketch is C++ source.
+  it('maps .ino to the C++ file type', () => {
+    const { app, registry } = fakeApp();
+    plugin.activate!(app, null, null);
+    const cpp = (
+      registry.types as Array<{ name: string; extensions?: string[] }>
+    ).find(t => t.name === 'vscode-file-type-cpp');
+    expect(cpp!.extensions).toContain('.ino');
+  });
+
   it('declares both services optional, which is what makes null legal', () => {
     expect(plugin.optional).toHaveLength(2);
     expect(plugin.requires ?? []).toHaveLength(0);
