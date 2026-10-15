@@ -57,6 +57,20 @@ Which file gets which vscode-icons glyph in the file browser
   - mechanism: 2026-10-14T19:24:59Z @kj fileTypeConfigs lists .ino with .cpp, .cc and .cxx under file-type-cpp, so registerFileTypes adds it to the vscode-file-type-cpp type
   - log: 2026-10-14T19:24:59Z @kj added
   - log: 2026-10-14T19:27:37Z @kj closed
+- [x] `ACC-ICONS-46` **Markdown M drawn height** - MEDIUM; the M in the markdown icon is drawn at 0.648 of its unscaled height, twenty percent below the 0.81 it had, with the baseline unmoved
+  - evidence: artwork-geometry.spec.ts asserts SCALE 0.648, twenty percent below the 0.81 height, and the unmoved baseline; 128 unit tests in 9 suites pass on the committed tree
+  - test: run src/__tests__/artwork-geometry.spec.ts
+  - test-tags: UNIT
+  - mechanism: 2026-10-15T16:06:49Z @kj scale the letter path about the baseline read off the path itself, so the height changes and the baseline does not
+  - log: 2026-10-15T16:06:49Z @kj added
+  - log: 2026-10-15T16:06:54Z @kj closed
+- [x] `ACC-ICONS-48` **BPMN row and tab paint this extension mark** - MEDIUM; a .bpmn row and its tab use this extension artwork, not the camunda modeller rounded tile, per the maintainer ruling
+  - evidence: file-browser-icons.spec.ts and tab-icons.spec.ts assert this extension mark wins on the bpmn row and the bpmn tab; the artwork reads as a sharp 100x100 tile at src/index.ts:488, a shape no test pins
+  - test: open a .bpmn file and compare its row and tab mark with the other rows
+  - test-tags: E2E
+  - mechanism: 2026-10-15T16:06:49Z @kj the row carries data-vscode-bpmn and the tab carries artwork:bpmn, both resolving to the same square artwork
+  - log: 2026-10-15T16:06:49Z @kj added
+  - log: 2026-10-15T16:06:54Z @kj closed
 
 ## Settings and icon groups `CONFIG`
 
@@ -173,6 +187,13 @@ Icon colours, theme variants and contrast against the backgrounds the icons sit 
   - test-tags: MANUAL
   - log: 2026-10-13T21:24:27Z @kj added
   - log: 2026-10-14T12:04:16Z @kj rejected: not a criterion for this code: it guards a data-shell-type attribute and a colour filter that no file in src or style defines; the shell glyph is a registered file type per extension, so a non-shell file cannot take it
+- [x] `ACC-COLOUR-47` **joblib cog on a selected row** - MEDIUM; a selected row paints every path of the joblib mark and the shell tile white, where the drawn #767676 and #e15617 read 1.01:1 and 1.22:1 against the selection band
+  - evidence: icon-contrast.spec.ts asserts every inked joblib path carries .joblib-glyph, both plain panels clear 3:1, and the selected-row rule paints the mark and the shell tile white
+  - test: run the joblib block of src/__tests__/icon-contrast.spec.ts
+  - test-tags: UNIT
+  - mechanism: 2026-10-15T16:06:49Z @kj one stylesheet rule names .joblib-glyph and .shell-tile, and every inked path of the mark carries that class
+  - log: 2026-10-15T16:06:49Z @kj added
+  - log: 2026-10-15T16:06:54Z @kj closed
 
 ## Python package folders `PYPKG`
 
