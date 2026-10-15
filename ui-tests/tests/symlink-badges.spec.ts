@@ -95,57 +95,42 @@ test('refresh removes the badge when a link becomes a regular file', async ({
   ).toHaveCount(0);
 });
 
-test('an earlier directory response cannot badge a regular file', async ({
-  page,
-  tmpPath
-}) => {
+test('a badge never survives a directory change', async ({ page, tmpPath }) => {
   const ordinary = `${tmpPath}/ordinary`;
-  await mkdir(diskPath(ordinary));
+  await mkdir(diskPath(ordinary), { recursive: true });
   await writeFile(diskPath(`${ordinary}/linked.js`), '// regular file');
-  let release!: () => void;
-  const delayed = new Promise<void>(resolve => {
-    release = resolve;
-  });
-  let intercepted!: () => void;
-  const seen = new Promise<void>(resolve => {
-    intercepted = resolve;
-  });
-  await page.route('**/vscode-icons/symlinks?*', async route => {
-    if (new URL(route.request().url()).searchParams.get('path') === tmpPath) {
-      const response = await route.fetch();
-      intercepted();
-      await delayed;
-      await route.fulfill({ response });
-    } else {
-      await route.continue();
-    }
-  });
+  // The flag rides on the listing the browser fetches, so the previous
+  // directory's links cannot badge the next directory's regular file - the
+  // state a delayed response used to leave behind, without the interception.
   await page.filebrowser.openDirectory(tmpPath);
-  await seen;
+  await expect(
+    row(page, 'linked.js').locator('.vscode-symlink-badge')
+  ).toHaveCount(1);
   await page.filebrowser.openDirectory(ordinary);
-  const ordinaryResponse = page.waitForResponse(
-    response =>
-      response.url().includes('/vscode-icons/symlinks?') &&
-      new URL(response.url()).searchParams.get('path') === ordinary
-  );
-  await page.filebrowser.refresh();
-  await ordinaryResponse;
-  const earlierResponse = page.waitForResponse(
-    response =>
-      response.url().includes('/vscode-icons/symlinks?') &&
-      new URL(response.url()).searchParams.get('path') === tmpPath
-  );
-  release();
-  await earlierResponse;
-  await page.unrouteAll({ behavior: 'wait' });
-  await page.evaluate(
-    () =>
-      new Promise<void>(resolve =>
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-      )
-  );
-  await expect(row(page, 'linked.js')).toBeVisible();
   await expect(
     row(page, 'linked.js').locator('.vscode-symlink-badge')
   ).toHaveCount(0);
+});
+
+test('a dot-named link keeps the badge out of the dotfile dim', async ({
+  page,
+  tmpPath
+}) => {
+  await symlink('target.js', diskPath(`${tmpPath}/.hidden-link`));
+  await page.evaluate(async () => {
+    const commands = (window as any).jupyterapp.commands;
+    if (!commands.isToggled('filebrowser:toggle-hidden-files')) {
+      await commands.execute('filebrowser:toggle-hidden-files');
+    }
+  });
+  await page.filebrowser.openDirectory(tmpPath);
+  const item = row(page, '.hidden-link');
+  await expect(item).toHaveAttribute('data-is-dot', 'true');
+  await expect(item.locator('.vscode-symlink-badge')).toHaveCount(1);
+  // The listing dims a dotfile row to 0.55, which composites the badge below
+  // the project's 3:1 bar on the light theme; the row keeps full opacity where
+  // a link badge sits on it.
+  expect(
+    await item.evaluate((node: Element) => getComputedStyle(node).opacity)
+  ).toBe('1');
 });

@@ -3,7 +3,7 @@ import {
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
 import { URLExt } from '@jupyterlab/coreutils';
-import { ServerConnection } from '@jupyterlab/services';
+import { Contents, ServerConnection } from '@jupyterlab/services';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { IDefaultFileBrowser } from '@jupyterlab/filebrowser';
 import { fileIcon, LabIcon, markdownIcon } from '@jupyterlab/ui-components';
@@ -19,7 +19,11 @@ import { applyJupytext1191Hotfix } from './hotfixes';
 
 const PLUGIN_ID = 'jupyterlab_vscode_icons_extension:plugin';
 
-const symlinkBadgeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="12" cy="12" r="4" fill="#263447" stroke="#fff" stroke-width="1"/><path d="M10.4 13.6 13.5 10.5m-2.2 0h2.2v2.2" fill="none" stroke="#fff" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+// The square's edge spans 8.0..15.8 once its 0.8 stroke is counted, inside the
+// 16 viewBox, so no edge leaves the canvas the way the earlier 8..16 circle
+// did. Alpha lets the artwork under it read through instead of stamping a
+// solid tile.
+const symlinkBadgeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect x="8.4" y="8.4" width="7" height="7" fill="#263447" fill-opacity="0.72" stroke="#fff" stroke-opacity="0.5" stroke-width="0.8"/><path d="M10.3 13.5 13.5 10.3m-2.2 0h2.2v2.2" fill="none" stroke="#fff" stroke-opacity="0.95" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 // Icon groups for settings
 interface IIconSettings {
@@ -30,6 +34,75 @@ interface IIconSettings {
   enableDocIcons: boolean;
   enableImageIcons: boolean;
   enableExecutableIcons: boolean;
+}
+
+/**
+ * A listing entry as the server contents manager returns it: the contents
+ * model, plus the link fact the server half adds to every entry.
+ */
+interface IListedItem extends Contents.IModel {
+  symlink?: boolean;
+}
+
+/**
+ * The package names a manifest contributes to the folder icons.
+ *
+ * The local parsers are regexes and would take a name out of a pyproject.toml
+ * or setup.py that does not parse at all (DEF-ICONS-55). The source already
+ * fetched for the directory pass goes to the server's validation route first,
+ * and an invalid answer drops every name. A failed call means a frontend-only
+ * install with no route to answer, so the local result stands, silently, as it
+ * did before. A cacheKey makes the answer stick for one revision of one
+ * manifest.
+ */
+const manifestVerdicts = new Map<string, Set<string>>();
+
+export async function packageNamesFromManifest(
+  source: string,
+  kind: 'toml' | 'python',
+  cacheKey?: string
+): Promise<Set<string>> {
+  // The browser refreshes the listing on its poll, and every refresh re-reads
+  // the manifests of the directory, so the same source would otherwise be
+  // posted and parsed every few seconds. The key carries the manifest's own
+  // stamp, and its length where a provider omits one, so an edit is seen.
+  const cached = cacheKey ? manifestVerdicts.get(cacheKey) : undefined;
+  if (cached) {
+    return cached;
+  }
+  const serverSettings = ServerConnection.makeSettings();
+  const url = URLExt.join(
+    serverSettings.baseUrl,
+    'vscode-icons',
+    'validate-manifest'
+  );
+  let valid = true;
+  try {
+    const response = await ServerConnection.makeRequest(
+      url,
+      {
+        method: 'POST',
+        body: JSON.stringify({ kind, source }),
+        headers: { 'Content-Type': 'application/json' }
+      },
+      serverSettings
+    );
+    if (response.ok) {
+      const answer = await response.json();
+      valid = answer?.valid !== false;
+    }
+  } catch {
+    // The call failed; the local parse keeps its names.
+  }
+  const names = valid
+    ? kind === 'toml'
+      ? parsePyprojectToml(source)
+      : parseSetupPy(source)
+    : new Set<string>();
+  if (cacheKey) {
+    manifestVerdicts.set(cacheKey, names);
+  }
+  return names;
 }
 
 /**
@@ -1154,7 +1227,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
               : 'pyproject.toml';
             const file = await app.serviceManager.contents.get(pyprojectPath);
             const content = file.content as string;
-            const parsed = parsePyprojectToml(content);
+            const parsed = await packageNamesFromManifest(
+              content,
+              'toml',
+              `${pyprojectPath}@${file.last_modified ?? ''}@${content.length}`
+            );
             parsed.forEach(p => packages.add(p));
           }
 
@@ -1166,7 +1243,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
               : 'setup.py';
             const file = await app.serviceManager.contents.get(setupPath);
             const content = file.content as string;
-            const parsed = parseSetupPy(content);
+            const parsed = await packageNamesFromManifest(
+              content,
+              'python',
+              `${setupPath}@${file.last_modified ?? ''}@${content.length}`
+            );
             parsed.forEach(p => packages.add(p));
           }
         } catch {
@@ -1240,16 +1321,19 @@ const plugin: JupyterFrontEndPlugin<void> = {
         });
       }
 
-      let symlinkListing: { path: string; names: Set<string> } | null = null;
-      let symlinkRequest = 0;
+      // The link fact rides in the listing the file browser already fetched:
+      // the server's contents manager marks every entry, so this pass reads
+      // model.items and never asks the server.
       const markSymlinkBadges = (): void => {
         if (!defaultFileBrowser) {
           return;
         }
-        const names =
-          symlinkListing?.path === defaultFileBrowser.model.path
-            ? symlinkListing.names
-            : null;
+        const names = new Set<string>();
+        for (const item of defaultFileBrowser.model.items()) {
+          if ((item as IListedItem).symlink) {
+            names.add(item.name);
+          }
+        }
         defaultFileBrowser.node
           .querySelectorAll('.jp-DirListing-item')
           .forEach(row => {
@@ -1258,7 +1342,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             )?.textContent;
             const host = row.querySelector('.jp-DirListing-itemIcon');
             const existing = host?.querySelector('.vscode-symlink-badge');
-            if (name && names?.has(name) && host) {
+            if (name && names.has(name) && host) {
               row.setAttribute('data-vscode-symlink', 'true');
               if (!existing) {
                 const badge = document.createElement('span');
@@ -1273,49 +1357,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
             }
           });
       };
-      const refreshSymlinks = async (): Promise<void> => {
-        if (!defaultFileBrowser) {
-          return;
-        }
-        const path = defaultFileBrowser.model.path;
-        const request = ++symlinkRequest;
-        symlinkListing = null;
-        markSymlinkBadges();
-        const names = new Set<string>();
-        try {
-          const serverSettings = ServerConnection.makeSettings();
-          const url = URLExt.join(
-            serverSettings.baseUrl,
-            'vscode-icons',
-            'symlinks'
-          );
-          const response = await ServerConnection.makeRequest(
-            `${url}?path=${encodeURIComponent(path)}`,
-            {},
-            serverSettings
-          );
-          if (response.ok) {
-            const links: string[] = await response.json();
-            links.forEach(name => names.add(name));
-          }
-        } catch {
-          // A frontend-only install retains its normal icons without badges.
-        }
-        if (
-          request === symlinkRequest &&
-          defaultFileBrowser.model.path === path
-        ) {
-          symlinkListing = { path, names };
-          markSymlinkBadges();
-        }
-      };
       if (defaultFileBrowser) {
-        defaultFileBrowser.model.pathChanged.connect(() => {
-          symlinkListing = null;
-          ++symlinkRequest;
-          markSymlinkBadges();
-        });
-        defaultFileBrowser.model.refreshed.connect(refreshSymlinks);
+        // A path change swaps model.items for the new directory before either
+        // signal fires, so both triggers repaint from the current listing.
+        defaultFileBrowser.model.pathChanged.connect(markSymlinkBadges);
+        defaultFileBrowser.model.refreshed.connect(markSymlinkBadges);
       }
 
       // Add a MutationObserver to mark special files in the file browser
@@ -1342,12 +1388,42 @@ const plugin: JupyterFrontEndPlugin<void> = {
         'data-vscode-bpmn': 'enableConfigIcons'
       };
 
+      // A name another extension registered wins over this extension's claim by
+      // extension - the longest-extension rule puts requirements.native.txt
+      // under its type where the config pattern ^requirements([_-].*?)?\.txt$
+      // does not reach it. Its icon is the row's, so no ::before artwork is
+      // painted over it. The row painter asks the same question of the rendered
+      // svg; this pass runs before the row has one, so it asks the registry.
+      // .bpmn is the one name this extension outranks by the maintainer's
+      // ruling, verbatim "we use ours", so the camunda modeller's tile does not
+      // take it.
+      const claimedByAnotherExtension = (
+        name: string,
+        item: Element
+      ): boolean => {
+        if (name.toLowerCase().endsWith('.bpmn')) {
+          return false;
+        }
+        const typeName = item.getAttribute('data-file-type');
+        if (!typeName) {
+          return false;
+        }
+        const type = docRegistry.getFileType(typeName);
+        if (!type || isOwnType(type)) {
+          return false;
+        }
+        const owner = ((type.icon as any)?.name as string) || '';
+        // JupyterLab's own types are the ones this extension paints over.
+        return !!owner && !owner.startsWith('ui-components:');
+      };
+
       const setOverride = (item: Element, attribute: string): void => {
         const group = overrideGroups[attribute];
         const name = item.querySelector('.jp-DirListing-itemText')?.textContent;
         if (
           (group && !settings[group]) ||
-          (group && name && disabledExplicitOwner(name))
+          (group && name && disabledExplicitOwner(name)) ||
+          (group && name && claimedByAnotherExtension(name, item))
         ) {
           return;
         }
@@ -1500,6 +1576,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
                 const badge = document.createElement('img');
                 badge.className = 'vscode-exec-badge';
                 badge.src = playGlyphDataUri;
+                badge.alt = 'Executable';
                 // The badge records the file it was added for, which is what
                 // lets the early pass below tell a stale badge from a correct
                 // one without the detector's answer.
@@ -1684,7 +1761,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
         });
         markSpecialFiles();
         markRowIcons();
-        void refreshSymlinks();
+        // The badge pass is local: it reads the flags off the listing the
+        // browser already fetched and repaints rows the listing added since.
+        // Asking the server from here cost one request per mutation batch, and
+        // this extension's own painters mutate the listing.
+        markSymlinkBadges();
         return true;
       };
 

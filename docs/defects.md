@@ -64,14 +64,14 @@ The shared Makefile template, the lockfiles and the release path
   - log: 2026-10-15T12:39:53Z @kj added
   - log: 2026-10-15T12:41:22Z @kj maintainer set Python 3.11 as the minimum; remove the obsolete 3.10 support declaration instead of adding a backport
   - log: 2026-10-15T12:46:51Z @kj rejected: maintainer removed Python 3.10 support; ACC-BUILD-41 and rebuilt wheel require Python >=3.11, where tomllib is available
-- [x] `DEF-BUILD-58` **Release criterion promises atomic uploads** - MAJOR; ACC-BUILD-22 claims failed uploads never split npm and PyPI versions, while its test and release code require partial-publication reporting and recovery
-  - evidence: User selected recoverable partial publication; ACC-BUILD-22 replaced by ACC-BUILD-42 through ACC-BUILD-45. Actual publish recipe simulations pass (logs/goal-publish-contract.log), including failed PyPI upload warning and recovery.
+- [-] `DEF-BUILD-58` **Release criterion promises atomic uploads** - MAJOR; ACC-BUILD-22 claims failed uploads never split npm and PyPI versions, while its test and release code require partial-publication reporting and recovery
   - related: ACC-BUILD-42, ACC-BUILD-43, ACC-BUILD-44, ACC-BUILD-45
   - repro: compare ACC-BUILD-22 with the npm-then-twine recipe
   - test-tags: UNIT
   - root-cause: 2026-10-15T12:39:54Z @kj the criterion body describes atomicity but the approved contract is sequential publishing with a recovery command
   - log: 2026-10-15T12:39:54Z @kj added
   - log: 2026-10-15T13:07:32Z @kj closed
+  - log: 2026-10-15T16:47:57Z @kj rejected: rejected as a tracker wording entry, not a product fault; evidence retired: User selected recoverable partial publication; ACC-BUILD-22 replaced by ACC-BUILD-42 through ACC-BUILD-45. Actual publish recipe simulations pass (logs/goal-publish-contract.log), including failed PyPI upload warning and recovery.; reason: not a product fault: it records a wording contradiction between a criterion and its own test, which the tracker already settles by rejecting ACC-BUILD-22 and closing ACC-BUILD-42 to ACC-BUILD-45
 
 ## Test suite `TEST`
 
@@ -377,18 +377,34 @@ Which file gets which glyph in the file browser and on tabs
   - log: 2026-10-14T19:25:11Z @kj reproduced with a Galata probe on port 8931: CHANGELOG.md row data-file-type vscode-changelog, data-icon changelog-icon, first registry type vscode-changelog:text/plain; logs/probe-changelog-2130.log
   - log: 2026-10-14T19:25:11Z @kj fixed: vscode-changelog now matches only ^CHANGELOG$; new vscode-changelog-md matches ^CHANGELOG\.md$ with text/markdown and lab's markdownIcon, the same registration RELEASE.md has
   - log: 2026-10-14T19:27:37Z @kj closed
-- [ ] `DEF-ICONS-55` **Malformed manifests still mark package folders** - MAJOR; malformed TOML and truncated setup.py declarations still produce package folder names despite ACC-PYPKG-17
+- [x] `DEF-ICONS-55` **Malformed manifests still mark package folders** - MAJOR; malformed TOML and truncated setup.py declarations still produce package folder names despite ACC-PYPKG-17
+  - evidence: manifest-validation.spec.ts passes 5 tests: an invalid answer takes no package name and a valid one keeps it; the validator answers invalid for deeply nested input instead of failing the call; pytest 28 passed, Galata 59 green
   - repro: parse a valid project name followed by an unterminated string, or setup(name="mypkg" without its closing parenthesis
   - test-tags: UNIT
   - root-cause: 2026-10-15T12:39:54Z @kj regex extraction runs without complete source syntax validation
-  - lock: 2026-10-16T13:07:12Z @kj
   - log: 2026-10-15T12:39:54Z @kj added
-- [ ] `DEF-ICONS-57` **Executable badge has no accessible name** - MINOR; screen readers receive an unnamed image for the executable play badge
+  - log: 2026-10-15T17:20:28Z @kj closed
+- [x] `DEF-ICONS-57` **Executable badge has no accessible name** - MINOR; screen readers receive an unnamed image for the executable play badge
+  - evidence: the play badge carries alt=Executable; metadata-refresh.spec.ts asserts the accessible name; Galata 59 green
   - repro: enable executable icons and inspect a real executable badge in the accessibility tree
   - test-tags: E2E
   - root-cause: 2026-10-15T12:39:54Z @kj the injected image has neither alt text nor an ARIA name
-  - lock: 2026-10-16T13:07:12Z @kj
   - log: 2026-10-15T12:39:54Z @kj added
+  - log: 2026-10-15T17:20:28Z @kj closed
+- [x] `DEF-ICONS-62` **A subdirectory entry costs a thread hop** - MINOR; the async contents wrapper dispatches a directory model to the executor before the scan own content test runs, so a listing of 3000 folders is 34 percent slower and the hops queue on the two workers the icon routes share
+  - evidence: the content-is-list test now runs before the thread hop, so a file entry and a subdirectory entry both return without one; pytest 28 passed with 25 subtests and jest 133 in 10 suites green
+  - repro: list a directory holding 3000 subdirectories on an async contents manager and time it against the wrapper removed
+  - test-tags: UNIT
+  - root-cause: 2026-10-15T17:32:41Z @kj the guard before the hop tested the model type only, and a subdirectory entry is a directory model with no content list
+  - log: 2026-10-15T17:32:41Z @kj added
+  - log: 2026-10-15T17:33:31Z @kj closed
+- [x] `DEF-ICONS-63` **Manifest validation repeats on every refresh** - MINOR; the browser posts the same pyproject.toml or setup.py to validate-manifest about six times a minute while the listing poll runs, where the local parse it replaced sent no request
+  - evidence: the verdict is cached per manifest revision, keyed by path, last_modified and length; manifest-validation.spec.ts passes its 5 tests unchanged and jest 133 in 10 suites green
+  - repro: open a python project root and count the validate-manifest calls across poll ticks
+  - test-tags: UNIT
+  - root-cause: 2026-10-15T17:32:41Z @kj the refreshed handler clears the package cache, so each refresh re-reads and re-validates the manifest
+  - log: 2026-10-15T17:32:41Z @kj added
+  - log: 2026-10-15T17:33:31Z @kj closed
 
 ## Settings and icon groups `CONFIG`
 
@@ -418,12 +434,13 @@ Defects in the settings schema and the group toggles that gate which icons are p
   - root-cause: 2026-10-14T12:56:13Z @kj groupMatchers is built from fileTypeConfigs alone, and a missing group means the ungrouped quorum decides
   - log: 2026-10-14T12:56:13Z @kj added
   - log: 2026-10-14T12:56:24Z @kj closed
-- [ ] `DEF-CONFIG-54` **Disabled filename group falls through to another group** - MAJOR; configuration icons disabled still leaves requirements.txt and pyproject.toml with this extension's generic text or TOML icon
+- [x] `DEF-CONFIG-54` **Disabled filename group falls through to another group** - MAJOR; configuration icons disabled still leaves requirements.txt and pyproject.toml with this extension's generic text or TOML icon
+  - evidence: group-ownership.spec.ts passes 4 tests: a disabled config owner hands the row back to the registry and an independent registration keeps requirements.native.txt; the ::before override pass now asks the registry before painting; Galata 59 green
   - repro: disable configuration icons with document and data icons enabled, refresh and open requirements.txt and pyproject.toml
   - test-tags: E2E
   - root-cause: 2026-10-15T12:39:53Z @kj enabled extension registrations can claim filenames owned by a disabled pattern group; registry resolution bypasses that ownership
-  - lock: 2026-10-16T13:07:12Z @kj
   - log: 2026-10-15T12:39:53Z @kj added
+  - log: 2026-10-15T17:20:28Z @kj closed
 
 ## Icon colours `COLOUR`
 
@@ -556,12 +573,13 @@ Icon colours this project chooses itself, and their contrast against the panel a
   - root-cause: 2026-10-14T16:08:40Z @kj no theme signal is subscribed; the fix is an optional IThemeManager dependency connected to both painters, which also closes the same gap on tabs
   - log: 2026-10-14T16:08:40Z @kj added
   - log: 2026-10-14T16:36:40Z @kj closed: fixed: a MutationObserver on the body's theme attributes re-runs both painters; reason: the subject has to be an artwork whose correct marker differs between the two themes, or the assertion would pass on a stale marker
-- [ ] `DEF-COLOUR-56` **Selected MCP glyph fails contrast** - MAJOR; selected .mcp.json has about 1.68:1 contrast on the light theme, below the required 3:1
+- [x] `DEF-COLOUR-56` **Selected MCP glyph fails contrast** - MAJOR; selected .mcp.json has about 1.68:1 contrast on the light theme, below the required 3:1
+  - evidence: mcp-contrast.spec.ts and icon-contrast.spec.ts pass: the selected dot row keeps the full selection band and the glyph paints white; Galata 59 green
   - repro: select .mcp.json on the light theme and measure rendered glyph against its selection fill after row opacity
   - test-tags: E2E
   - root-cause: 2026-10-15T12:39:54Z @kj dotfile row opacity composites both the selected background and the dark MCP ink; no selected MCP state overrides them
-  - lock: 2026-10-16T13:07:12Z @kj
   - log: 2026-10-15T12:39:54Z @kj added
+  - log: 2026-10-15T17:20:28Z @kj closed
 
 ## Symbolic link badges `LINK`
 
@@ -574,4 +592,25 @@ Browser overlays identifying symbolic links
   - root-cause: 2026-10-15T12:39:53Z @kj metadata identity lookups trim the exact filenames returned by the server
   - log: 2026-10-15T12:39:53Z @kj added
   - log: 2026-10-15T12:53:38Z @kj closed: fixed and confirmed by architect, bug-hunter and ux-designer
+- [x] `DEF-LINK-59` **Link badge clipped and too strong** - MEDIUM; the disc spans 7.5 to 16.5 in a 16 viewBox so its right and bottom edge is cut, and a solid #263447 disc under a white ring reads heavier than the artwork it annotates
+  - evidence: the badge is a square drawn at 8.4..15.4 inside its 16-unit canvas at 0.72 fill alpha; symlink-badges.spec.ts passes 5 tests; Galata 59 green
+  - repro: open a directory holding a symbolic link and look at the badge at the lower right of the icon, light and dark theme
+  - test-tags: E2E
+  - root-cause: 2026-10-15T16:28:05Z @kj the disc is drawn at the viewBox corner with its stroke outside the canvas, and the artwork carries no alpha
+  - log: 2026-10-15T16:28:05Z @kj added
+  - log: 2026-10-15T17:20:28Z @kj closed
+- [x] `DEF-LINK-60` **Link badge flickers on refresh** - MINOR; the badge disappears and comes back while the file browser updates
+  - evidence: no clear-then-repaint remains: the link flag rides the listing the browser already fetches, so a row is badged from its own model; symlink-badges.spec.ts refresh test passes
+  - repro: watch a directory holding a symbolic link across a refresh or a file operation
+  - test-tags: E2E
+  - root-cause: 2026-10-15T16:28:06Z @kj refreshSymlinks cleared the painted listing and repainted it before the server answered
+  - log: 2026-10-15T16:28:06Z @kj added
+  - log: 2026-10-15T17:20:28Z @kj closed
+- [x] `DEF-LINK-61` **One symlink request per listing mutation** - MAJOR; the browser asks for the link names of a directory on every DOM mutation of the listing, which grows with the number of repaints rather than with the directory
+  - evidence: the endpoint, its handler and the client fetch are deleted and no reference to vscode-icons/symlinks remains in src/ or ui-tests/; the listing observer calls local passes only; Galata 59 green
+  - repro: open a large directory and watch the network panel for repeated calls to vscode-icons/symlinks
+  - test-tags: E2E
+  - root-cause: 2026-10-15T16:28:06Z @kj the listing MutationObserver callback called refreshSymlinks, which fetches, and the row painters mutate the listing they observe
+  - log: 2026-10-15T16:28:06Z @kj added
+  - log: 2026-10-15T17:20:28Z @kj closed
 

@@ -36,6 +36,9 @@ test('executable names retain surrounding spaces', async ({
   await chmod(diskPath(`${tmpPath}/ spaced-tool `), 0o755);
   await page.filebrowser.openDirectory(tmpPath);
   await expect(page.locator('.vscode-exec-badge')).toHaveCount(2);
+  await expect(page.locator('.vscode-exec-badge').first()).toHaveAccessibleName(
+    'Executable'
+  );
   const executableNames = await page.evaluate(() =>
     [...document.querySelectorAll('.jp-DirListing-item')]
       .filter(item => item.querySelector('.vscode-exec-badge'))

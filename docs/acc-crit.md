@@ -438,26 +438,45 @@ Icons on the dock panel tabs of open documents, matching the file browser
 
 Browser icon overlays for links to files and folders
 
-- [x] `ACC-LINK-38` **File symlink badge** - MEDIUM; a symbolic link to a file shows a small northeast-arrow badge at the lower-right of its existing browser icon; proposal: docs/symlink-badge-proposal.svg
+- [x] `ACC-LINK-38` **File symlink badge** - MEDIUM; a symbolic link to a file shows a small square badge at the lower right of its existing browser icon, a white northeast arrow over a translucent tile; artwork: docs/symlink-badge-proposal.svg
   - evidence: symlink-badges.spec.ts passes for real file/folder links, ordinary entries, refresh, stale navigation responses and whitespace collisions; light/dark screenshots inspected; pinned panel passed
-  - attachment: symlink-badge-proposal.svg sha256:6e154de6c35ab279 edited:2026-10-15T12:14:23Z
+  - attachment: symlink-badge-proposal.svg sha256:87559a2ee4808254 edited:2026-10-15T17:05:36Z
   - test: create a file and a symbolic link to it; check that the link has the badge and retains the file icon
   - test-tags: E2E
   - mechanism: 2026-10-15T12:14:34Z @kj paint the badge above the existing icon so its file-type artwork remains visible
   - log: 2026-10-15T12:14:34Z @kj added
   - log: 2026-10-15T12:14:41Z @kj attached symlink-badge-proposal.svg sha256:6e154de6c35ab279
   - log: 2026-10-15T12:53:38Z @kj closed
-- [x] `ACC-LINK-39` **Folder symlink badge** - MEDIUM; a symbolic link to a folder shows the same northeast-arrow badge at the lower-right of its existing browser icon; proposal: docs/symlink-badge-proposal.svg
+  - log: 2026-10-15T17:06:39Z @kj refreshed attachment symlink-badge-proposal.svg sha256:6e154de6c35ab279 -> sha256:87559a2ee4808254
+  - log: 2026-10-15T17:06:39Z @kj amended text "a symbolic link to a file shows a small northeast-arrow badge at the lower-right of its existing browser icon; proposal: docs/symlink-badge-proposal.svg" -> "a symbolic link to a file shows a small square badge at the lower right of its existing browser icon, a white northeast arrow over a translucent tile; artwork: docs/symlink-badge-proposal.svg"
+- [x] `ACC-LINK-39` **Folder symlink badge** - MEDIUM; a symbolic link to a folder shows the same square badge at the lower right of its existing browser icon; artwork: docs/symlink-badge-proposal.svg
+  - attachment: symlink-badge-proposal.svg sha256:87559a2ee4808254 edited:2026-10-15T17:05:36Z
   - evidence: symlink-badges.spec.ts passes for real file/folder links, ordinary entries, refresh, stale navigation responses and whitespace collisions; light/dark screenshots inspected; pinned panel passed
   - test: create a folder and a symbolic link to it; check that the link has the badge and retains the folder icon
   - test-tags: E2E
   - mechanism: 2026-10-15T12:14:34Z @kj paint the same badge above the existing folder icon so its artwork remains visible
   - log: 2026-10-15T12:14:34Z @kj added
   - log: 2026-10-15T12:53:39Z @kj closed
+  - log: 2026-10-15T17:06:39Z @kj attached symlink-badge-proposal.svg sha256:87559a2ee4808254
+  - log: 2026-10-15T17:06:39Z @kj amended text "a symbolic link to a folder shows the same northeast-arrow badge at the lower-right of its existing browser icon; proposal: docs/symlink-badge-proposal.svg" -> "a symbolic link to a folder shows the same square badge at the lower right of its existing browser icon; artwork: docs/symlink-badge-proposal.svg"
 - [x] `ACC-LINK-40` **Ordinary items have no link badge** - MEDIUM; browser items that are not symbolic links show no northeast-arrow badge
   - evidence: symlink-badges.spec.ts passes for real file/folder links, ordinary entries, refresh, stale navigation responses and whitespace collisions; light/dark screenshots inspected; pinned panel passed
   - test: compare a regular file and folder with symbolic links to each; only the links carry the badge
   - test-tags: E2E
   - log: 2026-10-15T12:14:34Z @kj added
   - log: 2026-10-15T12:53:39Z @kj closed
+- [x] `ACC-LINK-49` **Link state arrives with the listing** - HIGH; the browser learns which entries are symbolic links from the directory listing it already fetches, so no second request exists per directory, per repaint or per file
+  - evidence: the contents manager marks each directory entry from one scandir pass and the client paints from its own model items; pytest 28 passed covers the annotation and Galata 59 green carries no link request
+  - test: open a directory and confirm the contents call is the only source of link state
+  - test-tags: E2E, UNIT
+  - mechanism: 2026-10-15T17:06:47Z @kj the server annotates each directory model with a symlink flag in one scandir pass and the client paints from its own model items
+  - log: 2026-10-15T17:06:47Z @kj added
+  - log: 2026-10-15T17:20:32Z @kj closed
+- [x] `ACC-LINK-50` **Link badge stays legible on a dimmed row** - MEDIUM; a dotfile row that carries a link badge keeps its full opacity, because the 0.55 dim composites the badge below the 3:1 bar on the light theme
+  - evidence: symlink-badges.spec.ts 'a dot-named link keeps the badge out of the dotfile dim' asserts the row's computed opacity is 1 with the badge on it
+  - test: open a directory holding a dot-named symbolic link on the light theme and read the badge contrast
+  - test-tags: E2E
+  - mechanism: 2026-10-15T17:12:19Z @kj a stylesheet rule raises the row's opacity where a link badge sits on it, the remedy shape the mcp glyph already uses
+  - log: 2026-10-15T17:12:19Z @kj added
+  - log: 2026-10-15T17:20:32Z @kj closed
 

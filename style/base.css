@@ -77,3 +77,11 @@ body[data-jp-theme-light='true'] .mcp-glyph {
 .jp-DirListing-item[data-is-dot].jp-mod-selected .mcp-glyph {
   fill: #fff;
 }
+
+/* A dimmed dotfile row carries the link badge under the 3:1 bar with it: the
+   arrow composites to 2.28:1 over light artwork and 2.14:1 on a white panel.
+   The row keeps its full opacity where a link badge sits on it, the remedy
+   shape the mcp glyph above already uses. */
+.jp-DirListing-item[data-is-dot]:has(.vscode-symlink-badge) {
+  opacity: 1 !important;
+}

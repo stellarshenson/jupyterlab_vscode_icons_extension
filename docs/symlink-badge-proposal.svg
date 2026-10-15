@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" role="img" aria-label="Proposed symbolic link badge">
-  <title>Proposed symbolic link badge</title>
-  <circle cx="12" cy="12" r="4" fill="#263447" stroke="#fff" stroke-width="1"/>
-  <path d="M10.4 13.6 13.5 10.5m-2.2 0h2.2v2.2" fill="none" stroke="#fff" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" role="img" aria-label="Symbolic link badge as shipped">
+  <title>Symbolic link badge as shipped</title>
+  <rect x="8.4" y="8.4" width="7" height="7" fill="#263447" fill-opacity="0.72" stroke="#fff" stroke-opacity="0.5" stroke-width="0.8"/>
+  <path d="M10.3 13.5 13.5 10.3m-2.2 0h2.2v2.2" fill="none" stroke="#fff" stroke-opacity="0.95" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

@@ -14,12 +14,12 @@ from jupyter_server.services.contents.filemanager import (
     FileContentsManager,
 )
 from jupyter_server.services.contents.manager import ContentsManager
-from tornado.testing import AsyncHTTPTestCase
-from tornado.web import Application
+from tornado.testing import AsyncHTTPTestCase, gen_test
+from tornado.web import Application, HTTPError
 
 from jupyterlab_vscode_icons_extension.handlers import (
+    _flag_listed_links,
     _get_executables,
-    _get_symlinks,
     setup_handlers,
 )
 
@@ -66,7 +66,7 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
         setup_handlers(app)
         return app
 
-    def request(self, endpoint='symlinks', path='', authenticate=True):
+    def request(self, endpoint='executables', path='', authenticate=True):
         headers = {'Authorization': 'Bearer test'} if authenticate else {}
         return self.fetch(
             '/test/vscode-icons/' + endpoint + '?' + urlencode({'path': path}),
@@ -79,6 +79,11 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
         (self.root / 'folder').mkdir()
         (self.root / 'file-link.txt').symlink_to('file.txt')
         (self.root / 'folder-link').symlink_to('folder', target_is_directory=True)
+
+    def listing(self, path=''):
+        """Map each listed name to the link flag its entry carries."""
+        model = self.manager.get(path, type='directory', content=True)
+        return {item['name']: item['symlink'] for item in model['content']}
 
     def validate_manifest(self, payload, authenticate=True, raw=False):
         headers = {'Content-Type': 'application/json'}
@@ -148,47 +153,99 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
                 self.assertEqual(self.validate_manifest(payload).code, 400)
         self.assertEqual(self.validate_manifest('{', raw=True).code, 400)
 
-    def test_returns_only_symlink_names_for_files_and_folders(self):
+    def test_listing_entries_carry_the_link_flag_for_files_and_folders(self):
         self.file_and_folder_links()
-        response = self.request()
-        self.assertEqual(response.code, 200)
-        self.assertEqual(set(json.loads(response.body)), {'file-link.txt', 'folder-link'})
-        self.assertEqual(self.authorizer.calls, [('read', 'contents')])
-        self.assertTrue(response.headers['Content-Type'].startswith('application/json'))
+        listing = self.listing()
+        self.assertEqual(
+            listing,
+            {'file.txt': False, 'folder': False,
+             'file-link.txt': True, 'folder-link': True},
+        )
+        self.assertTrue(all(isinstance(flag, bool) for flag in listing.values()))
 
-    def test_authentication_and_contents_read_authorization_required(self):
-        self.file_and_folder_links()
-        for endpoint in ('symlinks', 'executables'):
-            with self.subTest(endpoint=endpoint):
-                response = self.request(endpoint, authenticate=False)
-                self.assertIn(response.code, (302, 403))
-                self.authorizer.allowed = False
-                self.assertEqual(self.request(endpoint).code, 403)
-        self.assertTrue(all(call == ('read', 'contents') for call in self.authorizer.calls))
-
-    def test_hidden_entries_and_contents_manager_exclusions_are_respected(self):
+    def test_listing_flags_follow_visibility_rules(self):
         self.file_and_folder_links()
         (self.root / '.hidden-link').symlink_to('file.txt')
         self.manager.hide_globs = ['file-link*']
-        self.assertEqual(json.loads(self.request().body), ['folder-link'])
+        self.assertEqual(
+            self.listing(),
+            {'file.txt': False, 'folder': False, 'folder-link': True},
+        )
         self.manager.allow_hidden = True
-        self.assertEqual(set(json.loads(self.request().body)), {'folder-link', '.hidden-link'})
+        self.assertEqual(
+            self.listing(),
+            {'file.txt': False, 'folder': False,
+             'folder-link': True, '.hidden-link': True},
+        )
 
-    def test_hidden_directory_and_visible_alias_to_hidden_directory_are_refused(self):
+    def test_listing_flag_preserves_hidden_directory_refusal_and_visible_alias(self):
         (self.root / '.private').mkdir()
         (self.root / '.private' / 'target').write_text('secret')
         (self.root / '.private' / 'secret-link').symlink_to('target')
         (self.root / 'alias').symlink_to('.private', target_is_directory=True)
-        for path in ('.private', 'alias'):
-            with self.subTest(path=path):
-                self.assertEqual(self.request(path=path).code, 404)
+        with self.assertRaises(HTTPError) as raised:
+            self.manager.get('.private', type='directory', content=True)
+        self.assertEqual(raised.exception.status_code, 404)
+        self.assertEqual(self.listing('alias'), {'target': False, 'secret-link': True})
         self.manager.allow_hidden = True
-        self.assertEqual(json.loads(self.request(path='alias').body), ['secret-link'])
+        self.assertEqual(self.listing('.private'), {'target': False, 'secret-link': True})
 
-    def test_directory_symlink_inside_root_can_be_browsed(self):
+    def test_directory_link_inside_root_lists_and_flags_its_entries(self):
         self.file_and_folder_links()
         (self.root / 'folder' / 'nested-link').symlink_to('../file.txt')
-        self.assertEqual(json.loads(self.request(path='folder-link').body), ['nested-link'])
+        self.assertEqual(self.listing('folder-link'), {'nested-link': True})
+
+    def test_dangling_link_is_listed_and_flagged(self):
+        (self.root / 'dangling-link').symlink_to('missing-target')
+        self.assertEqual(self.listing(), {'dangling-link': True})
+
+    def test_listings_that_resolve_outside_root_stay_unflagged(self):
+        outside = self.root.with_name('root-sibling')
+        outside.mkdir()
+        (outside / 'secret').write_text('secret')
+        (outside / 'secret-link').symlink_to('secret')
+        (self.root / 'outside').symlink_to(outside, target_is_directory=True)
+        model = self.manager.get('outside', type='directory', content=True)
+        self.assertEqual(
+            {item['name']: 'symlink' in item for item in model['content']},
+            {'secret': False, 'secret-link': False},
+        )
+
+    @gen_test
+    async def test_async_contents_manager_listing_is_flagged(self):
+        self.file_and_folder_links()
+        manager = AsyncFileContentsManager(root_dir=str(self.root))
+        _flag_listed_links(manager)
+        model = await manager.get('', type='directory', content=True)
+        self.assertEqual(
+            {item['name']: item['symlink'] for item in model['content']},
+            {'file.txt': False, 'folder': False,
+             'file-link.txt': True, 'folder-link': True},
+        )
+
+    def test_flag_listed_links_skips_managers_without_a_local_filesystem(self):
+        remote = ContentsManager()
+        _flag_listed_links(remote)
+        self.assertFalse(getattr(remote, '_vscode_link_flags', False))
+        # The root_dir trait requires a directory at construction, so a manager
+        # whose root has disappeared since then exercises the isdir guard.
+        later_root = self.root / 'later-root'
+        later_root.mkdir()
+        vanished_root = FileContentsManager(root_dir=str(later_root))
+        later_root.rmdir()
+        _flag_listed_links(vanished_root)
+        self.assertFalse(getattr(vanished_root, '_vscode_link_flags', False))
+
+    def test_removed_symlink_route_is_gone(self):
+        self.assertEqual(self.request('symlinks').code, 404)
+
+    def test_authentication_and_contents_read_authorization_required(self):
+        self.file_and_folder_links()
+        response = self.request(authenticate=False)
+        self.assertIn(response.code, (302, 403))
+        self.authorizer.allowed = False
+        self.assertEqual(self.request().code, 403)
+        self.assertEqual(self.authorizer.calls, [('read', 'contents')])
 
     def test_traversal_sibling_prefix_and_external_directory_symlink_are_refused(self):
         outside = self.root.with_name('root-sibling')
@@ -205,23 +262,11 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
         self.assertEqual(self.request(path='missing').code, 404)
         self.assertEqual(self.request(path='file').code, 400)
 
-    def test_dangling_symlink_is_reported_when_contents_manager_lists_it(self):
-        (self.root / 'dangling-link').symlink_to('missing-target')
-        response = self.request()
-        self.assertEqual(response.code, 200)
-        self.assertEqual(json.loads(response.body), ['dangling-link'])
-
-    def test_async_contents_manager_is_supported(self):
-        self.file_and_folder_links()
-        self._app.settings['contents_manager'] = AsyncFileContentsManager(root_dir=str(self.root))
-        self.assertEqual(set(json.loads(self.request().body)), {'file-link.txt', 'folder-link'})
-
     def test_remote_contents_manager_returns_empty_without_local_filesystem_assumption(self):
         self._app.settings['contents_manager'] = ContentsManager()
-        for endpoint in ('symlinks', 'executables'):
-            response = self.request(endpoint)
-            self.assertEqual(response.code, 200)
-            self.assertEqual(json.loads(response.body), [])
+        response = self.request()
+        self.assertEqual(response.code, 200)
+        self.assertEqual(json.loads(response.body), [])
 
     def test_executables_follow_visibility_and_reject_external_targets(self):
         for name in ('script', '.private-script', 'omit-script'):
@@ -246,12 +291,9 @@ class ScannerTests(unittest.TestCase):
             script = sibling / 'secret'
             script.write_text('#!/bin/sh\n')
             script.chmod(0o755)
-            (sibling / 'secret-link').symlink_to('secret')
             self.assertEqual(_get_executables(str(sibling), str(root)), [])
-            self.assertEqual(_get_symlinks(str(sibling), str(root), {'secret-link'}), [])
 
     def test_disappeared_directory_returns_empty(self):
         with TemporaryDirectory() as temporary:
             missing = os.path.join(temporary, 'missing')
             self.assertEqual(_get_executables(missing, temporary), [])
-            self.assertEqual(_get_symlinks(missing, temporary, {'anything'}), [])
