@@ -236,6 +236,27 @@ test.describe('doc group off reaches the hand registrations', () => {
       'vscode-file-type-vue'
     );
   });
+
+  test('a PDF tab keeps JupyterLab artwork', async ({ page, tmpPath }) => {
+    await page.contents.uploadContent('x', 'text', `${tmpPath}/tabbed.pdf`);
+    await page.filebrowser.openDirectory(tmpPath);
+    await page.filebrowser.open(`${tmpPath}/tabbed.pdf`);
+    await page.waitForTimeout(1500);
+    const icons = await page.evaluate(() => {
+      const tab = [...document.querySelectorAll('.lm-TabBar-tab')].find(
+        item =>
+          item.querySelector('.lm-TabBar-tabLabel')?.textContent ===
+          'tabbed.pdf'
+      );
+      const host = tab?.querySelector('.lm-TabBar-tabIcon');
+      return {
+        painted: host?.getAttribute('data-vscode-tab-icon'),
+        owner: host?.querySelector('svg')?.getAttribute('data-icon')
+      };
+    });
+    expect(icons.painted, JSON.stringify(icons)).toBeNull();
+    expect(icons.owner, JSON.stringify(icons)).toBe('ui-components:pdf');
+  });
 });
 
 test.describe('every group switched off', () => {

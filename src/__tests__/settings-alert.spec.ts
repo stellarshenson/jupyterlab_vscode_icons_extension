@@ -48,7 +48,9 @@ const harness = async (): Promise<{
     docRegistry: {
       addFileType: () => ({ dispose: () => undefined }),
       getFileTypesForPath: () => [],
-      getFileType: () => undefined
+      getFileType: () => undefined,
+      getFileTypeForModel: () => ({ name: 'text' }),
+      fileTypes: () => []
     },
     shell: { add: () => undefined, currentWidget: null },
     commands: { addCommand: () => undefined },

@@ -47,6 +47,8 @@ type FakeRegistry = {
   addFileType: (fileType: { name: string }) => { dispose: () => void };
   getFileTypesForPath: () => Array<{ name: string }>;
   getFileType: () => undefined;
+  getFileTypeForModel: () => { name: string };
+  fileTypes: () => Iterable<{ name: string }>;
 };
 
 const fakeApp = (): { app: any; registry: FakeRegistry } => {
@@ -58,7 +60,9 @@ const fakeApp = (): { app: any; registry: FakeRegistry } => {
       return { dispose: () => undefined };
     },
     getFileTypesForPath: () => [],
-    getFileType: () => undefined
+    getFileType: () => undefined,
+    getFileTypeForModel: () => ({ name: 'text' }),
+    fileTypes: () => []
   };
   return {
     app: {

@@ -10,6 +10,7 @@ from tempfile import mkdtemp
 from jupyterlab.galata import configure_jupyter_server
 
 configure_jupyter_server(c)
+c.ServerApp.jpserver_extensions.update({"jupyterlab_vscode_icons_extension": True})
 
 # `or`, not a get() default: an exported-but-empty JUPYTER_TEST_PORT would raise
 # ValueError here while Playwright waited happily on 8888.

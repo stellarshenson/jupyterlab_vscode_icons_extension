@@ -2,6 +2,14 @@
  * Configuration for Playwright using default from @jupyterlab/galata
  */
 const baseConfig = require('@jupyterlab/galata/lib/playwright-config');
+const { mkdtempSync } = require('fs');
+const { tmpdir } = require('os');
+const { join } = require('path');
+
+// Galata and the test workers share a temporary filesystem for real links.
+process.env.JUPYTERLAB_GALATA_ROOT_DIR ||= mkdtempSync(
+  join(tmpdir(), 'vscode-icons-galata-')
+);
 
 // `jupyterlab.galata.configure_jupyter_server` pins `c.ServerApp.port = 8888`
 // and sets `port_retries = 0`, so the test server dies rather than move when

@@ -19,6 +19,8 @@ import { applyJupytext1191Hotfix } from './hotfixes';
 
 const PLUGIN_ID = 'jupyterlab_vscode_icons_extension:plugin';
 
+const symlinkBadgeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="12" cy="12" r="4" fill="#263447" stroke="#fff" stroke-width="1"/><path d="M10.4 13.6 13.5 10.5m-2.2 0h2.2v2.2" fill="none" stroke="#fff" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
 // Icon groups for settings
 interface IIconSettings {
   enableLanguageIcons: boolean;
@@ -524,7 +526,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // Custom Markdown icon (from markdown.svg - purple M with arrow, #8a2ea5)
       const markdownSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 309 327">
         <path fill="#8a2ea5" opacity="1" stroke="none" d="m 138.68393,230.48651 c 36.58836,3.1e-4 72.68422,3.1e-4 108.78008,3.1e-4 0.13988,0.49669 0.0821,0.12537 -3.34406,3.81472 -27.34165,24.16766 -54.43119,49.41695 -81.72391,73.62893 -2.65146,2.35216 -4.5582,3.21609 -7.64686,0.37229 -26.89754,-24.76539 -75.191307,-68.40096 -80.889724,-74.12425 -0.744118,-0.74735 -1.274501,-1.57204 -2.95867,-3.69233 23.309236,0 45.299954,0 67.783144,3.3e-4 z"/>
-        <path fill="#8a2ea5" transform="translate(0,36.013303) scale(1,0.81)" d="m 61.156397,14.443673 h 69.176263 q 14.81059,56.661581 23.29958,97.452667 l 5.96036,-27.150338 q 3.61233,-15.870486 7.76652,-30.954008 l 10.6564,-39.348321 H 248.6367 L 276.09047,189.5437 H 221.90541 L 207.27544,69.137838 173.50009,189.5437 H 136.47364 L 101.07273,68.875516 86.984609,189.5437 H 35.147571 Z"/>
+        <path fill="#8a2ea5" transform="translate(0,66.719382) scale(1,0.648)" d="m 61.156397,14.443673 h 69.176263 q 14.81059,56.661581 23.29958,97.452667 l 5.96036,-27.150338 q 3.61233,-15.870486 7.76652,-30.954008 l 10.6564,-39.348321 H 248.6367 L 276.09047,189.5437 H 221.90541 L 207.27544,69.137838 173.50009,189.5437 H 136.47364 L 101.07273,68.875516 86.984609,189.5437 H 35.147571 Z"/>
       </svg>`;
 
       // Custom PDF icon (document with folded corner and red PDF banner)
@@ -1088,6 +1090,17 @@ const plugin: JupyterFrontEndPlugin<void> = {
         .jp-DirListing-itemIcon img.vscode-exec-badge {
           display: block !important;
         }
+        .vscode-symlink-badge {
+          position: absolute;
+          inset: 0;
+          background: url('data:image/svg+xml,${encodeURIComponent(symlinkBadgeSvg)}') center / contain no-repeat;
+          pointer-events: none;
+          z-index: 11;
+        }
+        .jp-DirListing-item[data-vscode-symlink] .vscode-exec-badge {
+          bottom: auto;
+          top: -2px;
+        }
       `;
 
       // Add CSS to make JavaScript and .env icons less bright
@@ -1108,6 +1121,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
            rules that need no runtime data URI. */
       `;
 
+      let metadataGeneration = 0;
       // Cache for Python package detection (per directory)
       let pythonPackagesCache: { path: string; packages: Set<string> } | null =
         null;
@@ -1115,6 +1129,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // Detect Python packages by parsing pyproject.toml or setup.py
       const detectPythonPackages = async (): Promise<Set<string>> => {
         const currentPath = defaultFileBrowser?.model.path || '';
+        const generation = metadataGeneration;
 
         // Return cached result if same directory
         if (pythonPackagesCache?.path === currentPath) {
@@ -1158,7 +1173,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
           // Ignore errors - no packages detected
         }
 
-        pythonPackagesCache = { path: currentPath, packages };
+        if (generation === metadataGeneration) {
+          pythonPackagesCache = { path: currentPath, packages };
+        }
         return packages;
       };
 
@@ -1173,6 +1190,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
 
         const currentPath = defaultFileBrowser?.model.path || '';
+        const generation = metadataGeneration;
 
         // Return cached result if same directory
         if (executablesCache?.path === currentPath) {
@@ -1201,16 +1219,103 @@ const plugin: JupyterFrontEndPlugin<void> = {
           // Ignore errors - no executables detected
         }
 
-        executablesCache = { path: currentPath, executables };
+        if (generation === metadataGeneration) {
+          executablesCache = { path: currentPath, executables };
+        }
         return executables;
       };
 
       // Invalidate cache on directory change
       if (defaultFileBrowser) {
         defaultFileBrowser.model.pathChanged.connect(() => {
+          ++metadataGeneration;
           pythonPackagesCache = null;
           executablesCache = null;
         });
+        defaultFileBrowser.model.refreshed.connect(() => {
+          ++metadataGeneration;
+          pythonPackagesCache = null;
+          executablesCache = null;
+          void markSpecialFiles();
+        });
+      }
+
+      let symlinkListing: { path: string; names: Set<string> } | null = null;
+      let symlinkRequest = 0;
+      const markSymlinkBadges = (): void => {
+        if (!defaultFileBrowser) {
+          return;
+        }
+        const names =
+          symlinkListing?.path === defaultFileBrowser.model.path
+            ? symlinkListing.names
+            : null;
+        defaultFileBrowser.node
+          .querySelectorAll('.jp-DirListing-item')
+          .forEach(row => {
+            const name = row.querySelector(
+              '.jp-DirListing-itemText'
+            )?.textContent;
+            const host = row.querySelector('.jp-DirListing-itemIcon');
+            const existing = host?.querySelector('.vscode-symlink-badge');
+            if (name && names?.has(name) && host) {
+              row.setAttribute('data-vscode-symlink', 'true');
+              if (!existing) {
+                const badge = document.createElement('span');
+                badge.className = 'vscode-symlink-badge';
+                badge.setAttribute('role', 'img');
+                badge.setAttribute('aria-label', 'Symbolic link');
+                host.appendChild(badge);
+              }
+            } else {
+              row.removeAttribute('data-vscode-symlink');
+              existing?.remove();
+            }
+          });
+      };
+      const refreshSymlinks = async (): Promise<void> => {
+        if (!defaultFileBrowser) {
+          return;
+        }
+        const path = defaultFileBrowser.model.path;
+        const request = ++symlinkRequest;
+        symlinkListing = null;
+        markSymlinkBadges();
+        const names = new Set<string>();
+        try {
+          const serverSettings = ServerConnection.makeSettings();
+          const url = URLExt.join(
+            serverSettings.baseUrl,
+            'vscode-icons',
+            'symlinks'
+          );
+          const response = await ServerConnection.makeRequest(
+            `${url}?path=${encodeURIComponent(path)}`,
+            {},
+            serverSettings
+          );
+          if (response.ok) {
+            const links: string[] = await response.json();
+            links.forEach(name => names.add(name));
+          }
+        } catch {
+          // A frontend-only install retains its normal icons without badges.
+        }
+        if (
+          request === symlinkRequest &&
+          defaultFileBrowser.model.path === path
+        ) {
+          symlinkListing = { path, names };
+          markSymlinkBadges();
+        }
+      };
+      if (defaultFileBrowser) {
+        defaultFileBrowser.model.pathChanged.connect(() => {
+          symlinkListing = null;
+          ++symlinkRequest;
+          markSymlinkBadges();
+        });
+        defaultFileBrowser.model.refreshed.connect(refreshSymlinks);
       }
 
       // Add a MutationObserver to mark special files in the file browser
@@ -1239,7 +1344,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       const setOverride = (item: Element, attribute: string): void => {
         const group = overrideGroups[attribute];
-        if (group && !settings[group]) {
+        const name = item.querySelector('.jp-DirListing-itemText')?.textContent;
+        if (
+          (group && !settings[group]) ||
+          (group && name && disabledExplicitOwner(name))
+        ) {
           return;
         }
         item.setAttribute(attribute, 'true');
@@ -1271,7 +1380,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
             return;
           }
 
-          const name = nameSpan.textContent.trim();
+          const name = nameSpan.textContent;
+          const rowPath = `${defaultFileBrowser?.model.path || ''}/${name}`;
 
           // Handle notebook files (Jupytext marks them as "notebook" or "jupytext-notebook-file")
           const isNotebookType =
@@ -1393,17 +1503,17 @@ const plugin: JupyterFrontEndPlugin<void> = {
                 // The badge records the file it was added for, which is what
                 // lets the early pass below tell a stale badge from a correct
                 // one without the detector's answer.
-                badge.dataset.for = name;
+                badge.dataset.for = rowPath;
                 iconContainer.appendChild(badge);
               } else if (existingBadge) {
-                (existingBadge as HTMLElement).dataset.for = name;
+                (existingBadge as HTMLElement).dataset.for = rowPath;
               }
             } else if (existingBadge) {
               existingBadge.remove();
             }
           } else if (
             existingBadge &&
-            (existingBadge as HTMLElement).dataset.for !== name
+            (existingBadge as HTMLElement).dataset.for !== rowPath
           ) {
             // The pass that runs before the detectors answer: a badge whose
             // file is not this row's file belongs to the row's previous
@@ -1480,15 +1590,22 @@ const plugin: JupyterFrontEndPlugin<void> = {
         // already scheduled the pass for the new path, so dropping this one is
         // the whole fix (DEF-ICONS-42).
         const pathAtEntry = defaultFileBrowser?.model.path;
+        const generation = metadataGeneration;
         const pythonPackages = await detectPythonPackages();
         // Checked between the two as well: each detector reads the path at its
         // own start, so A then B then back to A would otherwise pair A's
         // packages with B's executables and pass the exit check.
-        if (defaultFileBrowser?.model.path !== pathAtEntry) {
+        if (
+          defaultFileBrowser?.model.path !== pathAtEntry ||
+          generation !== metadataGeneration
+        ) {
           return;
         }
         const executables = await detectExecutables();
-        if (defaultFileBrowser?.model.path !== pathAtEntry) {
+        if (
+          defaultFileBrowser?.model.path !== pathAtEntry ||
+          generation !== metadataGeneration
+        ) {
           return;
         }
         markSpecialFilesPass({ pythonPackages, executables });
@@ -1524,6 +1641,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         // server round-trips it does not need (DEF-ICONS-31-1).
         markSpecialFilesPass(null);
         markRowIcons();
+        markSymlinkBadges();
         if (markSpecialFilesTimeout) {
           clearTimeout(markSpecialFilesTimeout);
         }
@@ -1566,6 +1684,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         });
         markSpecialFiles();
         markRowIcons();
+        void refreshSymlinks();
         return true;
       };
 
@@ -1587,34 +1706,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // other namespace is a specific one another extension delivered, and is
       // kept. Only `data-type="document-title"` tabs are touched, so terminals,
       // launchers and panels keep their own icons whatever they are named.
-      // Which settings group a file belongs to is resolved from the same two
-      // fields registration uses, pattern first and extension second - the order
-      // the document registry itself resolves in. Deriving it from the extension
-      // alone let every pattern-only config escape its toggle (Dockerfile,
-      // .gitignore, yarn.lock, requirements.txt kept painting with their group
-      // off) and sent package.json to the data group while its registration
-      // followed the config group.
-      const groupMatchers = fileTypeConfigs.map(config => ({
-        re: config.pattern ? new RegExp(config.pattern) : null,
-        exts: config.extensions.map(ext => ext.toLowerCase()),
-        group: config.group
-      }));
-
-      const groupFor = (fileName: string): keyof IIconSettings | null => {
-        const lower = fileName.toLowerCase();
-        for (const matcher of groupMatchers) {
-          if (matcher.re && matcher.re.test(fileName)) {
-            return matcher.group;
-          }
-        }
-        for (const matcher of groupMatchers) {
-          if (matcher.exts.some(ext => lower.endsWith(ext))) {
-            return matcher.group;
-          }
-        }
-        return null;
-      };
-
       // The label is the whole name this needs: DocumentRegistry's
       // getFileTypesForPath takes the basename on its first line and matches
       // every pattern and extension against that alone, so the `Path:` line of
@@ -1622,7 +1713,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // tooltip, since that string is translated.
       const nameForTab = (tab: Element): string => {
         const label = tab.querySelector('.lm-TabBar-tabLabel');
-        return label && label.textContent ? label.textContent.trim() : '';
+        return label && label.textContent ? label.textContent : '';
       };
 
       // The document registry is the same resolver the file browser uses, so
@@ -1640,7 +1731,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
         path: string
       ): { key: string; svgstr: string; owner: string } | null => {
         try {
-          const types = docRegistry.getFileTypesForPath(path);
+          const types = disabledExplicitOwner(path)
+            ? [independentFileType(path)]
+            : docRegistry.getFileTypesForPath(path);
           for (const type of types) {
             const icon = type.icon as any;
             if (
@@ -1755,9 +1848,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
         // tab while the row painted the pytest bars. The maintainer's decision
         // is that the row artwork wins, and it only wins if it is asked first.
         const lower = fileName.toLowerCase();
-        const artwork = rowArtwork.find(
-          entry => entry.svg && entry.matches(lower)
-        );
+        const disabledOwner = disabledExplicitOwner(fileName);
+        const artwork =
+          !disabledOwner &&
+          rowArtwork.find(entry => entry.svg && entry.matches(lower));
         if (artwork) {
           // The row paints this artwork through a ::before that setOverride
           // gates, so the tab has to read the same group or a toggled-off
@@ -1778,6 +1872,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
         // the jp-icon-contrast class that themes it, so the tab would carry a
         // glyph that does not follow the theme.
 
+        if (disabledOwner) {
+          return null;
+        }
         const iconName = getIconForFile(fileName);
         const group = groupFor(fileName);
         // A family no fileTypeConfigs entry claims - .log, .jar, .class and
@@ -1872,9 +1969,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
             const namespace = owner
               ? owner.getAttribute('data-icon') || ''
               : '';
-            if (namespace && !labGenericIcons.has(namespace)) {
+            const ownPdfArtwork =
+              namespace === 'ui-components:pdf' &&
+              fileName.toLowerCase().endsWith('.pdf') &&
+              settings.enableDocIcons;
+            if (
+              namespace &&
+              !labGenericIcons.has(namespace) &&
+              !ownPdfArtwork
+            ) {
               // A specific icon is already on the tab - JupyterLab's own or
-              // another extension's. Leave it, and drop any earlier paint.
+              // another extension's. PDF is the one exception: its file
+              // browser row already uses this extension's artwork.
               clearTabIcon(host);
               return;
             }
@@ -1940,7 +2046,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             return;
           }
 
-          const fileName = nameSpan.textContent.trim();
+          const fileName = nameSpan.textContent;
           const owner = host.querySelector('svg[data-icon]');
           const ownerName = owner ? owner.getAttribute('data-icon') || '' : '';
           if (ownerName && !labGenericIcons.has(ownerName)) {
@@ -2096,6 +2202,86 @@ const plugin: JupyterFrontEndPlugin<void> = {
       enableExecutableIcons: false
     };
 
+    // Which settings group a file belongs to is resolved from the same two
+    // fields registration uses, pattern first and extension second - the order
+    // the document registry itself resolves in. Deriving it from the extension
+    // alone let every pattern-only config escape its toggle (Dockerfile,
+    // .gitignore, yarn.lock, requirements.txt kept painting with their group
+    // off) and sent package.json to the data group while its registration
+    // followed the config group.
+    const groupMatchers = fileTypeConfigs.map(config => ({
+      re: config.pattern ? new RegExp(config.pattern) : null,
+      exts: config.extensions.map(ext => ext.toLowerCase()),
+      group: config.group
+    }));
+
+    const groupFor = (fileName: string): keyof IIconSettings | null => {
+      const lower = fileName.toLowerCase();
+      for (const matcher of groupMatchers) {
+        if (matcher.re && matcher.re.test(fileName)) {
+          return matcher.group;
+        }
+      }
+      for (const matcher of groupMatchers) {
+        if (matcher.exts.some(ext => lower.endsWith(ext))) {
+          return matcher.group;
+        }
+      }
+      return null;
+    };
+
+    // Mark registration objects, since LabIcon instances can be shared by
+    // another extension registering the same icon name.
+    const ownRegistration = Symbol('vscode-icons-registration');
+    const registerFileType = (
+      options: Parameters<typeof docRegistry.addFileType>[0]
+    ) => {
+      const tagged = { ...options, [ownRegistration]: true };
+      return docRegistry.addFileType(tagged);
+    };
+    const isOwnType = (type: object): boolean =>
+      (type as Record<symbol, unknown>)[ownRegistration] === true;
+
+    const disabledExplicitOwner = (name: string): boolean => {
+      const owner = groupMatchers.find(matcher => matcher.re?.test(name));
+      return !!owner && !settings[owner.group];
+    };
+
+    // Filtering getFileTypesForPath alone misses an independent pattern
+    // hidden behind this plugin's first pattern match. Extensions retain
+    // the registry's existing longest-extension and registration order.
+    const independentFileType = (path: string) => {
+      const name = path.split('/').pop()!;
+      for (const type of docRegistry.fileTypes()) {
+        if (
+          !isOwnType(type) &&
+          type.contentType === 'file' &&
+          type.pattern &&
+          name.match(type.pattern)
+        ) {
+          return type;
+        }
+      }
+      return (
+        docRegistry
+          .getFileTypesForPath(path)
+          .find(type => !isOwnType(type) && type.contentType === 'file') ||
+        docRegistry.getFileType('text')!
+      );
+    };
+
+    const getFileTypeForModel =
+      docRegistry.getFileTypeForModel.bind(docRegistry);
+    docRegistry.getFileTypeForModel = model => {
+      const selected = getFileTypeForModel(model);
+      const name = model.name || model.path?.split('/').pop() || '';
+      return model.type === 'file' &&
+        disabledExplicitOwner(name) &&
+        isOwnType(selected)
+        ? independentFileType(name)
+        : selected;
+    };
+
     // Function to register file types based on settings
     const registerFileTypes = () => {
       // Clear existing registrations by re-registering
@@ -2142,7 +2328,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           fileTypeOptions.mimeTypes = config.mimeTypes;
         }
 
-        docRegistry.addFileType(fileTypeOptions);
+        registerFileType(fileTypeOptions);
       });
 
       // Register Makefile with custom icon (document with gears, from text-x-makefile-svgrepo-com.svg)
@@ -2156,7 +2342,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       });
 
       if (settings.enableConfigIcons) {
-        docRegistry.addFileType({
+        registerFileType({
           name: 'vscode-makefile',
           displayName: 'Makefile',
           extensions: ['.mk', '.mak', '.make'],
@@ -2197,7 +2383,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       });
 
       if (settings.enableDocIcons) {
-        docRegistry.addFileType({
+        registerFileType({
           name: 'vscode-license',
           displayName: 'License',
           pattern: '^(LICENSE|LICENCE|LICENSE\\..*|LICENCE\\..*)$',
@@ -2212,7 +2398,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const claudeIcon = createLabIcon('file-type-claude');
       if (claudeIcon) {
         if (settings.enableDocIcons) {
-          docRegistry.addFileType({
+          registerFileType({
             name: 'vscode-claude-md',
             displayName: 'Claude Configuration',
             pattern: '^CLAUDE\\.md$',
@@ -2238,7 +2424,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       });
 
       if (settings.enableDocIcons) {
-        docRegistry.addFileType({
+        registerFileType({
           name: 'vscode-readme',
           displayName: 'README',
           pattern: '^README\\.md$',
@@ -2272,7 +2458,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       });
 
       if (settings.enableDocIcons) {
-        docRegistry.addFileType({
+        registerFileType({
           name: 'vscode-changelog',
           displayName: 'Changelog',
           pattern: '^CHANGELOG$',
@@ -2285,7 +2471,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       // Register CHANGELOG.md with markdown icon (as RELEASE.md below)
       if (settings.enableDocIcons) {
-        docRegistry.addFileType({
+        registerFileType({
           name: 'vscode-changelog-md',
           displayName: 'Changelog',
           pattern: '^CHANGELOG\\.md$',
@@ -2298,7 +2484,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       // Register RELEASE without .md extension (same icon as CHANGELOG)
       if (settings.enableDocIcons) {
-        docRegistry.addFileType({
+        registerFileType({
           name: 'vscode-release',
           displayName: 'Release Notes',
           pattern: '^RELEASE$',
@@ -2311,7 +2497,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       // Register RELEASE.md with markdown icon
       if (settings.enableDocIcons) {
-        docRegistry.addFileType({
+        registerFileType({
           name: 'vscode-release-md',
           displayName: 'Release Notes',
           pattern: '^RELEASE\\.md$',
@@ -2335,7 +2521,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           svgstr: drawioSvg
         });
 
-        docRegistry.addFileType({
+        registerFileType({
           name: 'vscode-drawio',
           displayName: 'Draw.io Diagram',
           extensions: ['.drawio', '.dio'],
@@ -2353,7 +2539,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           svgstr: bpmnSvg
         });
 
-        docRegistry.addFileType({
+        registerFileType({
           name: 'vscode-bpmn',
           displayName: 'BPMN Diagram',
           extensions: ['.bpmn'],
@@ -2381,7 +2567,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           svgstr: onnxSvg
         });
 
-        docRegistry.addFileType({
+        registerFileType({
           name: 'vscode-onnx',
           displayName: 'ONNX Model',
           extensions: ['.onnx'],
@@ -2404,7 +2590,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           svgstr: pytorchSvg
         });
 
-        docRegistry.addFileType({
+        registerFileType({
           name: 'vscode-pytorch',
           displayName: 'PyTorch Model',
           extensions: ['.pt', '.pth'],
@@ -2427,7 +2613,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           svgstr: joblibSvg
         });
 
-        docRegistry.addFileType({
+        registerFileType({
           name: 'vscode-joblib',
           displayName: 'joblib Pickle',
           extensions: ['.joblib'],
@@ -2451,7 +2637,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           svgstr: txtSvg
         });
 
-        docRegistry.addFileType({
+        registerFileType({
           name: 'vscode-txt',
           displayName: 'Text File',
           extensions: ['.txt'],
@@ -2474,7 +2660,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           svgstr: mcpSvg
         });
 
-        docRegistry.addFileType({
+        registerFileType({
           name: 'vscode-mcp',
           displayName: 'MCP Configuration',
           pattern: '^\\.mcp\\.json(\\..*)?$',
@@ -2518,7 +2704,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           svgstr: prettierSvg
         });
 
-        docRegistry.addFileType({
+        registerFileType({
           name: 'vscode-prettier',
           displayName: 'Prettier Configuration',
           pattern:
@@ -2542,7 +2728,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           svgstr: shellSvg
         });
 
-        docRegistry.addFileType({
+        registerFileType({
           name: 'vscode-shell',
           displayName: 'Shell Script',
           extensions: ['.sh', '.bash', '.zsh', '.fish', '.csh', '.nu'],
@@ -2565,7 +2751,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           svgstr: batchSvg
         });
 
-        docRegistry.addFileType({
+        registerFileType({
           name: 'vscode-batch',
           displayName: 'Batch File',
           extensions: ['.bat', '.cmd'],

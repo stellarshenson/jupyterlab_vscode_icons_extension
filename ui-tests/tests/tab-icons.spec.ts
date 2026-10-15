@@ -60,6 +60,22 @@ test.describe('document tab icons', () => {
     expect(tabIcon).toBe(`registry:${rowFileType}`);
   });
 
+  test('a PDF tab uses the file browser artwork', async ({ page, tmpPath }) => {
+    await page.contents.uploadContent('x', 'text', `${tmpPath}/tabbed.pdf`);
+    await page.filebrowser.openDirectory(tmpPath);
+    const { tabIcon } = await openAndRead(page, tmpPath, 'tabbed.pdf');
+    const rowPainted = await page.evaluate(() => {
+      const row = [...document.querySelectorAll('.jp-DirListing-item')].find(
+        item =>
+          item.querySelector('.jp-DirListing-itemText')?.textContent?.trim() ===
+          'tabbed.pdf'
+      );
+      return row?.hasAttribute('data-vscode-pdf') ?? false;
+    });
+    expect(rowPainted).toBe(true);
+    expect(tabIcon).toBe('artwork:pdf');
+  });
+
   test('a tab never shows an empty icon', async ({ page, tmpPath }) => {
     // ACC-TABS-34: the slot is never empty. The icon may be this extension's,
     // another extension's, or JupyterLab's own - what must not happen is

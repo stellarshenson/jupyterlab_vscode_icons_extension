@@ -67,3 +67,13 @@
 body[data-jp-theme-light='true'] .mcp-glyph {
   fill: #212121;
 }
+
+/* Selected MCP dotfiles need the full selection band and white ink. Dimming
+   the row composites both against the panel and drops contrast below 3:1. */
+.jp-DirListing-item[data-is-dot].jp-mod-selected:has(.mcp-glyph) {
+  opacity: 1 !important;
+}
+
+.jp-DirListing-item[data-is-dot].jp-mod-selected .mcp-glyph {
+  fill: #fff;
+}
