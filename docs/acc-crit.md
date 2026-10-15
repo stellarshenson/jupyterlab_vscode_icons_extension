@@ -242,13 +242,14 @@ What the shared Makefile template and the CI workflows must guarantee about a re
   - log: 2026-10-13T21:24:45Z @kj added
   - log: 2026-10-14T08:07:24Z @kj closed: held through release 1.1.110
   - log: 2026-10-14T12:27:00Z @kj edited test-tags "MANUAL" -> "MANUAL"; evidence "1.1.109 to 1.1.110, one bump; package.json, the wheel and the npm tarball all carry 1.1.110" -> "Makefile 1.45: increment_version is a prerequisite of install alone, and publish reaches it once through install; the 1.1.109 to 1.1.110 release moved the patch once across package.json, the wheel and the npm tarball"
-- [x] `ACC-BUILD-22` **npm and PyPI never diverge** - CRITICAL; a finished release leaves both registries on the same version; a failed upload never leaves only one of them written
-  - evidence: Makefile publish runs npm publish and twine upload in one recipe and aborts with the divergence warning if twine fails; logs/publish-1.1.110.log shows both registries taking 1.1.110 in that run
+- [-] `ACC-BUILD-22` **npm and PyPI never diverge** - CRITICAL; a finished release leaves both registries on the same version; a failed upload never leaves only one of them written
+  - overridden-by: ACC-BUILD-42, ACC-BUILD-43, ACC-BUILD-44, ACC-BUILD-45
   - test: force a twine failure, assert the target exits non-zero and prints the recovery command
   - test-tags: MANUAL
   - log: 2026-10-13T21:24:45Z @kj added
   - log: 2026-10-14T08:07:24Z @kj closed: held through release 1.1.110
   - log: 2026-10-14T12:27:00Z @kj edited test-tags "MANUAL" -> "MANUAL"; evidence "npm reported + jupyterlab_vscode_icons_extension@1.1.110 and twine printed the 1.1.110 PyPI URL in the same run" -> "Makefile publish runs npm publish and twine upload in one recipe and aborts with the divergence warning if twine fails; logs/publish-1.1.110.log shows both registries taking 1.1.110 in that run"
+  - log: 2026-10-15T12:46:22Z @kj rejected: maintainer selected sequential publication with partial-failure reporting and recovery; split the replacement contract into ACC-BUILD-42 through ACC-BUILD-45; evidence retired: Makefile publish runs npm publish and twine upload in one recipe and aborts with the divergence warning if twine fails; logs/publish-1.1.110.log shows both registries taking 1.1.110 in that run
 - [x] `ACC-BUILD-23` **Gates run before upload** - HIGH; prettier, eslint, stylelint and the Jest suite all run before anything reaches npm or PyPI
   - evidence: Makefile publish declares test as a prerequisite, and scripts.test runs prettier:check, eslint:check, stylelint:check then jest, so no upload happens on a failing gate
   - test: break a test, run the publish target, assert it stops before either upload
@@ -277,6 +278,45 @@ What the shared Makefile template and the CI workflows must guarantee about a re
   - log: 2026-10-13T21:24:46Z @kj added
   - log: 2026-10-14T08:07:24Z @kj closed: held through release 1.1.110
   - log: 2026-10-14T12:27:00Z @kj re-checked: the claim rests on the 1.1.110 release run, where git status was empty afterwards; there is no standing test for it, so it stays a release-time observation
+- [x] `ACC-BUILD-41` **Python 3.11 minimum** - HIGH; the package requires Python 3.11 or later; Python 3.10 is unsupported
+  - evidence: rebuilt wheel metadata has Requires-Python >=3.11; specifier rejects 3.10 and accepts 3.11 and 3.14; no 3.10 classifier remains; CI uses 3.12
+  - test: inspect wheel Requires-Python and project classifiers; verify Python 3.10 is excluded and 3.11 is accepted
+  - test-tags: MANUAL
+  - mechanism: 2026-10-15T12:41:22Z @kj requires-python sets the installer boundary; classifiers and CI list only supported versions
+  - log: 2026-10-15T12:41:22Z @kj added
+  - log: 2026-10-15T12:46:51Z @kj closed
+- [x] `ACC-BUILD-42` **Successful release versions agree** - HIGH; a successful release leaves npm and PyPI on the same project version
+  - evidence: logs/goal-publish-contract.log: 2 passed; actual recipe simulations verify matching artifact versions, partial-publication warning, nonzero exit and recovery command without external uploads
+  - overrides: ACC-BUILD-22
+  - test: python -m pytest jupyterlab_vscode_icons_extension/tests/test_publish_contract.py -q; actual publish recipe with local registry stand-ins
+  - test-tags: UNIT
+  - log: 2026-10-15T12:46:21Z @kj added
+  - log: 2026-10-15T13:07:31Z @kj edited test "simulate successful uploads of one built version; verify both registry commands use that version" -> "python -m pytest jupyterlab_vscode_icons_extension/tests/test_publish_contract.py -q; actual publish recipe with local registry stand-ins"; test-tags "MANUAL" -> "UNIT"
+  - log: 2026-10-15T13:07:31Z @kj closed
+- [x] `ACC-BUILD-43` **Partial publication is reported** - HIGH; if npm succeeds and the PyPI upload fails, the release reports partial publication
+  - evidence: logs/goal-publish-contract.log: 2 passed; actual recipe simulations verify matching artifact versions, partial-publication warning, nonzero exit and recovery command without external uploads
+  - overrides: ACC-BUILD-22
+  - test: python -m pytest jupyterlab_vscode_icons_extension/tests/test_publish_contract.py -q; actual publish recipe with local registry stand-ins
+  - test-tags: UNIT
+  - log: 2026-10-15T12:46:21Z @kj added
+  - log: 2026-10-15T13:07:31Z @kj edited test "force the simulated PyPI upload to fail after npm succeeds; inspect the warning" -> "python -m pytest jupyterlab_vscode_icons_extension/tests/test_publish_contract.py -q; actual publish recipe with local registry stand-ins"; test-tags "MANUAL" -> "UNIT"
+  - log: 2026-10-15T13:07:31Z @kj closed
+- [x] `ACC-BUILD-44` **Partial publication fails the release** - HIGH; the release exits nonzero if the PyPI upload fails after npm succeeds
+  - evidence: logs/goal-publish-contract.log: 2 passed; actual recipe simulations verify matching artifact versions, partial-publication warning, nonzero exit and recovery command without external uploads
+  - overrides: ACC-BUILD-22
+  - test: python -m pytest jupyterlab_vscode_icons_extension/tests/test_publish_contract.py -q; actual publish recipe with local registry stand-ins
+  - test-tags: UNIT
+  - log: 2026-10-15T12:46:22Z @kj added
+  - log: 2026-10-15T13:07:31Z @kj edited test "force a simulated PyPI upload failure; assert the make exit status is nonzero" -> "python -m pytest jupyterlab_vscode_icons_extension/tests/test_publish_contract.py -q; actual publish recipe with local registry stand-ins"; test-tags "MANUAL" -> "UNIT"
+  - log: 2026-10-15T13:07:32Z @kj closed
+- [x] `ACC-BUILD-45` **Partial publication recovery command** - HIGH; a partial publication prints the command to upload the already-built distribution to PyPI
+  - evidence: logs/goal-publish-contract.log: 2 passed; actual recipe simulations verify matching artifact versions, partial-publication warning, nonzero exit and recovery command without external uploads
+  - overrides: ACC-BUILD-22
+  - test: python -m pytest jupyterlab_vscode_icons_extension/tests/test_publish_contract.py -q; actual publish recipe with local registry stand-ins
+  - test-tags: UNIT
+  - log: 2026-10-15T12:46:22Z @kj added
+  - log: 2026-10-15T13:07:32Z @kj edited test "force a simulated PyPI upload failure; assert the printed recovery command uses python -m twine upload dist/*" -> "python -m pytest jupyterlab_vscode_icons_extension/tests/test_publish_contract.py -q; actual publish recipe with local registry stand-ins"; test-tags "MANUAL" -> "UNIT"
+  - log: 2026-10-15T13:07:32Z @kj closed
 
 ## Document tab icons `TABS`
 
@@ -324,7 +364,7 @@ Icons on the dock panel tabs of open documents, matching the file browser
   - log: 2026-10-14T12:01:30Z @kj closed: closed: covered by a galata test under mocked settings
   - log: 2026-10-14T12:01:31Z @kj edited test-tags "MANUAL" -> "E2E"
   - log: 2026-10-14T12:56:34Z @kj edited evidence "tab-icons.spec.ts 'a language tab keeps the stock icon' loads the lab with enableLanguageIcons false: toggled.js carries no data-vscode-tab-icon and still draws, while 'a tab mirrors its file browser row' paints the same extension with the group on" -> "tab-icons.spec.ts asserts a .js tab carries no marker with the language group off, and resolveIcon's artwork branch now reads the same group map the row uses, so a uv.lock or conftest.py tab goes stock too"
-- [x] `ACC-TABS-31` **Another extension's tab icon wins** - HIGH; a tab whose icon another extension sets keeps that extension's icon; this extension overrides only a tab carrying JupyterLab's own generic editor glyph, the same rule the file browser follows
+- [x] `ACC-TABS-31` **Another extension's tab icon wins** - HIGH; a tab whose icon another extension sets keeps that extension's icon; this extension may replace JupyterLab's generic editor glyph and its PDF glyph when the PDF browser row uses this extension's artwork
   - evidence: tab-icons.spec.ts 'a tab keeps the icon another extension registered' opens owned.tf and asserts the tab's icon comes from the registry and is not one of this extension's keys; measured registry:terraform, with ui-components:text-editor as the glyph it replaced
   - related: ACC-CLASH-9 - the file browser policy this deliberately inverts
   - related: ACC-TABS-27 - the exception to it
@@ -341,6 +381,7 @@ Icons on the dock panel tabs of open documents, matching the file browser
   - log: 2026-10-14T15:32:38Z @kj the 15:09 exception log is false the same way: there is no such test in tab-icons.spec.ts and artwork:bpmn is not a key the code can emit - rowArtwork holds pdf, db, uv, pytest and svg only
   - log: 2026-10-14T16:14:03Z @kj same: artwork:bpmn is a key the code emits now and tab-icons.spec.ts has the case. The authorisation question sits on DEF-COLOUR-27-3
   - log: 2026-10-14T16:33:46Z @kj correction: the earlier log on this item saying the instruction was never given is false. Two claude processes ran on one session id; the writer could not see the live conversation, so real maintainer decisions looked unsourced. It has stood down and confirmed this.
+  - log: 2026-10-15T12:13:55Z @kj edited text "a tab whose icon another extension sets keeps that extension's icon; this extension overrides only a tab carrying JupyterLab's own generic editor glyph, the same rule the file browser follows" -> "a tab whose icon another extension sets keeps that extension's icon; this extension may replace JupyterLab's generic editor glyph and its PDF glyph when the PDF browser row uses this extension's artwork"
 - [x] `ACC-TABS-32` **Edge: tab with no file behind it** - MEDIUM; a tab that is not a file - terminal, console, launcher, settings editor - keeps its own icon
   - evidence: tab-icons.spec.ts 'a tab that is not a document is left alone' counts tabs without data-type=document-title that carry a paint marker, and asserts zero
   - test: open a terminal and the launcher, assert both tab icons are unchanged
@@ -364,4 +405,38 @@ Icons on the dock panel tabs of open documents, matching the file browser
   - log: 2026-10-14T07:37:42Z @kj added
   - log: 2026-10-14T07:40:36Z @kj closed: implemented and measured
   - log: 2026-10-14T12:26:51Z @kj edited test-tags "MANUAL" -> "E2E"; evidence "supplier_process.bpmn showed an empty icon slot before and paints registry:bpmn after, the icon jupyterlab_camunda_modeller_extension registered" -> "tab-icons.spec.ts 'a tab never shows an empty icon' asserts the rendered size of whatever is drawn, so an empty slot fails whether the icon is this extension's, another's or JupyterLab's"
+- [x] `ACC-TABS-37` **PDF tab uses browser artwork** - MEDIUM; with document icons enabled, an open PDF tab shows the same PDF artwork as its browser row
+  - evidence: tab-icons.spec.ts verifies PDF row data-vscode-pdf and tab artwork:pdf; settings-groups.spec.ts verifies stock tab icon when document icons are off; 21 Galata tests and 128 unit tests pass
+  - test: upload and open a PDF; assert the row PDF override and the tab artwork:pdf marker
+  - test-tags: E2E
+  - mechanism: 2026-10-15T12:13:55Z @kj the tab painter accepts ui-components:pdf for PDFs whose rows use pdfSvg; the document-icons setting gates both surfaces
+  - log: 2026-10-15T12:13:55Z @kj added
+  - log: 2026-10-15T12:14:40Z @kj closed: PDF tab now uses the same pdfSvg as its browser row
+
+## Symbolic link badges `LINK`
+
+Browser icon overlays for links to files and folders
+
+- [x] `ACC-LINK-38` **File symlink badge** - MEDIUM; a symbolic link to a file shows a small northeast-arrow badge at the lower-right of its existing browser icon; proposal: docs/symlink-badge-proposal.svg
+  - evidence: symlink-badges.spec.ts passes for real file/folder links, ordinary entries, refresh, stale navigation responses and whitespace collisions; light/dark screenshots inspected; pinned panel passed
+  - attachment: symlink-badge-proposal.svg sha256:6e154de6c35ab279 edited:2026-10-15T12:14:23Z
+  - test: create a file and a symbolic link to it; check that the link has the badge and retains the file icon
+  - test-tags: E2E
+  - mechanism: 2026-10-15T12:14:34Z @kj paint the badge above the existing icon so its file-type artwork remains visible
+  - log: 2026-10-15T12:14:34Z @kj added
+  - log: 2026-10-15T12:14:41Z @kj attached symlink-badge-proposal.svg sha256:6e154de6c35ab279
+  - log: 2026-10-15T12:53:38Z @kj closed
+- [x] `ACC-LINK-39` **Folder symlink badge** - MEDIUM; a symbolic link to a folder shows the same northeast-arrow badge at the lower-right of its existing browser icon; proposal: docs/symlink-badge-proposal.svg
+  - evidence: symlink-badges.spec.ts passes for real file/folder links, ordinary entries, refresh, stale navigation responses and whitespace collisions; light/dark screenshots inspected; pinned panel passed
+  - test: create a folder and a symbolic link to it; check that the link has the badge and retains the folder icon
+  - test-tags: E2E
+  - mechanism: 2026-10-15T12:14:34Z @kj paint the same badge above the existing folder icon so its artwork remains visible
+  - log: 2026-10-15T12:14:34Z @kj added
+  - log: 2026-10-15T12:53:39Z @kj closed
+- [x] `ACC-LINK-40` **Ordinary items have no link badge** - MEDIUM; browser items that are not symbolic links show no northeast-arrow badge
+  - evidence: symlink-badges.spec.ts passes for real file/folder links, ordinary entries, refresh, stale navigation responses and whitespace collisions; light/dark screenshots inspected; pinned panel passed
+  - test: compare a regular file and folder with symbolic links to each; only the links carry the badge
+  - test-tags: E2E
+  - log: 2026-10-15T12:14:34Z @kj added
+  - log: 2026-10-15T12:53:39Z @kj closed
 

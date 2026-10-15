@@ -11,3 +11,4 @@ Build and release output, kept out of git except for this file.
 - `lint-<time>.log` - one `jlpm lint:check` run: prettier, eslint and stylelint without fixes
 - `uitests-install-<time>.log` - `jlpm install` and `jlpm playwright install chromium` in `ui-tests/`
 - `probe-<name>-<time>.log` - a throwaway Galata spec that records what the running lab does, deleted after the run
+- `goal-*.log` - build, test, and review records for the active project completion goal

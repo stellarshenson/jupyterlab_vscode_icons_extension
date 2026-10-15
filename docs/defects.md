@@ -49,6 +49,29 @@ The shared Makefile template, the lockfiles and the release path
   - test-tags: MANUAL
   - log: 2026-10-14T08:53:29Z @kj added
   - log: 2026-10-14T08:55:50Z @kj closed: documented where a contributor is sent
+- [x] `DEF-BUILD-52` **Parallel Make races tests and version changes** - MAJOR; make -j publish starts version increment and build before a failing test completes
+  - evidence: four actual Make dependency-graph tests pass under serial and -j4 execution; all three pinned reviewers independently confirmed ordering
+  - repro: replace recipes with harmless markers and make test fail after a delay; run make -j4 publish
+  - test-tags: UNIT
+  - root-cause: 2026-10-15T12:39:53Z @kj test and install are sibling prerequisites; increment_version and build are also siblings
+  - log: 2026-10-15T12:39:53Z @kj added
+  - log: 2026-10-15T12:53:38Z @kj closed: fixed and confirmed by architect, bug-hunter and ux-designer
+- [-] `DEF-BUILD-53` **Python 3.10 cannot read project extras** - MAJOR; the Makefile imports tomllib although supported Python starts at 3.10; bootstrap can hide the import failure behind xargs
+  - related: ACC-BUILD-41
+  - repro: run extras extraction on Python 3.10 without tomli
+  - test-tags: UNIT
+  - root-cause: 2026-10-15T12:39:53Z @kj tomllib entered the standard library in Python 3.11 and no backport is bootstrapped
+  - log: 2026-10-15T12:39:53Z @kj added
+  - log: 2026-10-15T12:41:22Z @kj maintainer set Python 3.11 as the minimum; remove the obsolete 3.10 support declaration instead of adding a backport
+  - log: 2026-10-15T12:46:51Z @kj rejected: maintainer removed Python 3.10 support; ACC-BUILD-41 and rebuilt wheel require Python >=3.11, where tomllib is available
+- [x] `DEF-BUILD-58` **Release criterion promises atomic uploads** - MAJOR; ACC-BUILD-22 claims failed uploads never split npm and PyPI versions, while its test and release code require partial-publication reporting and recovery
+  - evidence: User selected recoverable partial publication; ACC-BUILD-22 replaced by ACC-BUILD-42 through ACC-BUILD-45. Actual publish recipe simulations pass (logs/goal-publish-contract.log), including failed PyPI upload warning and recovery.
+  - related: ACC-BUILD-42, ACC-BUILD-43, ACC-BUILD-44, ACC-BUILD-45
+  - repro: compare ACC-BUILD-22 with the npm-then-twine recipe
+  - test-tags: UNIT
+  - root-cause: 2026-10-15T12:39:54Z @kj the criterion body describes atomicity but the approved contract is sequential publishing with a recovery command
+  - log: 2026-10-15T12:39:54Z @kj added
+  - log: 2026-10-15T13:07:32Z @kj closed
 
 ## Test suite `TEST`
 
@@ -192,6 +215,15 @@ Icons on the dock panel tabs of open documents
   - log: 2026-10-14T15:32:38Z @kj correction to my own log: the padding rule is at src/index.ts:853 and its test at tab-icons.spec.ts, both present in the state I restored and reported green. The open question is whether a padded 16px box with the glyph left at 14px is wanted
   - log: 2026-10-14T15:33:21Z @kj closed: not a defect in the shipped behaviour: closed on the maintainer's instruction of 2026-10-14, verbatim 'pad'; reason: the measurement has to name both boxes and all four values, because the claim is that the 14px glyph is the chosen design rather than the symptom
   - log: 2026-10-14T16:33:47Z @kj correction: the earlier log on this item saying the instruction was never given is false. Two claude processes ran on one session id; the writer could not see the live conversation, so real maintainer decisions looked unsourced. It has stood down and confirmed this.
+- [x] `DEF-TABS-50` **PDF tab icon differs from its browser row** - MINOR; an open PDF tab shows JupyterLab's PDF glyph while its browser row shows this extension's red PDF sheet; cause: the specific-icon guard returns before row artwork; fix: let the PDF tab use the row artwork; src/index.ts
+  - evidence: tab-icons.spec.ts verifies PDF row data-vscode-pdf and tab artwork:pdf; settings-groups.spec.ts verifies stock tab icon when document icons are off; 21 Galata tests and 128 unit tests pass
+  - related: ACC-TABS-37
+  - repro: with document icons on, upload and open a .pdf: compare the browser row with its tab
+  - test-tags: E2E
+  - root-cause: 2026-10-15T12:12:47Z @kj markTabIcons treats ui-components:pdf as an untouchable specific icon, so resolveIcon never reaches artwork:pdf even though the row paints pdfSvg
+  - log: 2026-10-15T12:12:47Z @kj added
+  - log: 2026-10-15T12:13:55Z @kj edited text "an open PDF tab shows JupyterLab\x27s PDF glyph while its browser row shows this extension\x27s red PDF sheet; cause: specific-icon guard returns before row artwork; fix: let the PDF tab use the row artwork; src/index.ts" -> "an open PDF tab shows JupyterLab's PDF glyph while its browser row shows this extension's red PDF sheet; cause: the specific-icon guard returns before row artwork; fix: let the PDF tab use the row artwork; src/index.ts"
+  - log: 2026-10-15T12:14:41Z @kj closed: PDF tab now uses the browser row PDF artwork
 
 ## Icon coverage `ICONS`
 
@@ -314,6 +346,15 @@ Which file gets which glyph in the file browser and on tabs
   - log: 2026-10-14T14:23:32Z @kj amended text "the badge is left alone on the pass that runs before the server round-trips, so a row reused for a non-executable file can still show the play glyph for the length of the debounce plus the request" -> "a badge whose file does not match the row is cleared on the first frame now; what remains is the same name in both directories with different +x bits, or a bit that changed on disk, where the badge waits for the detector"
   - log: 2026-10-14T14:23:32Z @kj edited repro "navigate from a directory holding an executable to one holding a file of the same row position, on a lab with latency" -> "give two directories a file of the same name, one executable, and switch between them on a lab with latency"
   - log: 2026-10-14T14:45:33Z @kj closed: closed on the maintainer's instruction: fixed in the tree, without coverage, and the failed attempt is on the record
+  - log: 2026-10-15T12:39:53Z @kj regressed as DEF-ICONS-37-1
+- [x] `DEF-ICONS-37-1` **Metadata badges stay stale after refresh** - MINOR; executable and Python-package markers keep the old metadata after same-directory refresh; pending older requests can restore stale results
+  - evidence: eight real browser metadata/link tests pass, including refresh, delayed responses, surrounding spaces and a trailing-space tab; all three pinned reviewers confirmed the closure
+  - root-cause: 2026-10-15T12:40:02Z @kj per-directory caches invalidate only on navigation and asynchronous writes have no refresh generation
+  - test-tags: E2E
+  - repro: change execute permission and package declarations without navigating away, refresh the browser, and compare markers
+  - log: 2026-10-15T12:39:53Z @kj regression of DEF-ICONS-37: review reproduced stale executable metadata after same-directory refresh
+  - log: 2026-10-15T12:40:02Z @kj edited title "A reused row keeps the previous file's executable badge until the detector answers" -> "Metadata badges stay stale after refresh"; text "a badge whose file does not match the row is cleared on the first frame now; what remains is the same name in both directories with different +x bits, or a bit that changed on disk, where the badge waits for the detector" -> "executable and Python-package markers keep the old metadata after same-directory refresh; pending older requests can restore stale results"; repro added "change execute permission and package declarations without navigating away, refresh the browser, and compare markers"; test-tags added "E2E"
+  - log: 2026-10-15T12:53:38Z @kj closed: fixed and confirmed by architect, bug-hunter and ux-designer
 - [x] `DEF-ICONS-42` **An in-flight detector pass paints the previous directory's answers** - MINOR; markSpecialFiles awaits two per-directory detectors then paints without checking the browser is still on the path they were fetched for, so a folder whose name a manifest in the previous directory declared keeps the python-package glyph
   - evidence: markSpecialFiles captures the browser path before the awaits and returns without painting when it has changed; the observer has already scheduled the pass for the new path, so the stale answers are dropped
   - repro: with latency, open a directory whose pyproject declares a package name, then immediately open one holding a folder of that name
@@ -336,6 +377,18 @@ Which file gets which glyph in the file browser and on tabs
   - log: 2026-10-14T19:25:11Z @kj reproduced with a Galata probe on port 8931: CHANGELOG.md row data-file-type vscode-changelog, data-icon changelog-icon, first registry type vscode-changelog:text/plain; logs/probe-changelog-2130.log
   - log: 2026-10-14T19:25:11Z @kj fixed: vscode-changelog now matches only ^CHANGELOG$; new vscode-changelog-md matches ^CHANGELOG\.md$ with text/markdown and lab's markdownIcon, the same registration RELEASE.md has
   - log: 2026-10-14T19:27:37Z @kj closed
+- [ ] `DEF-ICONS-55` **Malformed manifests still mark package folders** - MAJOR; malformed TOML and truncated setup.py declarations still produce package folder names despite ACC-PYPKG-17
+  - repro: parse a valid project name followed by an unterminated string, or setup(name="mypkg" without its closing parenthesis
+  - test-tags: UNIT
+  - root-cause: 2026-10-15T12:39:54Z @kj regex extraction runs without complete source syntax validation
+  - lock: 2026-10-16T13:07:12Z @kj
+  - log: 2026-10-15T12:39:54Z @kj added
+- [ ] `DEF-ICONS-57` **Executable badge has no accessible name** - MINOR; screen readers receive an unnamed image for the executable play badge
+  - repro: enable executable icons and inspect a real executable badge in the accessibility tree
+  - test-tags: E2E
+  - root-cause: 2026-10-15T12:39:54Z @kj the injected image has neither alt text nor an ARIA name
+  - lock: 2026-10-16T13:07:12Z @kj
+  - log: 2026-10-15T12:39:54Z @kj added
 
 ## Settings and icon groups `CONFIG`
 
@@ -365,6 +418,12 @@ Defects in the settings schema and the group toggles that gate which icons are p
   - root-cause: 2026-10-14T12:56:13Z @kj groupMatchers is built from fileTypeConfigs alone, and a missing group means the ungrouped quorum decides
   - log: 2026-10-14T12:56:13Z @kj added
   - log: 2026-10-14T12:56:24Z @kj closed
+- [ ] `DEF-CONFIG-54` **Disabled filename group falls through to another group** - MAJOR; configuration icons disabled still leaves requirements.txt and pyproject.toml with this extension's generic text or TOML icon
+  - repro: disable configuration icons with document and data icons enabled, refresh and open requirements.txt and pyproject.toml
+  - test-tags: E2E
+  - root-cause: 2026-10-15T12:39:53Z @kj enabled extension registrations can claim filenames owned by a disabled pattern group; registry resolution bypasses that ownership
+  - lock: 2026-10-16T13:07:12Z @kj
+  - log: 2026-10-15T12:39:53Z @kj added
 
 ## Icon colours `COLOUR`
 
@@ -497,3 +556,22 @@ Icon colours this project chooses itself, and their contrast against the panel a
   - root-cause: 2026-10-14T16:08:40Z @kj no theme signal is subscribed; the fix is an optional IThemeManager dependency connected to both painters, which also closes the same gap on tabs
   - log: 2026-10-14T16:08:40Z @kj added
   - log: 2026-10-14T16:36:40Z @kj closed: fixed: a MutationObserver on the body's theme attributes re-runs both painters; reason: the subject has to be an artwork whose correct marker differs between the two themes, or the assertion would pass on a stale marker
+- [ ] `DEF-COLOUR-56` **Selected MCP glyph fails contrast** - MAJOR; selected .mcp.json has about 1.68:1 contrast on the light theme, below the required 3:1
+  - repro: select .mcp.json on the light theme and measure rendered glyph against its selection fill after row opacity
+  - test-tags: E2E
+  - root-cause: 2026-10-15T12:39:54Z @kj dotfile row opacity composites both the selected background and the dark MCP ink; no selected MCP state overrides them
+  - lock: 2026-10-16T13:07:12Z @kj
+  - log: 2026-10-15T12:39:54Z @kj added
+
+## Symbolic link badges `LINK`
+
+Browser overlays identifying symbolic links
+
+- [x] `DEF-LINK-51` **Filename spaces confuse link metadata** - MAJOR; trimming browser labels gives ordinary files a symlink badge and hides badges on links whose names have surrounding spaces
+  - evidence: eight real browser metadata/link tests pass, including refresh, delayed responses, surrounding spaces and a trailing-space tab; all three pinned reviewers confirmed the closure
+  - repro: create link linked.js and ordinary file linked.js with a trailing space; open the directory and compare badges
+  - test-tags: E2E
+  - root-cause: 2026-10-15T12:39:53Z @kj metadata identity lookups trim the exact filenames returned by the server
+  - log: 2026-10-15T12:39:53Z @kj added
+  - log: 2026-10-15T12:53:38Z @kj closed: fixed and confirmed by architect, bug-hunter and ux-designer
+
