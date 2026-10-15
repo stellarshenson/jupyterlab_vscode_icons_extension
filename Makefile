@@ -144,6 +144,10 @@
 .PHONY: build install clean uninstall publish dependencies mrproper increment_version install_dependencies check_dependencies upgrade help test
 .DEFAULT_GOAL := help
 
+# Tests must finish before install, and the version must move before build,
+# including when the caller supplies -j.
+.NOTPARALLEL: install publish
+
 # Project-local node environment - keeps node/npm/yarn pinned per project and out of
 # the python prefix. Created by `install_dependencies` and torn down by `mrproper`.
 NODEENV := $(CURDIR)/.nodeenv
