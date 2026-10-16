@@ -23,6 +23,12 @@ c.ServerApp.port = int(os.environ.get("JUPYTER_TEST_PORT") or "8888")
 # lab and applies on its next page load.
 c.LabApp.user_settings_dir = mkdtemp(prefix="galata-settings-")
 
+# The dotfile specs need the server to list and create dot-named files, which
+# jupyter_server refuses by default. A workstation config that enables it - this
+# image's /opt/conda/etc/jupyter/jupyter_lab_config.py does - made them pass
+# locally while every CI run failed them (DEF-TEST-73).
+c.ContentsManager.allow_hidden = True
+
 # Galata's waitForApplication waits for the splash to detach and then for the
 # Launcher tab to be active. An extension that opens its own tab at startup - the
 # GalaxaHub message of the day on this workstation image - keeps the Launcher

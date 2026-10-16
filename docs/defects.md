@@ -117,6 +117,12 @@ Jest, the Playwright ui-tests and their output
   - test-tags: E2E
   - log: 2026-10-15T21:38:33Z @kj added
   - log: 2026-10-15T21:50:36Z @kj closed: fixed: playwright.config.js points JUPYTER_PATH at the repo labextension and PYTHONPATH at the repo root
+- [ ] `DEF-TEST-73` **CI Galata fails the dotfile specs** - MAJOR; Integration tests job red on every run since d20694e: mcp-contrast.spec.ts:73 and symlink-badges.spec.ts:115 find no .mcp.json or .hidden-link row; both pass locally
+  - repro: set c.ContentsManager.allow_hidden = False in ui-tests/jupyter_server_test_config.py, run tests/mcp-contrast.spec.ts:73 and tests/symlink-badges.spec.ts:115: both fail as in CI
+  - test-tags: FUNCTIONAL
+  - root-cause: 2026-10-16T17:53:39Z @kj the test server config leaves ContentsManager.allow_hidden at its default False, so the server neither creates nor lists dotfiles; this workstation's /opt/conda/etc/jupyter/jupyter_lab_config.py sets it True, so the specs passed only here
+  - log: 2026-10-16T17:53:39Z @kj added
+  - log: 2026-10-16T17:56:24Z @kj edited repro "JUPYTER_NO_CONFIG=1 npx playwright test tests/mcp-contrast.spec.ts:73 tests/symlink-badges.spec.ts:115" -> "set c.ContentsManager.allow_hidden = False in ui-tests/jupyter_server_test_config.py, run tests/mcp-contrast.spec.ts:73 and tests/symlink-badges.spec.ts:115: both fail as in CI"
 
 ## Lint and static analysis `LINT`
 
@@ -450,19 +456,23 @@ Which file gets which glyph in the file browser and on tabs
   - root-cause: 2026-10-15T21:36:55Z @kj the route predates the listing annotation; its entry path test costs 125 ms against 16 ms at 5,000 entries
   - log: 2026-10-15T21:36:55Z @kj added
   - log: 2026-10-15T21:50:36Z @kj closed: fixed: executable flags ride the contents annotation; the route, its handler, the client fetch and cache deleted
-- [ ] `DEF-ICONS-69` **Manifest probe 404s in every folder** - CRITICAL; the file browser sends GET pyproject.toml and GET setup.py in every folder, 404 where absent, 2-3 times per refresh and on every 10 s poll; cause: detectPythonPackages fetches both names unconditionally (DEF-ICONS-64 change) and overlapping calls each fetch; `src/index.ts`
+- [x] `DEF-ICONS-69` **Manifest probe 404s in every folder** - CRITICAL; the file browser sends GET pyproject.toml and GET setup.py in every folder, 404 where absent, 2-3 times per refresh and on every 10 s poll; cause: detectPythonPackages fetches both names unconditionally (DEF-ICONS-64 change) and overlapping calls each fetch; `src/index.ts`
+  - evidence: ec5479e: a manifest is fetched only when the listing names it, in-flight read cached per listing revision; manifest-requests.spec.ts 4/4, 3 of them fail on 1.2.6; Galata 64/64, jest 133, pytest 22+23 subtests; devils-advocate review SHIP in round 5
   - related: DEF-ICONS-64
   - repro: open a folder with neither manifest, wait two 10 s polls, watch the console for 404 on pyproject.toml and setup.py
   - test-tags: E2E
   - root-cause: 2026-10-16T15:22:48Z @kj the manifest fetch replaced the listing check because model.items() is name-filtered; the cache stores the finished result, so overlapping markSpecialFiles calls each send requests
   - log: 2026-10-16T15:22:48Z @kj added
   - log: 2026-10-16T15:36:17Z @kj edited severity "MEDIUM" -> "CRITICAL"
-- [ ] `DEF-ICONS-70` **Large folders open many times slower** - CRITICAL; a 1,000-entry folder opens in 14.4 s with the extension and 1.7 s without it; a 5,000-entry folder blocks the tab for minutes; present in 1.2.6; `src/index.ts` MutationObserver callback
+  - log: 2026-10-16T17:47:51Z @kj closed
+- [x] `DEF-ICONS-70` **Large folders open many times slower** - CRITICAL; a 1,000-entry folder opens in 14.4 s with the extension and 1.7 s without it; a 5,000-entry folder blocks the tab for minutes; present in 1.2.6; `src/index.ts` MutationObserver callback
+  - evidence: ec5479e: row passes run once per animation frame; 1,000 entries open in 1.47 s, was 14.4 s; 5,000 entries 5.6 s against 5.0 s without the extension; large-folder.spec.ts 2,008 passes before, under 200 after; Galata 64/64; review SHIP in round 5
   - related: DEF-ICONS-69
   - repro: create 1,000 files in one folder, open it in the file browser, time until the rows render; repeat with the extension's bundle blocked
   - test-tags: E2E
   - root-cause: 2026-10-16T16:39:06Z @kj JupyterLab delivers about one mutation callback per row (1,005 callbacks in 59 frames); each callback runs markSpecialFilesPass, markRowIcons and markSymlinkBadges over every row, and markRowIcons forces a style recalculation through getComputedStyle, so the work grows as rows squared
   - log: 2026-10-16T16:39:06Z @kj added
+  - log: 2026-10-16T17:47:51Z @kj closed
 - [-] `DEF-ICONS-71` **Symlinked manifest edit keeps old glyphs** - MINOR; editing the target of a symlinked pyproject.toml or setup.py while its folder is open keeps the previous package glyphs until navigation or reload; regression of the DEF-ICONS-69 cache key
   - related: DEF-ICONS-69
   - repro: link pyproject.toml to a file elsewhere, open the folder, change the declared name in the target, refresh: the glyph stays on the old folder
