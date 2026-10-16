@@ -125,17 +125,21 @@ Jest, the Playwright ui-tests and their output
   - log: 2026-10-16T17:53:39Z @kj added
   - log: 2026-10-16T17:56:24Z @kj edited repro "JUPYTER_NO_CONFIG=1 npx playwright test tests/mcp-contrast.spec.ts:73 tests/symlink-badges.spec.ts:115" -> "set c.ContentsManager.allow_hidden = False in ui-tests/jupyter_server_test_config.py, run tests/mcp-contrast.spec.ts:73 and tests/symlink-badges.spec.ts:115: both fail as in CI"
   - log: 2026-10-16T18:29:55Z @kj closed
-- [ ] `DEF-TEST-74` **CI Galata runs the checkout's server code** - MAJOR; the Integration tests job installs the wheel but imports jupyterlab_vscode_icons_extension from the checkout, so no Build job runs the wheel's server half; the frontend comes from the wheel
+- [x] `DEF-TEST-74` **CI Galata runs the checkout's server code** - MAJOR; the Integration tests job installs the wheel but imports jupyterlab_vscode_icons_extension from the checkout, so no Build job runs the wheel's server half; the frontend comes from the wheel
+  - evidence: 6b6eba9 gates the PYTHONPATH shim on the repo build; GitHub Actions run 38949588235 green on all 4 jobs, Integration tests on the wheel's server code
   - repro: in a checkout without jupyterlab_vscode_icons_extension/labextension, load ui-tests/playwright.config.js: PYTHONPATH is the checkout, JUPYTER_PATH is unset
   - test-tags: FUNCTIONAL
   - root-cause: 2026-10-16T18:21:36Z @kj the PYTHONPATH shim in ui-tests/playwright.config.js fires whenever handlers.py exists, which is always in a checkout; the JUPYTER_PATH shim fires only where the repo build exists
   - log: 2026-10-16T18:21:36Z @kj added
-- [ ] `DEF-TEST-75` **No CI job checks the wheel enables its server extension** - MEDIUM; a wheel whose jupyter_server_config.d JSON is missing or malformed passes build, test_isolated and Integration tests, because the test server config force-enables the extension; users would get no listing flags and no symlink or executable badges
+  - log: 2026-10-16T18:52:53Z @kj closed
+- [x] `DEF-TEST-75` **No CI job checks the wheel enables its server extension** - MEDIUM; a wheel whose jupyter_server_config.d JSON is missing or malformed passes build, test_isolated and Integration tests, because the test server config force-enables the extension; users would get no listing flags and no symlink or executable badges
+  - evidence: 6b6eba9 adds the jupyter server extension list check to test_isolated; GitHub Actions run 38949588235 green on all 4 jobs
   - related: DEF-TEST-74
   - repro: delete jupyter-config/server-config from the build, run the Build workflow: every job passes
   - test-tags: MANUAL
   - root-cause: 2026-10-16T18:21:36Z @kj test_isolated checks only the labextension; no step runs jupyter server extension list against the installed wheel
   - log: 2026-10-16T18:21:36Z @kj added
+  - log: 2026-10-16T18:52:54Z @kj closed
 
 ## Lint and static analysis `LINT`
 

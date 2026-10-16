@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.7 (unreleased)
+## 1.2.7 (2026-10-16)
 
 ### Bug Fixes
 
@@ -13,6 +13,8 @@
 ### Tests
 
 - Galata tests count the manifest requests per folder and the row passes while a 1,000-file folder opens
+- The Galata test server lists and creates dot-named files on any machine, so the dotfile tests no longer pass locally and fail in CI
+- CI runs the Galata suite against the built wheel for both the browser and the server code, and checks that the installed wheel registers its server extension
 
 ## 1.2.6 (2026-10-16)
 
