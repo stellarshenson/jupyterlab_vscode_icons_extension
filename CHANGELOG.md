@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.7 (unreleased)
+
+### Bug Fixes
+
+- A folder without `pyproject.toml` or `setup.py` no longer requests them, so the browser console no longer fills with 404 errors on every refresh and every 10 s poll
+- While a package folder stays open, its manifests are read again only when one of them changes or a read in that folder fails, instead of up to six times on every refresh and every poll
+- Large folders open about as fast as without the extension: a 1,000-file folder took 14.4 s and now takes 1.5 s, and a 5,000-file folder no longer freezes the tab
+- The Python package glyph no longer disappears for 100 ms each time the listing changes
+- A manifest read that fails is retried on the next pass, so one failed request does not hide the package glyph
+
+### Tests
+
+- Galata tests count the manifest requests per folder and the row passes while a 1,000-file folder opens
+
 ## 1.2.6 (2026-10-16)
 
 ### Enhancements

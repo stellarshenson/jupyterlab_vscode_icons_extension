@@ -450,6 +450,34 @@ Which file gets which glyph in the file browser and on tabs
   - root-cause: 2026-10-15T21:36:55Z @kj the route predates the listing annotation; its entry path test costs 125 ms against 16 ms at 5,000 entries
   - log: 2026-10-15T21:36:55Z @kj added
   - log: 2026-10-15T21:50:36Z @kj closed: fixed: executable flags ride the contents annotation; the route, its handler, the client fetch and cache deleted
+- [ ] `DEF-ICONS-69` **Manifest probe 404s in every folder** - CRITICAL; the file browser sends GET pyproject.toml and GET setup.py in every folder, 404 where absent, 2-3 times per refresh and on every 10 s poll; cause: detectPythonPackages fetches both names unconditionally (DEF-ICONS-64 change) and overlapping calls each fetch; `src/index.ts`
+  - related: DEF-ICONS-64
+  - repro: open a folder with neither manifest, wait two 10 s polls, watch the console for 404 on pyproject.toml and setup.py
+  - test-tags: E2E
+  - root-cause: 2026-10-16T15:22:48Z @kj the manifest fetch replaced the listing check because model.items() is name-filtered; the cache stores the finished result, so overlapping markSpecialFiles calls each send requests
+  - log: 2026-10-16T15:22:48Z @kj added
+  - log: 2026-10-16T15:36:17Z @kj edited severity "MEDIUM" -> "CRITICAL"
+- [ ] `DEF-ICONS-70` **Large folders open many times slower** - CRITICAL; a 1,000-entry folder opens in 14.4 s with the extension and 1.7 s without it; a 5,000-entry folder blocks the tab for minutes; present in 1.2.6; `src/index.ts` MutationObserver callback
+  - related: DEF-ICONS-69
+  - repro: create 1,000 files in one folder, open it in the file browser, time until the rows render; repeat with the extension's bundle blocked
+  - test-tags: E2E
+  - root-cause: 2026-10-16T16:39:06Z @kj JupyterLab delivers about one mutation callback per row (1,005 callbacks in 59 frames); each callback runs markSpecialFilesPass, markRowIcons and markSymlinkBadges over every row, and markRowIcons forces a style recalculation through getComputedStyle, so the work grows as rows squared
+  - log: 2026-10-16T16:39:06Z @kj added
+- [-] `DEF-ICONS-71` **Symlinked manifest edit keeps old glyphs** - MINOR; editing the target of a symlinked pyproject.toml or setup.py while its folder is open keeps the previous package glyphs until navigation or reload; regression of the DEF-ICONS-69 cache key
+  - related: DEF-ICONS-69
+  - repro: link pyproject.toml to a file elsewhere, open the folder, change the declared name in the target, refresh: the glyph stays on the old folder
+  - test-tags: MANUAL
+  - root-cause: 2026-10-16T16:48:59Z @kj jupyter_server lists a link with os.lstat, so the listing stamp and size of the link do not change when the target is edited, and the cache key name@last_modified@size stays the same
+  - log: 2026-10-16T16:48:59Z @kj added
+  - log: 2026-10-16T16:49:04Z @kj rejected: rejected: accepted limitation; every fix either puts the target stat on every symlink entry server-side (changes the Modified column) or adds a symlink-only key branch; rare input, recovered by navigating away and back
+- [-] `DEF-ICONS-72` **Unreadable manifest is requested every poll** - MINOR; a listed pyproject.toml or setup.py whose contents GET always fails, for example 403, is requested again about once per 10 s poll and logs one console error each time; a readable manifest in the same folder is requested again with it, without an error
+  - related: DEF-ICONS-69
+  - repro: chmod 000 pyproject.toml in a package folder, open the folder, watch the network log across two polls
+  - test-tags: MANUAL
+  - root-cause: 2026-10-16T17:12:41Z @kj a failed read is dropped from the cache so that one transient failure does not hide the package glyph; a failure that never clears is therefore retried on each pass
+  - log: 2026-10-16T17:12:41Z @kj added
+  - log: 2026-10-16T17:12:41Z @kj rejected: accepted cost of recovering from a transient failure; bounded, the pass cannot trigger itself, no worse than 1.2.6, which requested both names on every refresh
+  - log: 2026-10-16T17:26:05Z @kj edited text "a listed pyproject.toml or setup.py whose contents GET always fails, for example 403, is requested again about once per 10 s poll and logs one console error each time" -> "a listed pyproject.toml or setup.py whose contents GET always fails, for example 403, is requested again about once per 10 s poll and logs one console error each time; a readable manifest in the same folder is requested again with it, without an error"
 
 ## Settings and icon groups `CONFIG`
 

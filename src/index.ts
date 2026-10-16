@@ -5,7 +5,7 @@ import {
 import { URLExt } from '@jupyterlab/coreutils';
 import { Contents, ServerConnection } from '@jupyterlab/services';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
-import { IDefaultFileBrowser } from '@jupyterlab/filebrowser';
+import { FileBrowserModel, IDefaultFileBrowser } from '@jupyterlab/filebrowser';
 import { fileIcon, LabIcon, markdownIcon } from '@jupyterlab/ui-components';
 
 import { needsOutlineOn } from './contrast';
@@ -1196,66 +1196,74 @@ const plugin: JupyterFrontEndPlugin<void> = {
       `;
 
       let metadataGeneration = 0;
-      // Cache for Python package detection (per directory)
-      let pythonPackagesCache: { path: string; packages: Set<string> } | null =
-        null;
+      // The detection for the manifests one listing names, keyed on each
+      // manifest's name, stamp and size in that listing. One refresh emits
+      // `refreshed` three times (onRunningChanged, cd, refresh) and the
+      // observer and startBrowserPass run passes of their own, so the promise
+      // is cached, not its result: every pass over the same listing shares one
+      // fetch per manifest, and while every read succeeds, a poll that finds
+      // the manifests unchanged sends none (DEF-ICONS-69).
+      let pythonPackagesCache: {
+        key: string;
+        packages: Promise<Set<string>>;
+      } | null = null;
 
       // Detect Python packages by parsing pyproject.toml or setup.py
-      const detectPythonPackages = async (): Promise<Set<string>> => {
+      const detectPythonPackages = (): Promise<Set<string>> => {
         const currentPath = defaultFileBrowser?.model.path || '';
-        const generation = metadataGeneration;
 
-        // Return cached result if same directory
-        if (pythonPackagesCache?.path === currentPath) {
+        // Which manifests exist is read from the full listing the browser
+        // already holds. The widget's model.items() is narrowed by the name
+        // filter, which would hide pyproject.toml and empty the package glyphs,
+        // so the unfiltered base FileBrowserModel.items() is read instead. A
+        // manifest is fetched only when the listing names it, so a folder
+        // without one sends no request (DEF-ICONS-64, DEF-ICONS-69).
+        const manifests: Contents.IModel[] = [];
+        if (defaultFileBrowser) {
+          for (const item of FileBrowserModel.prototype.items.call(
+            defaultFileBrowser.model
+          )) {
+            if (item.name === 'pyproject.toml' || item.name === 'setup.py') {
+              manifests.push(item);
+            }
+          }
+        }
+        const key = [
+          currentPath,
+          ...manifests.map(m => `${m.name}@${m.last_modified}@${m.size}`)
+        ].join('\n');
+        if (pythonPackagesCache?.key === key) {
           return pythonPackagesCache.packages;
         }
 
-        const packages = new Set<string>();
-
-        try {
-          // The manifest fetch is its own probe: a contents GET by path is
-          // answered by the server, so the browser's name filter cannot narrow
-          // it the way a read of model.items() would, and a missing manifest
-          // lands as a null instead of aborting the sibling check, since the
-          // fetch now runs for both names unconditionally (DEF-ICONS-64).
-          const pyprojectPath = currentPath
-            ? `${currentPath}/pyproject.toml`
-            : 'pyproject.toml';
-          const pyproject = await app.serviceManager.contents
-            .get(pyprojectPath)
-            .catch(() => null);
-          if (pyproject) {
-            const content = pyproject.content as string;
-            const parsed = await packageNamesFromManifest(
-              content,
-              'toml',
-              `${pyprojectPath}@${pyproject.last_modified ?? ''}@${content.length}`
-            );
-            parsed.forEach(p => packages.add(p));
+        let failed = false;
+        const packages = Promise.all(
+          manifests.map(async manifest => {
+            try {
+              const file = await app.serviceManager.contents.get(manifest.path);
+              const content = file.content as string;
+              return await packageNamesFromManifest(
+                content,
+                manifest.name === 'pyproject.toml' ? 'toml' : 'python',
+                `${manifest.path}@${file.last_modified ?? ''}@${content.length}`
+              );
+            } catch {
+              failed = true;
+              return new Set<string>();
+            }
+          })
+        ).then(sets => {
+          // A failed read drops the whole entry, so the next pass reads every
+          // manifest this listing names again, the readable ones included
+          // (DEF-ICONS-72)
+          if (failed && pythonPackagesCache?.key === key) {
+            pythonPackagesCache = null;
           }
-
-          const setupPath = currentPath
-            ? `${currentPath}/setup.py`
-            : 'setup.py';
-          const setup = await app.serviceManager.contents
-            .get(setupPath)
-            .catch(() => null);
-          if (setup) {
-            const content = setup.content as string;
-            const parsed = await packageNamesFromManifest(
-              content,
-              'python',
-              `${setupPath}@${setup.last_modified ?? ''}@${content.length}`
-            );
-            parsed.forEach(p => packages.add(p));
-          }
-        } catch {
-          // Ignore errors - no packages detected
-        }
-
-        if (generation === metadataGeneration) {
-          pythonPackagesCache = { path: currentPath, packages };
-        }
+          const names = new Set<string>();
+          sets.forEach(set => set.forEach(name => names.add(name)));
+          return names;
+        });
+        pythonPackagesCache = { key, packages };
         return packages;
       };
 
@@ -1276,15 +1284,14 @@ const plugin: JupyterFrontEndPlugin<void> = {
         return executables;
       };
 
-      // Invalidate cache on directory change
+      // A new generation on each listing retires a markSpecialFiles pass still
+      // awaiting the previous listing's manifests
       if (defaultFileBrowser) {
         defaultFileBrowser.model.pathChanged.connect(() => {
           ++metadataGeneration;
-          pythonPackagesCache = null;
         });
         defaultFileBrowser.model.refreshed.connect(() => {
           ++metadataGeneration;
-          pythonPackagesCache = null;
           void markSpecialFiles();
         });
       }
@@ -1401,9 +1408,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // The pass splits in two because one of its decisions needs the server.
       // markSpecialFilesPass does the DOM work; `fetched` carries the python
       // packages once the manifest round-trips have answered and is null on
-      // the pass that runs before them, which leaves that decision exactly as
-      // it is rather than guessing it. The executable flags ride the listing,
-      // so every pass has them.
+      // the pass that runs before them, which clears the python-package marker
+      // so that a reused row cannot carry it. The executable flags ride the
+      // listing, so every pass has them.
       const markSpecialFilesPass = (fetched: {
         pythonPackages: Set<string> | null;
         executables: Set<string>;
@@ -1630,53 +1637,65 @@ const plugin: JupyterFrontEndPlugin<void> = {
         markSpecialFilesPass({ pythonPackages, executables });
       };
 
-      let markSpecialFilesTimeout: ReturnType<typeof setTimeout> | null = null;
-
       // Watch for changes in the file browser.
       //
       // markRowIcons runs on the spot: the browser reuses its row nodes, so
       // until it runs a reused row still carries the previous file's marker,
       // its background, and the CSS rule that attribute keys hides the glyph
-      // JupyterLab just resolved - a wrong icon beside the new name for the
-      // length of the debounce. It is a querySelectorAll pass with no server
+      // JupyterLab just resolved - a wrong icon beside the new name until the
+      // pass runs. It is a querySelectorAll pass with no server
       // call, and it sets attributes and inline styles, which this observer
       // does not watch, so it cannot feed itself.
       //
-      // markSpecialFiles stays debounced: it awaits the manifest reads for the
-      // python packages, and that is what the 100 ms is for.
-      // It runs markRowIcons again afterwards to repaint rows the pass may have
-      // re-ordered. markSpecialFiles is not awaited, so the painter actually
-      // runs first; it does not read the attributes that pass sets - it
-      // re-derives the artwork match itself - so there is no dependency to
-      // order. Do not add an await here: that would put the paint behind two
-      // round trips, which is the defect DEF-ICONS-31-1 removed.
-      const observer = new MutationObserver(() => {
-        // Both halves of the override pass run on the spot, because the browser
-        // reuses its row nodes: until they run, a reused row carries the
-        // previous file's marker and its ::before artwork while the CSS keyed
-        // on that attribute hides the glyph JupyterLab just resolved. Measured
-        // before this ran here: a wrong icon for 136 ms on localhost and 717 ms
-        // with 150 ms of latency, because the attribute reset sat behind two
-        // server round-trips it does not need (DEF-ICONS-31-1).
+      // markSpecialFiles then runs in every pass. The listing-keyed promise
+      // cache holds it to one read per manifest per listing revision while
+      // every read succeeds; after a failed read the next pass reads every
+      // listed manifest again (DEF-ICONS-72). When the listing's entry has
+      // already resolved it settles in the same microtask checkpoint, so the
+      // python-package marker the first pass cleared is back before the frame
+      // paints. It runs markRowIcons again
+      // afterwards to repaint rows the pass may have re-ordered.
+      // markSpecialFiles is not awaited, so the
+      // painter actually runs first; it does not read the attributes that pass
+      // sets - it re-derives the artwork match itself - so there is no
+      // dependency to order. Do not add an await here: that would put the
+      // paint behind two round trips, which is the defect DEF-ICONS-31-1
+      // removed.
+      //
+      // The passes run once per animation frame, not once per mutation
+      // callback. JupyterLab delivers about one callback per row while it
+      // renders a listing - measured, 1,005 callbacks in 59 frames for a
+      // 1,000-entry folder - and every pass walks every row, so a pass per
+      // callback made opening that folder take 14.4 s against 1.7 s without
+      // the extension (DEF-ICONS-70). A frame callback still runs before the
+      // frame paints, so a reused row never shows the previous file's glyph.
+      let rowPassFrame = 0;
+      const runRowPasses = (): void => {
+        rowPassFrame = 0;
+        // Both halves of the override pass run before the paint, because the
+        // browser reuses its row nodes: until they run, a reused row carries
+        // the previous file's marker and its ::before artwork while the CSS
+        // keyed on that attribute hides the glyph JupyterLab just resolved.
+        // Measured before this ran here: a wrong icon for 136 ms on localhost
+        // and 717 ms with 150 ms of latency, because the attribute reset sat
+        // behind two server round-trips it does not need (DEF-ICONS-31-1).
         markSpecialFilesPass({
           pythonPackages: null,
           executables: detectExecutables()
         });
         markRowIcons();
         markSymlinkBadges();
-        // The records queued so far are this callback's own badge writes from a
+        // The records queued so far are this pass's own badge writes from a
         // walk that just covered every row: draining them removes the second
         // full sweep the extension was scheduling on itself.
         observer.takeRecords();
-        if (markSpecialFilesTimeout) {
-          clearTimeout(markSpecialFilesTimeout);
+        // The decision that needs the manifests: the python-package folder
+        void markSpecialFiles().then(markRowIcons);
+      };
+      const observer = new MutationObserver(() => {
+        if (!rowPassFrame) {
+          rowPassFrame = requestAnimationFrame(runRowPasses);
         }
-        // The debounced pass is for the decision that does need the server:
-        // the python-package folder.
-        markSpecialFilesTimeout = setTimeout(() => {
-          markSpecialFiles();
-          markRowIcons();
-        }, 100);
       });
 
       // Start observing when the file browser is ready. The listing is the
