@@ -2,7 +2,7 @@
  * Configuration for Playwright using default from @jupyterlab/galata
  */
 const baseConfig = require('@jupyterlab/galata/lib/playwright-config');
-const { mkdtempSync } = require('fs');
+const { existsSync, mkdirSync, mkdtempSync, symlinkSync } = require('fs');
 const { tmpdir } = require('os');
 const { join } = require('path');
 
@@ -10,6 +10,38 @@ const { join } = require('path');
 process.env.JUPYTERLAB_GALATA_ROOT_DIR ||= mkdtempSync(
   join(tmpdir(), 'vscode-icons-galata-')
 );
+
+// The test server imports the installed package, so the /labextensions route
+// serves whatever labextension the environment has, not the tree under test:
+// a run after editing src/ without installing passes on the previous wheel
+// (DEF-TEST-68). Point JUPYTER_PATH at the repo build so the suite exercises
+// the working tree; an explicit JUPYTER_PATH still wins.
+const repoRoot = join(__dirname, '..');
+const repoLabextension = join(
+  repoRoot,
+  'jupyterlab_vscode_icons_extension',
+  'labextension'
+);
+if (!process.env.JUPYTER_PATH && existsSync(repoLabextension)) {
+  const shim = mkdtempSync(join(tmpdir(), 'vscode-icons-jpath-'));
+  const links = join(shim, 'labextensions');
+  mkdirSync(links, { recursive: true });
+  symlinkSync(
+    repoLabextension,
+    join(links, 'jupyterlab_vscode_icons_extension')
+  );
+  process.env.JUPYTER_PATH = shim;
+}
+
+// The server half needs the same treatment: the test server imports the
+// installed python package, so without this it runs the installed handlers,
+// which may predate the tree (DEF-TEST-68).
+if (
+  !process.env.PYTHONPATH &&
+  existsSync(join(repoRoot, 'jupyterlab_vscode_icons_extension', 'handlers.py'))
+) {
+  process.env.PYTHONPATH = repoRoot;
+}
 
 // `jupyterlab.galata.configure_jupyter_server` pins `c.ServerApp.port = 8888`
 // and sets `port_retries = 0`, so the test server dies rather than move when

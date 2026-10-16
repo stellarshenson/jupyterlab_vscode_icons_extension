@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.2.6 (2026-10-16)
+
+### Enhancements
+
+- Symbolic link rows carry a small square badge drawn inside the icon canvas, and the link state arrives with the directory listing, so a badge costs no extra server request
+- A dot-named symbolic link keeps its row's full opacity, so the badge stays legible on the dimmed hidden-file row
+- Executable badges (opt-in in the settings) arrive with the listing too, so they paint on the first frame instead of after a server round trip
+- A PDF file shows the same artwork on its browser row and its document tab
+
+### Bug Fixes
+
+- A file type another extension has claimed keeps that extension's icon
+- The Python-package check reads `pyproject.toml` and `setup.py` directly, so the file browser's name filter no longer empties the package glyphs
+- Manifest validation is cached per manifest revision, ending the repeated checks while the file browser polls
+- A subdirectory entry no longer costs a thread-pool hop while a directory is listed
+- A malformed manifest no longer marks package folders
+
+### Tests
+
+- The Galata browser suite runs against the repository build instead of the last installed package, so a green run tests the working tree
+
 ## 1.2.2 (2026-10-14)
 
 ### Enhancements

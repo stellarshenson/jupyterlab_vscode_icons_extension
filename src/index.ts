@@ -1671,8 +1671,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
         if (markSpecialFilesTimeout) {
           clearTimeout(markSpecialFilesTimeout);
         }
-        // The debounced pass is for the two decisions that do need the server:
-        // the executable badge and the python-package folder.
+        // The debounced pass is for the decision that does need the server:
+        // the python-package folder.
         markSpecialFilesTimeout = setTimeout(() => {
           markSpecialFiles();
           markRowIcons();

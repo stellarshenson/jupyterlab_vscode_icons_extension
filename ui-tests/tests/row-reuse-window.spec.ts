@@ -4,11 +4,11 @@ import { expect, test } from '@jupyterlab/galata';
  * The reused-row window - DEF-ICONS-31-1.
  *
  * The file browser reuses its row nodes, and the name-based overrides are
- * cleared and re-set by a pass that also fetches the executable list and the
- * python packages. While those round-trips were awaited, a reused row kept the
- * previous file's ::before artwork: measured 136 ms on localhost and 717 ms at
- * 150 ms RTT. The DOM half now runs before the fetches, so the window closes
- * at the first frame.
+ * cleared and re-set by a pass that also waits on the python manifest reads.
+ * While those round-trips were awaited, a reused row kept the previous file's
+ * ::before artwork: measured 136 ms on localhost and 717 ms at 150 ms RTT.
+ * The DOM half now runs before the reads, so the window closes at the first
+ * frame.
  *
  * The latency is emulated on purpose: on a warm localhost the round-trips are
  * fast enough that the old code also looks instant, which is what made a first
@@ -34,11 +34,7 @@ test('a reused row drops the previous override within a frame', async ({
   );
 
   // Galata's page is a proxy, which the CDP session refuses, so the latency is
-  // applied where it matters: the two requests the override pass awaits.
-  await page.route('**/vscode-icons/executables*', async (route: any) => {
-    await new Promise(resolve => setTimeout(resolve, LATENCY_MS));
-    await route.continue();
-  });
+  // applied where it matters: the contents request the override pass waits on.
   await page.route('**/api/contents/**', async (route: any) => {
     await new Promise(resolve => setTimeout(resolve, LATENCY_MS));
     await route.continue();

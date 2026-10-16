@@ -2,8 +2,7 @@
  * Settings schema defaults - ACC-CONFIG-5.
  *
  * The seven toggles gate which icon groups paint. Six default on; executable
- * icons default off because detecting them costs a server round trip per
- * directory.
+ * icons default off per ACC-CONFIG-5.
  */
 
 import schema from '../../schema/plugin.json';

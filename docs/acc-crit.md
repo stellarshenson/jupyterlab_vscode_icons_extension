@@ -484,7 +484,7 @@ Browser icon overlays for links to files and folders
 
 How the python-package and executable facts reach the file browser
 
-- [x] `ACC-META-51` **No auxiliary contents request** - HIGH; the symlink and executable facts ride the directory listing the browser already fetches; the python-package probe reads the manifest files directly, at most one read per present manifest plus one failed read per absent manifest per refresh, never a second directory listing
+- [x] `ACC-META-51` **No auxiliary directory listing request** - HIGH; the symlink and executable facts ride the directory listing the browser already fetches; the python-package probe reads the manifest files directly, at most one read per present manifest plus one failed read per absent manifest per refresh, never a second directory listing
   - evidence: the client makes no listing request; the executables route 404s (test_removed_metadata_routes_are_gone); the manifest body reads are the only fetches left; Galata 59/59 and make test green on 2026-10-15
   - related: ACC-LINK-49
   - test: watch the server log across two 10 s polls: the listing request is the browser own; only the two manifest reads come from this extension
@@ -493,4 +493,5 @@ How the python-package and executable facts reach the file browser
   - log: 2026-10-15T21:50:36Z @kj edited text "the file browser learns the python-package and executable facts from the directory listing it already fetches; an open browser issues one contents call per poll and none from this extension" -> "the file browser learns the python-package and executable facts from the directory listing it already fetches; this extension issues no request for the listing itself"; test "open a directory with executable icons on, watch the server log across two 10 s polls: only the browser contents call appears" -> "watch the server log across two 10 s polls in a directory without manifests: only the browser own contents call appears"
   - log: 2026-10-15T21:50:36Z @kj closed: met: both facts read from the browser model
   - log: 2026-10-15T21:51:49Z @kj edited text "the file browser learns the python-package and executable facts from the directory listing it already fetches; this extension issues no request for the listing itself" -> "the symlink and executable facts ride the directory listing the browser already fetches; the python-package probe reads the manifest files directly, at most one read per present manifest plus one failed read per absent manifest per refresh, never a second directory listing"; test "watch the server log across two 10 s polls in a directory without manifests: only the browser own contents call appears" -> "watch the server log across two 10 s polls: the listing request is the browser own; only the two manifest reads come from this extension"
+  - log: 2026-10-15T22:07:30Z @kj edited title "No auxiliary contents request" -> "No auxiliary directory listing request"
 

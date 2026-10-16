@@ -4,12 +4,9 @@ import json
 import os
 import tomllib
 from concurrent.futures import ThreadPoolExecutor
-from functools import partial
 
-from jupyter_core.utils import ensure_async
 from jupyter_server.auth.decorator import authorized
 from jupyter_server.base.handlers import APIHandler
-from jupyter_server.services.contents.filemanager import FileContentsManager
 from jupyter_server.utils import url_path_join
 import tornado
 
@@ -26,32 +23,15 @@ def _within_root(path: str, root: str) -> bool:
         return False
 
 
-def _get_executables(full_path: str, root: str, names=None) -> list:
-    """Get visible executable files in a directory (runs in the thread pool)."""
-    if not _within_root(full_path, root):
-        return []
+def _annotate_listing_flags(cm, model):
+    """Mark every entry of a directory listing with its link and executable facts.
 
-    executables = []
-    try:
-        with os.scandir(full_path) as entries:
-            for entry in entries:
-                if names is not None and entry.name not in names:
-                    continue
-                if (_within_root(entry.path, root) and entry.is_file()
-                        and os.access(entry.path, os.X_OK)):
-                    executables.append(entry.name)
-    except OSError:
-        pass  # A directory may disappear or lose permissions after it was listed.
-    return executables
-
-
-def _annotate_symlink_flags(cm, model):
-    """Mark every entry of a directory listing with whether it is a link.
-
-    The flag rides on the listing the browser already fetches, so no second
+    The flags ride on the listing the browser already fetches, so no second
     request and no client-side directory knowledge are needed. One scandir
     pass answers for the whole directory: each DirEntry reports whether it is
-    a link from the scan itself, so no entry costs an extra lstat.
+    a link from the scan itself, and the executable test costs one stat and
+    one access call per regular file. A symlink pays the containment test
+    too, so a target outside the root is never answered for.
     """
     if not isinstance(model, dict) or model.get('type') != 'directory':
         return model
@@ -64,21 +44,32 @@ def _annotate_symlink_flags(cm, model):
         # _get_os_path refuses with HTTPError, and a listing the manager has
         # already served must not turn into an error because of the annotation.
         return model
-    if not _within_root(os_path, cm.root_dir):
+    root = cm.root_dir
+    if not _within_root(os_path, root):
         return model
     try:
         with os.scandir(os_path) as scanned:
-            links = {entry.name: entry.is_symlink() for entry in scanned}
+            flags = {}
+            for entry in scanned:
+                is_link = entry.is_symlink()
+                executable = (
+                    entry.is_file()
+                    and (not is_link or _within_root(entry.path, root))
+                    and os.access(entry.path, os.X_OK)
+                )
+                flags[entry.name] = (is_link, executable)
     except OSError:
         return model
     for entry in entries:
         if isinstance(entry, dict):
-            entry.setdefault('symlink', bool(links.get(entry.get('name'))))
+            is_link, executable = flags.get(entry.get('name'), (False, False))
+            entry.setdefault('symlink', bool(is_link))
+            entry.setdefault('executable', bool(executable))
     return model
 
 
-def _flag_listed_links(cm, log=None):
-    """Wrap the contents manager so its directory listings carry the link fact.
+def _flag_listed_entries(cm, log=None):
+    """Wrap the contents manager so its directory listings carry the entry facts.
 
     The manager is whatever the server was configured with - a
     FileContentsManager, an AsyncFileContentsManager, or one already wrapped
@@ -87,19 +78,20 @@ def _flag_listed_links(cm, log=None):
     provide. The wrapper goes on the instance, which leaves every isinstance
     check and attribute reader on the original object working.
     """
-    if getattr(cm, '_vscode_link_flags', False):
+    if getattr(cm, '_vscode_listed_flags', False):
         return
     root = getattr(cm, 'root_dir', None)
     original = getattr(cm, 'get', None)
     if (not isinstance(root, str) or not root or not os.path.isdir(root)
             or not callable(original)
             or not callable(getattr(cm, '_get_os_path', None))):
-        # Silent otherwise: the badge simply never appears, and neither the
+        # Silent otherwise: the badges simply never appear, and neither the
         # user nor the next debugger can tell that from a directory of links.
         if cm is not None and log is not None:
             log.warning(
                 'vscode-icons: %s maps no local root, so its listings carry '
-                'no symlink flag and link badges stay off', type(cm).__name__
+                'no entry flags and link and executable badges stay off',
+                type(cm).__name__
             )
         return
     if inspect.iscoroutinefunction(original):
@@ -113,68 +105,17 @@ def _flag_listed_links(cm, log=None):
                     or model.get('type') != 'directory'
                     or not isinstance(model.get('content'), list)):
                 return model
-            # As in _directory: keep filesystem work off the IOLoop.
+            # Keep filesystem work off the IOLoop.
             return await tornado.ioloop.IOLoop.current().run_in_executor(
-                _executor, _annotate_symlink_flags, cm, model
+                _executor, _annotate_listing_flags, cm, model
             )
     else:
         def get(*args, **kwargs):
             # A synchronous manager calls this from the IOLoop and its callers
             # expect a model rather than a future, so the scan stays inline.
-            return _annotate_symlink_flags(cm, original(*args, **kwargs))
+            return _annotate_listing_flags(cm, original(*args, **kwargs))
     cm.get = get
-    cm._vscode_link_flags = True
-
-
-class _FilesystemMetadataHandler(APIHandler):
-    """Restrict metadata to directories the contents manager actually exposes."""
-
-    async def _directory(self, path):
-        cm = self.contents_manager
-        # A root_dir attribute alone does not imply that a remote contents
-        # manager maps API paths to local filesystem paths.
-        if not isinstance(cm, FileContentsManager):
-            return None
-        full_path = cm._get_os_path(path)
-        root = cm.root_dir
-        if not _within_root(full_path, root):
-            raise tornado.web.HTTPError(404, 'Directory does not exist')
-        resolved_path = os.path.relpath(os.path.realpath(full_path), os.path.realpath(root))
-        resolved_path = '' if resolved_path == '.' else resolved_path.replace(os.sep, '/')
-        if not cm.allow_hidden:
-            # Check both names: an innocuous link must not expose the contents
-            # of a hidden target directory through this auxiliary endpoint.
-            if (await ensure_async(cm.is_hidden(path))
-                    or await ensure_async(cm.is_hidden(resolved_path))):
-                raise tornado.web.HTTPError(404, 'Directory does not exist')
-        # A synchronous contents manager can stat every entry; keep that work
-        # off the IOLoop too. Async managers return a coroutine to await here.
-        model = await tornado.ioloop.IOLoop.current().run_in_executor(
-            _executor, partial(cm.get, path, type='directory', content=True)
-        )
-        model = await ensure_async(model)
-        names = {item['name'] for item in model.get('content', [])}
-        return full_path, root, names
-
-    async def _finish_metadata(self, scanner):
-        directory = await self._directory(self.get_argument('path', ''))
-        result = []
-        if directory is not None:
-            result = await tornado.ioloop.IOLoop.current().run_in_executor(
-                _executor, scanner, *directory
-            )
-        self.set_header('Content-Type', 'application/json')
-        self.finish(json.dumps(result))
-
-
-class ExecutablesHandler(_FilesystemMetadataHandler):
-    """Detect executable files visible in a directory."""
-
-    @tornado.web.authenticated
-    @authorized(action='read', resource='contents')
-    async def get(self):
-        """Return executable filenames; path is relative to the contents root."""
-        await self._finish_metadata(_get_executables)
+    cm._vscode_listed_flags = True
 
 
 def _valid_manifest(source: str, kind: str) -> bool:
@@ -217,12 +158,12 @@ def setup_handlers(web_app):
     """Register the API handlers beneath the configured base URL."""
     base_url = web_app.settings['base_url']
     # The listing the file browser already fetches is the cheapest carrier for
-    # the link fact, so the flag is installed on the contents manager itself.
-    _flag_listed_links(
+    # the per-entry facts, so the flags are installed on the contents manager
+    # itself and no metadata route remains.
+    _flag_listed_entries(
         web_app.settings.get('contents_manager'), web_app.settings.get('log')
     )
     handlers = [
-        (url_path_join(base_url, 'vscode-icons', 'executables'), ExecutablesHandler),
         (url_path_join(base_url, 'vscode-icons', 'validate-manifest'), ManifestValidationHandler),
     ]
     web_app.add_handlers('.*$', handlers)

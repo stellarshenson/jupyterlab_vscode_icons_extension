@@ -1,10 +1,8 @@
 """Exercise metadata routes against real file contents managers and HTTP auth."""
 import json
 import logging
-import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
-import unittest
 from urllib.parse import urlencode
 
 from jupyter_server.auth.authorizer import Authorizer
@@ -18,8 +16,7 @@ from tornado.testing import AsyncHTTPTestCase, gen_test
 from tornado.web import Application, HTTPError
 
 from jupyterlab_vscode_icons_extension.handlers import (
-    _flag_listed_links,
-    _get_executables,
+    _flag_listed_entries,
     setup_handlers,
 )
 
@@ -66,7 +63,7 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
         setup_handlers(app)
         return app
 
-    def request(self, endpoint='executables', path='', authenticate=True):
+    def request(self, endpoint, path='', authenticate=True):
         headers = {'Authorization': 'Bearer test'} if authenticate else {}
         return self.fetch(
             '/test/vscode-icons/' + endpoint + '?' + urlencode({'path': path}),
@@ -163,6 +160,22 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
         )
         self.assertTrue(all(isinstance(flag, bool) for flag in listing.values()))
 
+    def test_listing_entries_carry_the_executable_flag(self):
+        for name in ('script', 'plain', '.hidden-script'):
+            entry = self.root / name
+            entry.write_text('#!/bin/sh\n')
+            entry.chmod(0o755 if name != 'plain' else 0o644)
+        outside = self.root.with_name('outside-script')
+        outside.write_text('#!/bin/sh\n')
+        outside.chmod(0o755)
+        (self.root / 'external-script').symlink_to(outside)
+        model = self.manager.get('', type='directory', content=True)
+        flags = {item['name']: item['executable'] for item in model['content']}
+        self.assertEqual(
+            flags,
+            {'script': True, 'plain': False, 'external-script': False},
+        )
+
     def test_listing_flags_follow_visibility_rules(self):
         self.file_and_folder_links()
         (self.root / '.hidden-link').symlink_to('file.txt')
@@ -215,85 +228,29 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
     async def test_async_contents_manager_listing_is_flagged(self):
         self.file_and_folder_links()
         manager = AsyncFileContentsManager(root_dir=str(self.root))
-        _flag_listed_links(manager)
+        _flag_listed_entries(manager)
         model = await manager.get('', type='directory', content=True)
         self.assertEqual(
-            {item['name']: item['symlink'] for item in model['content']},
-            {'file.txt': False, 'folder': False,
-             'file-link.txt': True, 'folder-link': True},
+            {item['name']: (item['symlink'], item['executable'])
+             for item in model['content']},
+            {'file.txt': (False, False), 'folder': (False, False),
+             'file-link.txt': (True, False), 'folder-link': (True, False)},
         )
 
-    def test_flag_listed_links_skips_managers_without_a_local_filesystem(self):
+    def test_flag_listed_entries_skips_managers_without_a_local_filesystem(self):
         remote = ContentsManager()
-        _flag_listed_links(remote)
-        self.assertFalse(getattr(remote, '_vscode_link_flags', False))
+        _flag_listed_entries(remote)
+        self.assertFalse(getattr(remote, '_vscode_listed_flags', False))
         # The root_dir trait requires a directory at construction, so a manager
         # whose root has disappeared since then exercises the isdir guard.
         later_root = self.root / 'later-root'
         later_root.mkdir()
         vanished_root = FileContentsManager(root_dir=str(later_root))
         later_root.rmdir()
-        _flag_listed_links(vanished_root)
-        self.assertFalse(getattr(vanished_root, '_vscode_link_flags', False))
+        _flag_listed_entries(vanished_root)
+        self.assertFalse(getattr(vanished_root, '_vscode_listed_flags', False))
 
-    def test_removed_symlink_route_is_gone(self):
-        self.assertEqual(self.request('symlinks').code, 404)
-
-    def test_authentication_and_contents_read_authorization_required(self):
-        self.file_and_folder_links()
-        response = self.request(authenticate=False)
-        self.assertIn(response.code, (302, 403))
-        self.authorizer.allowed = False
-        self.assertEqual(self.request().code, 403)
-        self.assertEqual(self.authorizer.calls, [('read', 'contents')])
-
-    def test_traversal_sibling_prefix_and_external_directory_symlink_are_refused(self):
-        outside = self.root.with_name('root-sibling')
-        outside.mkdir()
-        (outside / 'secret').write_text('secret')
-        (outside / 'secret-link').symlink_to('secret')
-        (self.root / 'outside').symlink_to(outside, target_is_directory=True)
-        for path in ('../root-sibling', 'outside', 'outside/secret', 'bad\x00path'):
-            with self.subTest(path=path):
-                self.assertEqual(self.request(path=path).code, 404)
-
-    def test_missing_directory_and_file_path_use_contents_errors(self):
-        (self.root / 'file').write_text('not a directory')
-        self.assertEqual(self.request(path='missing').code, 404)
-        self.assertEqual(self.request(path='file').code, 400)
-
-    def test_remote_contents_manager_returns_empty_without_local_filesystem_assumption(self):
-        self._app.settings['contents_manager'] = ContentsManager()
-        response = self.request()
-        self.assertEqual(response.code, 200)
-        self.assertEqual(json.loads(response.body), [])
-
-    def test_executables_follow_visibility_and_reject_external_targets(self):
-        for name in ('script', '.private-script', 'omit-script'):
-            entry = self.root / name
-            entry.write_text('#!/bin/sh\n')
-            entry.chmod(0o755)
-        outside = self.root.with_name('outside-script')
-        outside.write_text('#!/bin/sh\n')
-        outside.chmod(0o755)
-        (self.root / 'external-script').symlink_to(outside)
-        self.manager.hide_globs = ['omit-*']
-        self.assertEqual(json.loads(self.request('executables').body), ['script'])
-
-
-class ScannerTests(unittest.TestCase):
-    def test_common_prefix_does_not_grant_access_to_sibling(self):
-        with TemporaryDirectory() as temporary:
-            root = Path(temporary) / 'root'
-            root.mkdir()
-            sibling = Path(temporary) / 'root-private'
-            sibling.mkdir()
-            script = sibling / 'secret'
-            script.write_text('#!/bin/sh\n')
-            script.chmod(0o755)
-            self.assertEqual(_get_executables(str(sibling), str(root)), [])
-
-    def test_disappeared_directory_returns_empty(self):
-        with TemporaryDirectory() as temporary:
-            missing = os.path.join(temporary, 'missing')
-            self.assertEqual(_get_executables(missing, temporary), [])
+    def test_removed_metadata_routes_are_gone(self):
+        for endpoint in ('symlinks', 'executables'):
+            with self.subTest(endpoint=endpoint):
+                self.assertEqual(self.request(endpoint).code, 404)

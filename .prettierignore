@@ -8,3 +8,4 @@ eslint.config.mjs
 .venv
 docs/acc-crit*.md
 docs/defects*.md
+.claude
