@@ -42,6 +42,7 @@ interface IIconSettings {
  */
 interface IListedItem extends Contents.IModel {
   symlink?: boolean;
+  executable?: boolean;
 }
 
 /**
@@ -1212,41 +1213,39 @@ const plugin: JupyterFrontEndPlugin<void> = {
         const packages = new Set<string>();
 
         try {
-          const contents = await app.serviceManager.contents.get(currentPath, {
-            content: true
-          });
-          const files = contents.content || [];
-
-          // Check for pyproject.toml
-          const hasPyproject = files.some(
-            (f: any) => f.name === 'pyproject.toml'
-          );
-          if (hasPyproject) {
-            const pyprojectPath = currentPath
-              ? `${currentPath}/pyproject.toml`
-              : 'pyproject.toml';
-            const file = await app.serviceManager.contents.get(pyprojectPath);
-            const content = file.content as string;
+          // The manifest fetch is its own probe: a contents GET by path is
+          // answered by the server, so the browser's name filter cannot narrow
+          // it the way a read of model.items() would, and a missing manifest
+          // lands as a null instead of aborting the sibling check, since the
+          // fetch now runs for both names unconditionally (DEF-ICONS-64).
+          const pyprojectPath = currentPath
+            ? `${currentPath}/pyproject.toml`
+            : 'pyproject.toml';
+          const pyproject = await app.serviceManager.contents
+            .get(pyprojectPath)
+            .catch(() => null);
+          if (pyproject) {
+            const content = pyproject.content as string;
             const parsed = await packageNamesFromManifest(
               content,
               'toml',
-              `${pyprojectPath}@${file.last_modified ?? ''}@${content.length}`
+              `${pyprojectPath}@${pyproject.last_modified ?? ''}@${content.length}`
             );
             parsed.forEach(p => packages.add(p));
           }
 
-          // Check for setup.py
-          const hasSetupPy = files.some((f: any) => f.name === 'setup.py');
-          if (hasSetupPy) {
-            const setupPath = currentPath
-              ? `${currentPath}/setup.py`
-              : 'setup.py';
-            const file = await app.serviceManager.contents.get(setupPath);
-            const content = file.content as string;
+          const setupPath = currentPath
+            ? `${currentPath}/setup.py`
+            : 'setup.py';
+          const setup = await app.serviceManager.contents
+            .get(setupPath)
+            .catch(() => null);
+          if (setup) {
+            const content = setup.content as string;
             const parsed = await packageNamesFromManifest(
               content,
               'python',
-              `${setupPath}@${file.last_modified ?? ''}@${content.length}`
+              `${setupPath}@${setup.last_modified ?? ''}@${content.length}`
             );
             parsed.forEach(p => packages.add(p));
           }
@@ -1260,48 +1259,19 @@ const plugin: JupyterFrontEndPlugin<void> = {
         return packages;
       };
 
-      // Cache for executable file detection (per directory)
-      let executablesCache: { path: string; executables: Set<string> } | null =
-        null;
-
-      // Detect executable files via server API
-      const detectExecutables = async (): Promise<Set<string>> => {
+      // Detect executable files from the listing the browser already holds,
+      // the way markSymlinkBadges reads link state: the server marks every
+      // entry of the directory model, so no request and no cache are needed.
+      const detectExecutables = (): Set<string> => {
         if (!settings.enableExecutableIcons) {
           return new Set<string>();
         }
 
-        const currentPath = defaultFileBrowser?.model.path || '';
-        const generation = metadataGeneration;
-
-        // Return cached result if same directory
-        if (executablesCache?.path === currentPath) {
-          return executablesCache.executables;
-        }
-
         const executables = new Set<string>();
-
-        try {
-          const serverSettings = ServerConnection.makeSettings();
-          const apiUrl = URLExt.join(
-            serverSettings.baseUrl,
-            'vscode-icons',
-            'executables'
-          );
-          const response = await ServerConnection.makeRequest(
-            `${apiUrl}?path=${encodeURIComponent(currentPath)}`,
-            {},
-            serverSettings
-          );
-          if (response.ok) {
-            const files: string[] = await response.json();
-            files.forEach(f => executables.add(f));
+        for (const item of defaultFileBrowser?.model.items() ?? []) {
+          if ((item as IListedItem).executable) {
+            executables.add(item.name);
           }
-        } catch {
-          // Ignore errors - no executables detected
-        }
-
-        if (generation === metadataGeneration) {
-          executablesCache = { path: currentPath, executables };
         }
         return executables;
       };
@@ -1311,12 +1281,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
         defaultFileBrowser.model.pathChanged.connect(() => {
           ++metadataGeneration;
           pythonPackagesCache = null;
-          executablesCache = null;
         });
         defaultFileBrowser.model.refreshed.connect(() => {
           ++metadataGeneration;
           pythonPackagesCache = null;
-          executablesCache = null;
           void markSpecialFiles();
         });
       }
@@ -1430,19 +1398,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
         item.setAttribute(attribute, 'true');
       };
 
-      // The pass splits in two because only two of its decisions need the
-      // server. markSpecialFilesPass does the DOM work; `fetched` carries the
-      // python packages and the executables when they are known and is null on
-      // the pass that runs before the round-trips, which leaves those two
-      // decisions exactly as they are rather than guessing them.
-      const markSpecialFilesPass = (
-        fetched: {
-          pythonPackages: Set<string>;
-          executables: Set<string>;
-        } | null
-      ) => {
-        const pythonPackages = fetched ? fetched.pythonPackages : null;
-        const executables = fetched ? fetched.executables : null;
+      // The pass splits in two because one of its decisions needs the server.
+      // markSpecialFilesPass does the DOM work; `fetched` carries the python
+      // packages once the manifest round-trips have answered and is null on
+      // the pass that runs before them, which leaves that decision exactly as
+      // it is rather than guessing it. The executable flags ride the listing,
+      // so every pass has them.
+      const markSpecialFilesPass = (fetched: {
+        pythonPackages: Set<string> | null;
+        executables: Set<string>;
+      }) => {
+        const pythonPackages = fetched.pythonPackages;
+        const executables = fetched.executables;
 
         // Process ALL items - clear wrong attributes and set correct ones
         const allItems = document.querySelectorAll('.jp-DirListing-item');
@@ -1457,7 +1424,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
           }
 
           const name = nameSpan.textContent;
-          const rowPath = `${defaultFileBrowser?.model.path || ''}/${name}`;
 
           // Handle notebook files (Jupytext marks them as "notebook" or "jupytext-notebook-file")
           const isNotebookType =
@@ -1565,40 +1531,22 @@ const plugin: JupyterFrontEndPlugin<void> = {
             setOverride(item, 'data-pytest');
           }
 
-          // Mark executable files if setting is enabled (uses server API for +x detection)
-          // Universal overlay: any executable file gets a play glyph badge (injected as DOM element)
+          // Mark executable files when the setting is on; the flag rides the
+          // listing, so the answer is in hand on every pass and the badge is
+          // added or dropped on the spot rather than after the round-trips
+          // (DEF-ICONS-37, DEF-ICONS-67).
           const iconContainer = item.querySelector('.jp-DirListing-itemIcon');
           const existingBadge =
             iconContainer?.querySelector('.vscode-exec-badge');
-          if (executables) {
-            if (settings.enableExecutableIcons && executables.has(name)) {
-              if (iconContainer && !existingBadge) {
-                const badge = document.createElement('img');
-                badge.className = 'vscode-exec-badge';
-                badge.src = playGlyphDataUri;
-                badge.alt = 'Executable';
-                // The badge records the file it was added for, which is what
-                // lets the early pass below tell a stale badge from a correct
-                // one without the detector's answer.
-                badge.dataset.for = rowPath;
-                iconContainer.appendChild(badge);
-              } else if (existingBadge) {
-                (existingBadge as HTMLElement).dataset.for = rowPath;
-              }
-            } else if (existingBadge) {
-              existingBadge.remove();
+          if (settings.enableExecutableIcons && executables.has(name)) {
+            if (iconContainer && !existingBadge) {
+              const badge = document.createElement('img');
+              badge.className = 'vscode-exec-badge';
+              badge.src = playGlyphDataUri;
+              badge.alt = 'Executable';
+              iconContainer.appendChild(badge);
             }
-          } else if (
-            existingBadge &&
-            (existingBadge as HTMLElement).dataset.for !== rowPath
-          ) {
-            // The pass that runs before the detectors answer: a badge whose
-            // file is not this row's file belongs to the row's previous
-            // occupant, so it goes now rather than after the round-trips
-            // (DEF-ICONS-37). A badge that matches is left alone - removing it
-            // and letting the debounced pass put it back made the two passes
-            // drive each other, since appending one is a childList mutation
-            // this observer watches.
+          } else if (existingBadge) {
             existingBadge.remove();
           }
 
@@ -1669,22 +1617,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
         const pathAtEntry = defaultFileBrowser?.model.path;
         const generation = metadataGeneration;
         const pythonPackages = await detectPythonPackages();
-        // Checked between the two as well: each detector reads the path at its
-        // own start, so A then B then back to A would otherwise pair A's
-        // packages with B's executables and pass the exit check.
         if (
           defaultFileBrowser?.model.path !== pathAtEntry ||
           generation !== metadataGeneration
         ) {
           return;
         }
-        const executables = await detectExecutables();
-        if (
-          defaultFileBrowser?.model.path !== pathAtEntry ||
-          generation !== metadataGeneration
-        ) {
-          return;
-        }
+        // Read after the guard, and synchronously: the executable flags come
+        // from the model in hand, so only the manifest round-trips above can
+        // pair two directories' answers.
+        const executables = detectExecutables();
         markSpecialFilesPass({ pythonPackages, executables });
       };
 
@@ -1700,8 +1642,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // call, and it sets attributes and inline styles, which this observer
       // does not watch, so it cannot feed itself.
       //
-      // markSpecialFiles stays debounced: it awaits the contents API to find
-      // python packages and executables, and that is what the 100 ms is for.
+      // markSpecialFiles stays debounced: it awaits the manifest reads for the
+      // python packages, and that is what the 100 ms is for.
       // It runs markRowIcons again afterwards to repaint rows the pass may have
       // re-ordered. markSpecialFiles is not awaited, so the painter actually
       // runs first; it does not read the attributes that pass sets - it
@@ -1716,9 +1658,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
         // before this ran here: a wrong icon for 136 ms on localhost and 717 ms
         // with 150 ms of latency, because the attribute reset sat behind two
         // server round-trips it does not need (DEF-ICONS-31-1).
-        markSpecialFilesPass(null);
+        markSpecialFilesPass({
+          pythonPackages: null,
+          executables: detectExecutables()
+        });
         markRowIcons();
         markSymlinkBadges();
+        // The records queued so far are this callback's own badge writes from a
+        // walk that just covered every row: draining them removes the second
+        // full sweep the extension was scheduling on itself.
+        observer.takeRecords();
         if (markSpecialFilesTimeout) {
           clearTimeout(markSpecialFilesTimeout);
         }

@@ -108,56 +108,22 @@ test('refresh updates executable and package markers in the same directory', asy
   );
 });
 
-test('an older executable response cannot restore metadata after refresh', async ({
+test('an executable badge never survives a directory change', async ({
   page,
   tmpPath
 }) => {
-  let release!: () => void;
-  const delayed = new Promise<void>(resolve => {
-    release = resolve;
-  });
-  let intercepted!: () => void;
-  const seen = new Promise<void>(resolve => {
-    intercepted = resolve;
-  });
-  let held = false;
-  await page.route('**/vscode-icons/executables?*', async route => {
-    if (
-      !held &&
-      new URL(route.request().url()).searchParams.get('path') === tmpPath
-    ) {
-      held = true;
-      const response = await route.fetch();
-      intercepted();
-      await delayed;
-      await route.fulfill({ response });
-    } else {
-      await route.continue();
-    }
-  });
-  await page.filebrowser.openDirectory(tmpPath);
-  await seen;
-  await chmod(diskPath(`${tmpPath}/tool`), 0o644);
-  const freshResponse = page.waitForResponse(
-    response =>
-      response.url().includes('/vscode-icons/executables?') &&
-      new URL(response.url()).searchParams.get('path') === tmpPath
-  );
-  await page.filebrowser.refresh();
-  await freshResponse;
-  const staleResponse = page.waitForResponse(
-    response =>
-      response.url().includes('/vscode-icons/executables?') &&
-      new URL(response.url()).searchParams.get('path') === tmpPath
-  );
-  release();
-  await staleResponse;
-  await page.unrouteAll({ behavior: 'wait' });
-  await page.evaluate(
-    () =>
-      new Promise<void>(resolve =>
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-      )
-  );
-  await expect(row(page, 'tool').locator('.vscode-exec-badge')).toHaveCount(0);
+  // The badge reads the executable flag off the listing the browser already
+  // fetches, so the stale-response race this test used to pin has no response
+  // left to lose: what remains is that a reused row drops the badge when the
+  // new directory's listing does not carry it (DEF-ICONS-67).
+  await mkdir(diskPath(`${tmpPath}/with-tool`));
+  await writeFile(diskPath(`${tmpPath}/with-tool/tool`), '#!/bin/sh\n');
+  await chmod(diskPath(`${tmpPath}/with-tool/tool`), 0o755);
+  await mkdir(diskPath(`${tmpPath}/plain`));
+  await writeFile(diskPath(`${tmpPath}/plain/note.txt`), 'x');
+  await page.filebrowser.openDirectory(`${tmpPath}/with-tool`);
+  await expect(row(page, 'tool').locator('.vscode-exec-badge')).toBeVisible();
+  await page.filebrowser.openDirectory(`${tmpPath}/plain`);
+  await expect(row(page, 'note.txt')).toBeVisible();
+  await expect(page.locator('.vscode-exec-badge')).toHaveCount(0);
 });

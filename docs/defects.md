@@ -111,6 +111,12 @@ Jest, the Playwright ui-tests and their output
   - test-tags: UNIT
   - log: 2026-10-14T16:08:08Z @kj added
   - log: 2026-10-14T16:08:09Z @kj closed: fixed: fillOf is bounded to the constant's own template literal and accepts three-digit fills; reason: the evidence has to carry the offset and the colour, because the symptom of this defect was a test that passed
+- [x] `DEF-TEST-68` **Galata runs against the installed labextension, not the working tree** - MEDIUM; ui-tests serve the labextension installed in the environment, so a run after editing src/ tests the last installed wheel and can pass on code never built; cause: the test server imports the installed package; fix: point JUPYTER_PATH at the repo build; `ui-tests/playwright.config.js`
+  - evidence: with only JUPYTER_TEST_PORT set, the suite served both halves from the tree: metadata-refresh 4/4 and the full run 59/59 on 2026-10-15
+  - repro: edit the python-package marker value in src/index.ts without installing, run jlpm playwright test in ui-tests: the old value still appears
+  - test-tags: E2E
+  - log: 2026-10-15T21:38:33Z @kj added
+  - log: 2026-10-15T21:50:36Z @kj closed: fixed: playwright.config.js points JUPYTER_PATH at the repo labextension and PYTHONPATH at the repo root
 
 ## Lint and static analysis `LINT`
 
@@ -347,6 +353,7 @@ Which file gets which glyph in the file browser and on tabs
   - log: 2026-10-14T14:23:32Z @kj edited repro "navigate from a directory holding an executable to one holding a file of the same row position, on a lab with latency" -> "give two directories a file of the same name, one executable, and switch between them on a lab with latency"
   - log: 2026-10-14T14:45:33Z @kj closed: closed on the maintainer's instruction: fixed in the tree, without coverage, and the failed attempt is on the record
   - log: 2026-10-15T12:39:53Z @kj regressed as DEF-ICONS-37-1
+  - log: 2026-10-15T21:50:36Z @kj mechanism superseded: the executable flag rides the listing, so no occupant marker is needed
 - [x] `DEF-ICONS-37-1` **Metadata badges stay stale after refresh** - MINOR; executable and Python-package markers keep the old metadata after same-directory refresh; pending older requests can restore stale results
   - evidence: eight real browser metadata/link tests pass, including refresh, delayed responses, surrounding spaces and a trailing-space tab; all three pinned reviewers confirmed the closure
   - root-cause: 2026-10-15T12:40:02Z @kj per-directory caches invalidate only on navigation and asynchronous writes have no refresh generation
@@ -405,6 +412,40 @@ Which file gets which glyph in the file browser and on tabs
   - root-cause: 2026-10-15T17:32:41Z @kj the refreshed handler clears the package cache, so each refresh re-reads and re-validates the manifest
   - log: 2026-10-15T17:32:41Z @kj added
   - log: 2026-10-15T17:33:31Z @kj closed
+- [x] `DEF-ICONS-64` **Every file-browser poll pays a second directory listing** - MAJOR; every 10 s poll and every refresh fetched the contents API for the open directory only to check for pyproject.toml and setup.py, which the model already holds; cause: detectPythonPackages asked the server instead of reading model.items(); fix: names read from the model; `src/index.ts`
+  - evidence: adversarial review r1 reproduced the doubled request from the access log; after the change one contents request per poll; jest 133, pytest 28+25 subtests, Galata 59 green on 2026-10-15
+  - repro: open a directory, watch the access log across two 10 s polls: a second contents request for the same path before the fix, gone after
+  - test-tags: E2E
+  - root-cause: 2026-10-15T21:36:55Z @kj the name check asked the server although the model refreshed a moment earlier already held every entry name
+  - log: 2026-10-15T21:36:55Z @kj added
+  - log: 2026-10-15T21:36:59Z @kj closed: fixed: names read from the browser model; the extra contents fetch deleted
+- [x] `DEF-ICONS-65` **A package folder loses its glyph on every listing mutation** - MEDIUM; on a listing change the pre-answer pass stripped the python-package marker from every folder, flickering the glyph off until the detectors answered; cause: the marker was removed unconditionally; fix: the marker carries the occupant name and the pass keeps a matching row marker; `src/index.ts`
+  - evidence: metadata-refresh.spec.ts pins the occupant name on both markers; Galata 59 green on 2026-10-15
+  - repro: refresh a directory holding a package folder on a throttled connection: the folder glyph flickers off until the detector answers
+  - test-tags: E2E
+  - log: 2026-10-15T21:36:55Z @kj added
+  - log: 2026-10-15T21:36:59Z @kj closed: fixed: the marker carries the occupant name; the pre-answer pass keeps a matching row marker
+  - log: 2026-10-15T21:51:49Z @kj regressed as DEF-ICONS-65-1
+- [x] `DEF-ICONS-65-1` **A package folder loses its glyph on every listing mutation** - MEDIUM; on a listing change the pre-answer pass stripped the python-package marker from every folder, flickering the glyph off until the detectors answered; cause: the marker was removed unconditionally; fix: the marker carries the occupant name and the pass keeps a matching row marker; `src/index.ts`
+  - test-tags: E2E
+  - repro: refresh a directory holding a package folder on a throttled connection: the folder glyph flickers off until the detector answers
+  - evidence: revert-first ruling of adversarial round 2; the strip-and-restore window mirrors the original report; jest 133 and Galata metadata-refresh 4/4 green on 2026-10-15
+  - log: 2026-10-15T21:51:49Z @kj regression of DEF-ICONS-65
+  - log: 2026-10-15T21:52:24Z @kj closed: wontfix: the round-2 adjudication removed the occupant-name marker because it keyed row identity on the folder name alone (MAJOR); the pre-answer strip is the accepted cost, the answered pass restores the glyph
+  - log: 2026-10-15T21:52:28Z @kj edited repro added "refresh a directory holding a package folder on a throttled connection: the folder glyph flickers off until the detector answers"; test-tags added "E2E"
+- [x] `DEF-ICONS-66` **Every listing change pays a second full row sweep** - MINOR; each listing mutation runs the three row passes, the badge writes queue another observation batch, and that batch sweeps every row again; cause: the observer consumed the records its own painters produced; fix: takeRecords() after the painters drops the self-produced batch; `src/index.ts`
+  - evidence: adversarial review r1 counted the doubled batch in a jsdom harness; Galata 59 green on 2026-10-15
+  - repro: count observer callbacks on a directory of 5,000 rows: two sweeps per change before, one after
+  - test-tags: E2E
+  - log: 2026-10-15T21:36:55Z @kj added
+  - log: 2026-10-15T21:36:59Z @kj closed: fixed: takeRecords() after the painters drops the self-produced batch
+- [x] `DEF-ICONS-67` **The executables route re-lists the directory per request** - MEDIUM; with executable icons on, each poll pays a second directory model build (487 ms at 5,000 entries) plus a rescan; cause: the route re-lists to answer a name filter; fix: carry the executable fact on the contents annotation, delete the route and its client fetch; `handlers.py`, `src/index.ts`
+  - evidence: test_handlers.py reads the flags from one scandir pass; metadata-refresh.spec.ts 4/4 and the full Galata suite 59/59 pass against the tree build; make test green on 2026-10-15
+  - repro: enable executable icons, open a 5,000-entry directory, watch /vscode-icons/executables requests against the listing poll rate
+  - test-tags: E2E, UNIT
+  - root-cause: 2026-10-15T21:36:55Z @kj the route predates the listing annotation; its entry path test costs 125 ms against 16 ms at 5,000 entries
+  - log: 2026-10-15T21:36:55Z @kj added
+  - log: 2026-10-15T21:50:36Z @kj closed: fixed: executable flags ride the contents annotation; the route, its handler, the client fetch and cache deleted
 
 ## Settings and icon groups `CONFIG`
 
