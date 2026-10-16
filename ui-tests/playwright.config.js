@@ -35,11 +35,11 @@ if (!process.env.JUPYTER_PATH && existsSync(repoLabextension)) {
 
 // The server half needs the same treatment: the test server imports the
 // installed python package, so without this it runs the installed handlers,
-// which may predate the tree (DEF-TEST-68).
-if (
-  !process.env.PYTHONPATH &&
-  existsSync(join(repoRoot, 'jupyterlab_vscode_icons_extension', 'handlers.py'))
-) {
+// which may predate the tree (DEF-TEST-68). It applies only where the repo
+// build exists, as JUPYTER_PATH does above, so a checkout without a build -
+// the CI Integration tests job - imports the installed wheel for both halves
+// (DEF-TEST-74).
+if (!process.env.PYTHONPATH && existsSync(repoLabextension)) {
   process.env.PYTHONPATH = repoRoot;
 }
 

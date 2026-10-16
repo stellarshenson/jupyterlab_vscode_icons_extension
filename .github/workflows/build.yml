@@ -75,6 +75,8 @@ jobs:
 
         pip install "jupyterlab>=4.0.0,<5" jupyterlab_vscode_icons_extension*.whl
 
+        jupyter server extension list
+        jupyter server extension list 2>&1 | grep -ie "jupyterlab_vscode_icons_extension.*OK"
         jupyter labextension list
         jupyter labextension list 2>&1 | grep -ie "jupyterlab_vscode_icons_extension.*OK"
         python -m jupyterlab.browser_check --no-browser-test

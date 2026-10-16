@@ -117,12 +117,25 @@ Jest, the Playwright ui-tests and their output
   - test-tags: E2E
   - log: 2026-10-15T21:38:33Z @kj added
   - log: 2026-10-15T21:50:36Z @kj closed: fixed: playwright.config.js points JUPYTER_PATH at the repo labextension and PYTHONPATH at the repo root
-- [ ] `DEF-TEST-73` **CI Galata fails the dotfile specs** - MAJOR; Integration tests job red on every run since d20694e: mcp-contrast.spec.ts:73 and symlink-badges.spec.ts:115 find no .mcp.json or .hidden-link row; both pass locally
+- [x] `DEF-TEST-73` **CI Galata fails the dotfile specs** - MAJOR; Integration tests job red on every run since d20694e: mcp-contrast.spec.ts:73 and symlink-badges.spec.ts:115 find no .mcp.json or .hidden-link row; both pass locally
+  - evidence: 4032e46: test server config sets ContentsManager.allow_hidden = True; GitHub Actions run 38944098084 green on all 4 jobs, Integration tests included; with allow_hidden = False both specs fail as in CI
   - repro: set c.ContentsManager.allow_hidden = False in ui-tests/jupyter_server_test_config.py, run tests/mcp-contrast.spec.ts:73 and tests/symlink-badges.spec.ts:115: both fail as in CI
   - test-tags: FUNCTIONAL
   - root-cause: 2026-10-16T17:53:39Z @kj the test server config leaves ContentsManager.allow_hidden at its default False, so the server neither creates nor lists dotfiles; this workstation's /opt/conda/etc/jupyter/jupyter_lab_config.py sets it True, so the specs passed only here
   - log: 2026-10-16T17:53:39Z @kj added
   - log: 2026-10-16T17:56:24Z @kj edited repro "JUPYTER_NO_CONFIG=1 npx playwright test tests/mcp-contrast.spec.ts:73 tests/symlink-badges.spec.ts:115" -> "set c.ContentsManager.allow_hidden = False in ui-tests/jupyter_server_test_config.py, run tests/mcp-contrast.spec.ts:73 and tests/symlink-badges.spec.ts:115: both fail as in CI"
+  - log: 2026-10-16T18:29:55Z @kj closed
+- [ ] `DEF-TEST-74` **CI Galata runs the checkout's server code** - MAJOR; the Integration tests job installs the wheel but imports jupyterlab_vscode_icons_extension from the checkout, so no Build job runs the wheel's server half; the frontend comes from the wheel
+  - repro: in a checkout without jupyterlab_vscode_icons_extension/labextension, load ui-tests/playwright.config.js: PYTHONPATH is the checkout, JUPYTER_PATH is unset
+  - test-tags: FUNCTIONAL
+  - root-cause: 2026-10-16T18:21:36Z @kj the PYTHONPATH shim in ui-tests/playwright.config.js fires whenever handlers.py exists, which is always in a checkout; the JUPYTER_PATH shim fires only where the repo build exists
+  - log: 2026-10-16T18:21:36Z @kj added
+- [ ] `DEF-TEST-75` **No CI job checks the wheel enables its server extension** - MEDIUM; a wheel whose jupyter_server_config.d JSON is missing or malformed passes build, test_isolated and Integration tests, because the test server config force-enables the extension; users would get no listing flags and no symlink or executable badges
+  - related: DEF-TEST-74
+  - repro: delete jupyter-config/server-config from the build, run the Build workflow: every job passes
+  - test-tags: MANUAL
+  - root-cause: 2026-10-16T18:21:36Z @kj test_isolated checks only the labextension; no step runs jupyter server extension list against the installed wheel
+  - log: 2026-10-16T18:21:36Z @kj added
 
 ## Lint and static analysis `LINT`
 
