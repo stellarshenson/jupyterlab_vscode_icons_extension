@@ -20,6 +20,7 @@ This extension brings 1414 beautiful file type icons from the vscode-icons proje
 ![VSCode Icons in JupyterLab](.resources/screenshot-icons.png)
 
 - 1414 file type icons covering virtually every language, framework, and config file you can think of
+- One hexagon family for C, C++, Objective-C++, Rust, CUDA and Java, with C# on its own green hexagon; `.hh`, `.hxx`, `.h++`, `.cu`, `.cuh` and `.mm` are mapped too
 - Automatic icon detection based on file extensions and names
 - Zero configuration required - just install and enjoy
 - Lightweight integration using Iconify's JSON icon format
@@ -88,6 +89,8 @@ pip uninstall jupyterlab_vscode_icons_extension
 This extension shamelessly borrows icons from the excellent [vscode-icons](https://github.com/vscode-icons/vscode-icons) project by Roberto Huertas. Icons are delivered via [Iconify](https://iconify.design/), because we believe in standing on the shoulders of giants.
 
 All icon assets remain under their original licenses (MIT for code, CC BY-SA for branded icons). We just wrapped them in a JupyterLab extension and called it a day.
+
+The C, C++, Rust, CUDA and Java hexagons use the vscode-icons `file-type-cpp3` shape. The C and CUDA glyphs are vscode-icons artwork, the Rust gear is from [skill-icons](https://github.com/tandpfun/skill-icons), and the Java J is drawn for this extension. Both source sets are MIT.
 
 **Custom Icons**: A few icons (Python, Markdown, README) were hand-crafted in Inkscape - because sometimes you need that perfect shade of purple and the exact right amount of snake eyes.
 

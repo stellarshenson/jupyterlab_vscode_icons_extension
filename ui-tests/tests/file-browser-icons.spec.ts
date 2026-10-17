@@ -17,8 +17,10 @@ const FIXTURES: Array<[string, string]> = [
   ['sample.js', 'vscode-file-type-js-official'],
   ['sample.ts', 'vscode-file-type-typescript-official'],
   ['sample.vue', 'vscode-file-type-vue'],
+  ['sample.java', 'vscode-file-type-java-hexagon'],
+  ['sample.cu', 'vscode-file-type-cuda-hexagon'],
   // ACC-ICONS-36: an Arduino sketch takes the C++ type
-  ['sketch.ino', 'vscode-file-type-cpp']
+  ['sketch.ino', 'vscode-file-type-cpp-large']
 ];
 
 // JupyterLab writes a row's label synchronously but resolves its icon inside

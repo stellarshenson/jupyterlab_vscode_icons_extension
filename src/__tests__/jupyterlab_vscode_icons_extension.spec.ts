@@ -18,7 +18,16 @@ describe('getIconForFile', () => {
     ['main.py', 'file-type-python'],
     ['README.md', 'file-type-markdown'],
     ['diagram.svg', 'file-type-svg'],
-    ['notebook.ipynb', 'file-type-jupyter']
+    ['notebook.ipynb', 'file-type-jupyter'],
+    ['main.c', 'file-type-c-mauve'],
+    ['main.h', 'file-type-c-mauve'],
+    ['lib.cpp', 'file-type-cpp-large'],
+    ['lib.hpp', 'file-type-cpp-large'],
+    ['view.mm', 'file-type-cpp-large'],
+    ['main.cs', 'file-type-csharp2'],
+    ['kernel.cu', 'file-type-cuda-hexagon'],
+    ['Main.java', 'file-type-java-hexagon'],
+    ['main.rs', 'file-type-rust-hexagon']
   ])('maps %s to %s', (filename, expected) => {
     expect(getIconForFile(filename)).toBe(expected);
   });
@@ -58,6 +67,19 @@ describe('generateIconSVG', () => {
     expect(generateIconSVG('file-type-python', 'jp-icon')).toContain(
       'class="jp-icon"'
     );
+  });
+
+  it('uses the local artwork for the derived C and Rust icons', () => {
+    for (const name of [
+      'file-type-c-mauve',
+      'file-type-cpp-large',
+      'file-type-cuda-hexagon',
+      'file-type-java-hexagon',
+      'file-type-rust-hexagon'
+    ]) {
+      expect(getIconSVG(name)).not.toBe(getIconSVG('default-file'));
+      expect(getIconViewBox(name)).toBe('0 0 32 32');
+    }
   });
 });
 

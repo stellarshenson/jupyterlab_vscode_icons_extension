@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.8] - 2026-10-17
+
+### Added
+
+- C, C header, C++, C++ header and Objective-C++ files use matching hexagon icons, and C++ draws a larger `++`; Rust files use the same hexagon with the Rust gear
+- C# files use the green C# hexagon, and CUDA and Java files use hexagon icons with the NVIDIA eye and the white letter J; `.hh`, `.hxx`, `.h++`, `.cu`, `.cuh` and `.mm` are now mapped
+
+### Fixed
+
+- A dot-named symbolic link, such as `.cache`, is dimmed like every other hidden file; its link badge is dimmed with the row
+
 ## 1.2.7 (2026-10-16)
 
 ### Bug Fixes

@@ -112,11 +112,17 @@ test('a badge never survives a directory change', async ({ page, tmpPath }) => {
   ).toHaveCount(0);
 });
 
-test('a dot-named link keeps the badge out of the dotfile dim', async ({
+test('a dot-named link is dimmed like any dotfile', async ({
   page,
   tmpPath
 }) => {
+  await writeFile(diskPath(`${tmpPath}/.plain-dotfile`), '');
   await symlink('target.js', diskPath(`${tmpPath}/.hidden-link`));
+  await symlink(
+    'target-folder',
+    diskPath(`${tmpPath}/.hidden-folder-link`),
+    'dir'
+  );
   await page.evaluate(async () => {
     const commands = (window as any).jupyterapp.commands;
     if (!commands.isToggled('filebrowser:toggle-hidden-files')) {
@@ -124,13 +130,16 @@ test('a dot-named link keeps the badge out of the dotfile dim', async ({
     }
   });
   await page.filebrowser.openDirectory(tmpPath);
-  const item = row(page, '.hidden-link');
-  await expect(item).toHaveAttribute('data-is-dot', 'true');
-  await expect(item.locator('.vscode-symlink-badge')).toHaveCount(1);
-  // The listing dims a dotfile row to 0.55, which composites the badge below
-  // the project's 3:1 bar on the light theme; the row keeps full opacity where
-  // a link badge sits on it.
-  expect(
-    await item.evaluate((node: Element) => getComputedStyle(node).opacity)
-  ).toBe('1');
+  const opacity = (item: any) =>
+    item.evaluate((node: Element) => getComputedStyle(node).opacity);
+  const dimmed = await opacity(row(page, '.plain-dotfile'));
+  expect(Number(dimmed)).toBeLessThan(1);
+  // A hidden link reads as hidden: the badge says it is a link, the dim says
+  // it is a dotfile, and neither cancels the other (DEF-LINK-76).
+  for (const link of ['.hidden-link', '.hidden-folder-link']) {
+    const item = row(page, link);
+    await expect(item).toHaveAttribute('data-is-dot', 'true');
+    await expect(item.locator('.vscode-symlink-badge')).toHaveCount(1);
+    expect(await opacity(item)).toBe(dimmed);
+  }
 });

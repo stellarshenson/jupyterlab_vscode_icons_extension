@@ -713,4 +713,14 @@ Browser overlays identifying symbolic links
   - root-cause: 2026-10-15T16:28:06Z @kj the listing MutationObserver callback called refreshSymlinks, which fetches, and the row painters mutate the listing they observe
   - log: 2026-10-15T16:28:06Z @kj added
   - log: 2026-10-15T17:20:28Z @kj closed
+- [x] `DEF-LINK-76` **Hidden link row not dimmed** - MEDIUM; a dot-named symbolic link row, such as .cache, shows at full opacity while every other dotfile row is dimmed to 0.55, so it does not read as hidden
+  - evidence: style/base.css full-opacity rule removed; symlink-badges.spec.ts fails on the old rule (got 1, expected 0.55); Galata 64/64 on 2026-10-17
+  - overrides: ACC-LINK-50
+  - repro: show hidden files, open a folder holding a dot-named symbolic link, compare its row with a plain dotfile row
+  - test-tags: E2E
+  - root-cause: 2026-10-17T09:52:09Z @kj style/base.css raises opacity to 1 on a dotfile row that carries .vscode-symlink-badge, added for ACC-LINK-50 to keep the badge above 3:1
+  - log: 2026-10-17T09:52:09Z @kj added
+  - log: 2026-10-17T09:52:12Z @kj reported: .cache, hidden folder and symbolic link, shows full colour while it should read as a hidden folder; screenshot /tmp/jupyterlab-paste-clippings/paste-20261017-115019.png
+  - log: 2026-10-17T09:57:06Z @kj fixed in working tree: full-opacity rule removed from style/base.css; symlink-badges.spec.ts 'a dot-named link is dimmed like any dotfile' covers a file and a folder link, fails on the old rule (got 1, expected 0.55); Galata 64/64
+  - log: 2026-10-17T15:38:28Z @kj closed
 

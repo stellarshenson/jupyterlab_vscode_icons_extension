@@ -71,6 +71,13 @@ Which file gets which vscode-icons glyph in the file browser
   - mechanism: 2026-10-15T16:06:49Z @kj the row carries data-vscode-bpmn and the tab carries artwork:bpmn, both resolving to the same square artwork
   - log: 2026-10-15T16:06:49Z @kj added
   - log: 2026-10-15T16:06:54Z @kj closed
+- [x] `ACC-ICONS-52` **Hexagon icons for the C family, Rust, CUDA and Java** - HIGH; C, C header, C++, C++ header, Objective-C++, Rust, CUDA and Java render the same hexagon family, with a larger ++ for C++, the Rust gear, the NVIDIA eye and the white letter J.
+  - evidence: custom icons in src/custom-icons.ts; mappings in src/icons.ts and src/index.ts; jest 143 and pytest 22+23 green; Galata 64/64 on 2026-10-17
+  - test: Open a directory with .c, .h, .cpp, .hpp, .mm, .rs, .cu and .java files and compare each row with its tab.
+  - test-tags: UNIT, E2E
+  - log: 2026-10-17T15:38:26Z @kj added
+  - log: 2026-10-17T15:41:33Z @kj closed
+  - log: 2026-10-17T15:53:00Z @kj edited text "C, C header, C++, C++ header, Objective-C++, Rust, CUDA and Java render the same hexagon family, with a larger ++ for C++, the Rust gear, the NVIDIA eye and the Java cup." -> "C, C header, C++, C++ header, Objective-C++, Rust, CUDA and Java render the same hexagon family, with a larger ++ for C++, the Rust gear, the NVIDIA eye and the white letter J."
 
 ## Settings and icon groups `CONFIG`
 
@@ -473,12 +480,14 @@ Browser icon overlays for links to files and folders
   - log: 2026-10-15T17:06:47Z @kj added
   - log: 2026-10-15T17:20:32Z @kj closed
 - [x] `ACC-LINK-50` **Link badge stays legible on a dimmed row** - MEDIUM; a dotfile row that carries a link badge keeps its full opacity, because the 0.55 dim composites the badge below the 3:1 bar on the light theme
-  - evidence: symlink-badges.spec.ts 'a dot-named link keeps the badge out of the dotfile dim' asserts the row's computed opacity is 1 with the badge on it
+  - overridden-by: DEF-LINK-76
+  - evidence: symlink-badges.spec.ts 'a dot-named link is dimmed like any dotfile' asserts each dot-named link row's computed opacity equals a plain dotfile's
   - test: open a directory holding a dot-named symbolic link on the light theme and read the badge contrast
   - test-tags: E2E
   - mechanism: 2026-10-15T17:12:19Z @kj a stylesheet rule raises the row's opacity where a link badge sits on it, the remedy shape the mcp glyph already uses
   - log: 2026-10-15T17:12:19Z @kj added
   - log: 2026-10-15T17:20:32Z @kj closed
+  - log: 2026-10-17T16:08:13Z @kj edited evidence "symlink-badges.spec.ts 'a dot-named link keeps the badge out of the dotfile dim' asserts the row's computed opacity is 1 with the badge on it" -> "symlink-badges.spec.ts 'a dot-named link is dimmed like any dotfile' asserts each dot-named link row's computed opacity equals a plain dotfile's"
 
 ## Browser metadata passes `META`
 

@@ -3,6 +3,7 @@
  */
 
 import iconsData from '@iconify-json/vscode-icons/icons.json';
+import { customIcons } from './custom-icons';
 
 interface IIconMapping {
   [key: string]: string;
@@ -25,18 +26,24 @@ export const extensionToIcon: IIconMapping = {
   pyw: 'file-type-python',
   pyx: 'file-type-cython',
   ipynb: 'file-type-jupyter',
-  java: 'file-type-java',
+  java: 'file-type-java-hexagon',
   class: 'file-type-class',
   jar: 'file-type-jar',
-  c: 'file-type-c',
-  h: 'file-type-c',
-  cpp: 'file-type-cpp',
-  cc: 'file-type-cpp',
-  cxx: 'file-type-cpp',
-  hpp: 'file-type-hpp',
-  cs: 'file-type-csharp',
+  c: 'file-type-c-mauve',
+  h: 'file-type-c-mauve',
+  cpp: 'file-type-cpp-large',
+  cc: 'file-type-cpp-large',
+  cxx: 'file-type-cpp-large',
+  hpp: 'file-type-cpp-large',
+  hh: 'file-type-cpp-large',
+  hxx: 'file-type-cpp-large',
+  'h++': 'file-type-cpp-large',
+  mm: 'file-type-cpp-large',
+  cs: 'file-type-csharp2',
+  cu: 'file-type-cuda-hexagon',
+  cuh: 'file-type-cuda-hexagon',
   go: 'file-type-go',
-  rs: 'file-type-rust',
+  rs: 'file-type-rust-hexagon',
   rb: 'file-type-ruby',
   php: 'file-type-php',
   swift: 'file-type-swift',
@@ -199,6 +206,9 @@ export function getIconForFile(filename: string): string {
  * @returns The SVG body content
  */
 export function getIconSVG(iconName: string): string {
+  if (customIcons[iconName]) {
+    return customIcons[iconName];
+  }
   const icons = iconsData.icons as {
     [key: string]: { body?: string; parent?: string };
   };
@@ -250,13 +260,17 @@ export function generateIconSVG(iconName: string, className = ''): string {
  *
  * Most of the set is 32x32, the collection default, but 38 entries carry their
  * own width and height - file-type-go is 254.5x225 - and a body written in that
- * space draws nothing inside a 32x32 window. Every svg this extension builds
- * reads its box from the record rather than assuming the default.
+ * space draws nothing inside a 32x32 window. Every bundled svg this extension
+ * builds reads its box from the record rather than assuming the default; the
+ * five custom bodies declare the 32x32 box in src/custom-icons.ts.
  *
  * @param iconName - The icon name
  * @returns The viewBox attribute value
  */
 export function getIconViewBox(iconName: string): string {
+  if (customIcons[iconName]) {
+    return '0 0 32 32';
+  }
   const icons = iconsData.icons as {
     [key: string]: {
       body?: string;

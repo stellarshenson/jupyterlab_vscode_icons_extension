@@ -121,7 +121,7 @@ describe('activate without the optional services', () => {
     plugin.activate!(app, null, null);
     const cpp = (
       registry.types as Array<{ name: string; extensions?: string[] }>
-    ).find(t => t.name === 'vscode-file-type-cpp');
+    ).find(t => t.name === 'vscode-file-type-cpp-large');
     expect(cpp!.extensions).toContain('.ino');
   });
 

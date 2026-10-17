@@ -164,27 +164,37 @@ const fileTypeConfigs: IFileTypeConfig[] = [
   },
   {
     extensions: ['.java'],
-    iconName: 'file-type-java',
+    iconName: 'file-type-java-hexagon',
     group: 'enableLanguageIcons'
   },
   {
     extensions: ['.c'],
-    iconName: 'file-type-c',
+    iconName: 'file-type-c-mauve',
     group: 'enableLanguageIcons'
   },
   {
-    extensions: ['.cpp', '.cc', '.cxx', '.ino'],
-    iconName: 'file-type-cpp',
+    extensions: ['.cpp', '.cc', '.cxx', '.ino', '.mm'],
+    iconName: 'file-type-cpp-large',
     group: 'enableLanguageIcons'
   },
   {
-    extensions: ['.h', '.hpp'],
-    iconName: 'file-type-c',
+    extensions: ['.h'],
+    iconName: 'file-type-c-mauve',
+    group: 'enableLanguageIcons'
+  },
+  {
+    extensions: ['.hpp', '.hh', '.hxx', '.h++'],
+    iconName: 'file-type-cpp-large',
     group: 'enableLanguageIcons'
   },
   {
     extensions: ['.cs'],
-    iconName: 'file-type-csharp',
+    iconName: 'file-type-csharp2',
+    group: 'enableLanguageIcons'
+  },
+  {
+    extensions: ['.cu', '.cuh'],
+    iconName: 'file-type-cuda-hexagon',
     group: 'enableLanguageIcons'
   },
   {
@@ -194,7 +204,7 @@ const fileTypeConfigs: IFileTypeConfig[] = [
   },
   {
     extensions: ['.rs'],
-    iconName: 'file-type-rust',
+    iconName: 'file-type-rust-hexagon',
     group: 'enableLanguageIcons'
   },
   {
@@ -1938,8 +1948,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
             );
         if (iconName !== 'default-file' && gated) {
           const svgstr = generateIconSVG(iconName);
-          // Five mapped keys have no body in the bundled vscode-icons set
-          // (file-type-pdf, -lock, -csv, -rst, -hpp) and getIconSVG substitutes
+          // Four mapped keys have no body in the bundled vscode-icons set
+          // (file-type-pdf, -lock, -csv, -rst) and getIconSVG substitutes
           // the default-file body for them, so painting this would replace an
           // icon JupyterLab did supply with a blank page.
           if (svgstr !== generateIconSVG('default-file')) {
