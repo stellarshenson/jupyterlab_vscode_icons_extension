@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.9] - 2026-10-17
+
+### Changed
+
+- The C++ hexagon draws one plus inside the C's counter and the second at the mouth, so the pair no longer presses against the hexagon's right edge
+
 ## [1.2.8] - 2026-10-17
 
 ### Added
