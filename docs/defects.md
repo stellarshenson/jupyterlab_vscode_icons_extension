@@ -680,6 +680,17 @@ Icon colours this project chooses itself, and their contrast against the panel a
   - root-cause: 2026-10-15T12:39:54Z @kj dotfile row opacity composites both the selected background and the dark MCP ink; no selected MCP state overrides them
   - log: 2026-10-15T12:39:54Z @kj added
   - log: 2026-10-15T17:20:28Z @kj closed
+- [x] `DEF-COLOUR-77` **log icon unreadable on a selected row** - MEDIUM; the green log-file icon is hard to read on the blue selection band; the row painter sets the artwork as an inline background-image, which no fill rule reaches; `src/index.ts`
+  - evidence: Galata 'a selected log row paints the white glyph' passes (1 test, 4.3s); with the selector disabled the same test fails on the selected-background assertion; jest 143 green, lint exit 0
+  - test-tags: E2E
+  - root-cause: 2026-10-18T14:24:19Z @kj .log has no fileTypeConfigs entry, so markRowIcons paints it as an inline background-image data URI; the listing MutationObserver watches childList, subtree and characterData but not attributes, so selecting a row never repaints it; a background-image cannot inherit a CSS fill rule
+  - attachment: defects/DEF-COLOUR-77-selected-log.png sha256:c4a47a2cd5927611 edited:2026-10-18T14:11:21Z
+  - repro: select a .log file row in the dark theme - the green document glyph fades into the blue band
+  - log: 2026-10-18T14:11:17Z @kj added
+  - log: 2026-10-18T14:11:21Z @kj attached defects/DEF-COLOUR-77-selected-log.png sha256:c4a47a2cd5927611
+  - log: 2026-10-18T14:24:19Z @kj edited text "the green log-file icon is hard to read on the blue selection band; cause under investigation; file browser icon painter" -> "the green log-file icon is hard to read on the blue selection band; the row painter sets the artwork as an inline background-image, which no fill rule reaches; `src/index.ts`"; test-tags added "E2E"
+  - log: 2026-10-18T14:24:19Z @kj attempted: default Galata port 8888 - did NOT run, port in use; reran on JUPYTER_TEST_PORT=8901
+  - log: 2026-10-18T14:28:52Z @kj closed: fixed: selected-row white variant; Galata regression test passes and fails when the rule is disabled; jest 143 green
 
 ## Symbolic link badges `LINK`
 

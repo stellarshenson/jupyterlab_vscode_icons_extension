@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.10] - 2026-10-18
+
+### Fixed
+
+- The log-file icon turns white on a selected row, so it no longer disappears into the selection band
+
 ## [1.2.9] - 2026-10-17
 
 ### Changed

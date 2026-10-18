@@ -201,6 +201,92 @@ test.describe('file browser icons', () => {
     expect(row.height, JSON.stringify(row)).toBeGreaterThan(0);
   });
 
+  // DEF-COLOUR-77: the log artwork is green (#00bd02), which measures 1.23:1
+  // on the dark selection band (#2196f3) and 1.81:1 on the light one
+  // (#1976d2), so the glyph disappears while the row is selected. The
+  // injected rule swaps in a white variant. Removing that rule makes this
+  // test fail: the inline background-image then stays green through the
+  // selection.
+  test('a selected log row paints the white glyph', async ({
+    page,
+    tmpPath
+  }) => {
+    await page.contents.uploadContent('x', 'text', `${tmpPath}/trace.log`);
+    await page.contents.uploadContent('x', 'text', `${tmpPath}/other.txt`);
+    await page.filebrowser.openDirectory(tmpPath);
+    await page.waitForFunction(
+      () => {
+        const label = [
+          ...document.querySelectorAll('.jp-DirListing-itemText')
+        ].find(n => n.textContent!.trim() === 'trace.log');
+        const item = label ? label.closest('.jp-DirListing-item') : null;
+        const host = item
+          ? item.querySelector('.jp-DirListing-itemIcon')
+          : null;
+        return (
+          !!host &&
+          host.getAttribute('data-vscode-row-icon') === 'file-type-log'
+        );
+      },
+      undefined,
+      { timeout: 30000 }
+    );
+    await settleIcons(page);
+
+    const readLog = () =>
+      page.evaluate(() => {
+        const label = [
+          ...document.querySelectorAll('.jp-DirListing-itemText')
+        ].find(n => n.textContent!.trim() === 'trace.log');
+        const item = label ? label.closest('.jp-DirListing-item') : null;
+        const host = item
+          ? (item.querySelector(
+              '.jp-DirListing-itemIcon'
+            ) as HTMLElement | null)
+          : null;
+        return {
+          selected: item ? item.classList.contains('jp-mod-selected') : false,
+          painted: host ? host.getAttribute('data-vscode-row-icon') : 'no-host',
+          background: host ? getComputedStyle(host).backgroundImage : 'none'
+        };
+      });
+
+    const logRow = page.locator('.jp-DirListing-item').filter({
+      has: page.locator('.jp-DirListing-itemText', { hasText: /^trace\.log$/ })
+    });
+    const otherRow = page.locator('.jp-DirListing-item').filter({
+      has: page.locator('.jp-DirListing-itemText', {
+        hasText: /^other\.txt$/
+      })
+    });
+
+    const unselected = await readLog();
+    expect(unselected.selected, JSON.stringify(unselected)).toBe(false);
+    expect(unselected.painted, JSON.stringify(unselected)).toBe(
+      'file-type-log'
+    );
+    const green = decodeURIComponent(unselected.background);
+    expect(green, JSON.stringify(unselected)).toContain('fill="#00bd02"');
+
+    await logRow.click();
+    await expect(logRow).toHaveClass(/jp-mod-selected/);
+    const selected = await readLog();
+    expect(selected.background, JSON.stringify(selected)).not.toBe(
+      unselected.background
+    );
+    const white = decodeURIComponent(selected.background);
+    expect(white, JSON.stringify(selected)).toContain('fill="#fff"');
+    expect(white, JSON.stringify(selected)).not.toContain('#00bd02');
+    expect(selected.painted, JSON.stringify(selected)).toBe('file-type-log');
+
+    await otherRow.click();
+    await expect(logRow).not.toHaveClass(/jp-mod-selected/);
+    const restored = await readLog();
+    const greenAgain = decodeURIComponent(restored.background);
+    expect(greenAgain, JSON.stringify(restored)).toContain('fill="#00bd02"');
+    expect(restored.painted, JSON.stringify(restored)).toBe('file-type-log');
+  });
+
   test('an unmapped extension keeps JupyterLab own file type', async ({
     page
   }) => {

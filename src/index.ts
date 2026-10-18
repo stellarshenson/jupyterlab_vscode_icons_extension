@@ -710,6 +710,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const dbSelectedDataUri = `data:image/svg+xml;base64,${btoa(
         dbSvg.replace(/#5890ca/g, '#ffffff')
       )}`;
+      // Selected-row variant for the log-file artwork (DEF-COLOUR-77). Its glyph
+      // is an inline background-image the row painter sets, so the selection
+      // band cannot be escaped by a fill rule: the green #00bd02 measures
+      // 1.23:1 on the dark band (#2196f3) and 1.81:1 on the light one
+      // (#1976d2). The same artwork recoloured white measures 3.12:1 and
+      // 4.60:1.
+      const logSelectedDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(
+        generateIconSVG('file-type-log').replace(/#00bd02/g, '#fff')
+      )}`;
       const uvSvg =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 330"><rect height="100%" width="100%" rx="66" fill="#26102f"/><path fill="#d256dc" d="M 65,65 h92 v130 h16 v-130 h92 v200 h-16 v-20 h-8 a20,20 0 0 1 -20,20 h-136 a20,20 0 0 1 -20,-20 z"/></svg>';
       const uvDataUri = `data:image/svg+xml;base64,${btoa(uvSvg)}`;
@@ -860,6 +869,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
         .jp-DirListing-item[data-vscode-db].jp-mod-selected
           .jp-DirListing-itemIcon::before {
           background-image: url('${dbSelectedDataUri}');
+        }
+        /* DEF-COLOUR-77: a selected log row paints the white variant so the
+           glyph stays readable. The painter sets the green artwork inline, so
+           this rule must win with !important. Green #00bd02 measures 1.23:1 on
+           the dark selection band (#2196f3) and 1.81:1 on the light one
+           (#1976d2); white measures 3.12:1 and 4.60:1. */
+        .jp-DirListing-item.jp-mod-selected
+          .jp-DirListing-itemIcon[data-vscode-row-icon='file-type-log'] {
+          background-image: url('${logSelectedDataUri}') !important;
         }
 
         /* File browser rows whose icon JupyterLab supplied and this extension
