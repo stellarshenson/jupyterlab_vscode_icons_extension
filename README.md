@@ -30,7 +30,7 @@ This extension brings 1414 beautiful file type icons from the vscode-icons proje
 - Symbolic link badges - a link to a file or folder carries a small square arrow badge on its row icon
 - Executable file badges - an optional group, off by default, that marks files with the execute bit
 - Document tab icons matching the file browser - an open file carries the same glyph on its tab as on its row, and an icon another extension registered is kept rather than replaced
-- Readable on both themes - a glyph that cannot be seen against the panel it sits on is given a thin outline, decided per theme and re-decided when the theme changes
+- Readable on both themes - a tab glyph that cannot be seen against its tab is recoloured to clear 3:1 while keeping its internal colours distinct, and a file-browser glyph gets a thin outline; both are re-decided when the background changes
 
 ## Requirements
 

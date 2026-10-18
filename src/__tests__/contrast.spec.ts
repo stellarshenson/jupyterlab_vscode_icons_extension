@@ -10,9 +10,11 @@
 
 import {
   artworkColours,
+  CONTRAST_BAR,
   contrastRatio,
   needsOutlineOn,
   parseColour,
+  recolourForContrast,
   relativeLuminance
 } from '../contrast';
 import { generateIconSVG } from '../icons';
@@ -122,6 +124,102 @@ describe('needsOutlineOn', () => {
       ).toBe(expected);
     }
   );
+});
+
+describe('recolourForContrast', () => {
+  const fillsOf = (svgstr: string): string[] =>
+    (svgstr.match(/(?:fill|stop-color)="(#[0-9a-fA-F]{3,6})"/g) || []).map(
+      attribute => attribute.match(/"(#[0-9a-fA-F]{3,6})"/)![1]
+    );
+  const MAKEFILE = '<svg><path fill="#c2544f" d="M0 0"/></svg>';
+
+  // The Makefile red is the reported case: below 3:1 on the inactive dark tab,
+  // the light tabs and every Galaxa Steel background, so the repainted value
+  // must clear the bar against each of them. On #212121 it already clears it.
+  it.each([
+    '#424242',
+    '#212121',
+    '#eeeeee',
+    '#ffffff',
+    '#444b53',
+    '#bec3ca',
+    '#aeb4bc'
+  ])('brings #c2544f to the bar on %s', background => {
+    const recoloured = recolourForContrast(MAKEFILE, background);
+    expect(recoloured).not.toBeNull();
+    const fills = fillsOf(recoloured!);
+    expect(fills.length).toBe(1);
+    expect(contrastRatio(fills[0], background)).toBeGreaterThanOrEqual(
+      CONTRAST_BAR
+    );
+  });
+
+  it('leaves a colour at or above the bar unchanged', () => {
+    expect(recolourForContrast(MAKEFILE, '#212121')).toBe(MAKEFILE);
+  });
+
+  // One shared fraction is what keeps multi-colour artwork's own colours
+  // apart. Stopping each colour at the bar independently put typescript's blue
+  // and white on #bec3ca, and python's four stops on #aeb4bc, at the same
+  // luminance, so the marks collapsed to an internal 1.00:1.
+  it.each([
+    ['file-type-typescript-official', '#bec3ca'],
+    ['file-type-typescript-official', '#aeb4bc'],
+    ['file-type-python', '#bec3ca'],
+    ['file-type-python', '#aeb4bc']
+  ])(
+    'keeps every stated fill legible and the pairs distinct for %s on %s',
+    (key, background) => {
+      const original = generateIconSVG(key);
+      const recoloured = recolourForContrast(original, background);
+      expect(recoloured).not.toBeNull();
+      const before = fillsOf(original);
+      const after = fillsOf(recoloured!);
+      expect(after.length).toBe(before.length);
+      for (const fill of after) {
+        expect(contrastRatio(fill, background)).toBeGreaterThanOrEqual(
+          CONTRAST_BAR
+        );
+      }
+      for (let i = 0; i < before.length; i++) {
+        for (let j = i + 1; j < before.length; j++) {
+          const was = contrastRatio(before[i], before[j]);
+          if (was !== null && was >= CONTRAST_BAR) {
+            expect(contrastRatio(after[i], after[j])).toBeGreaterThanOrEqual(
+              1.5
+            );
+          }
+        }
+      }
+    }
+  );
+
+  it('rewrites fills and stops, not stroke colours', () => {
+    const svg =
+      '<svg><path fill="#c2544f" stroke="#c2544f" d="M0 0"/>' +
+      '<stop stop-color="#c2544f"/></svg>';
+    const recoloured = recolourForContrast(svg, '#444b53');
+    expect(recoloured).not.toBeNull();
+    expect(recoloured).not.toBe(svg);
+    const fill = recoloured!.match(/fill="(#[0-9a-fA-F]{6})"/)![1];
+    const stroke = recoloured!.match(/stroke="(#[0-9a-fA-F]{6})"/)![1];
+    const stop = recoloured!.match(/stop-color="(#[0-9a-fA-F]{6})"/)![1];
+    expect(fill).not.toBe('#c2544f');
+    expect(stop).toBe(fill);
+    expect(stroke).toBe('#c2544f');
+    expect(contrastRatio(fill, '#444b53')).toBeGreaterThanOrEqual(CONTRAST_BAR);
+  });
+
+  // A class-coloured path has no stated colour to rewrite, and a data URI
+  // paints it black; fill="none" and a gradient reference state no paintable
+  // colour either. All three must fall back to the caller's treatment.
+  it.each([
+    '<svg><path class="joblib-glyph" d="M0 0"/></svg>',
+    '<svg><path fill="none" stroke="#fff"/></svg>',
+    '<svg><path fill="url(#gradient)"/></svg>'
+  ])('returns null when the artwork states no colour: %s', svgstr => {
+    expect(recolourForContrast(svgstr, '#212121')).toBeNull();
+  });
 });
 
 describe('artwork that paints with SVG default black', () => {

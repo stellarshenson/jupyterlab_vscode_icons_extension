@@ -253,6 +253,16 @@ Icons on the dock panel tabs of open documents
   - log: 2026-10-15T12:12:47Z @kj added
   - log: 2026-10-15T12:13:55Z @kj edited text "an open PDF tab shows JupyterLab\x27s PDF glyph while its browser row shows this extension\x27s red PDF sheet; cause: specific-icon guard returns before row artwork; fix: let the PDF tab use the row artwork; src/index.ts" -> "an open PDF tab shows JupyterLab's PDF glyph while its browser row shows this extension's red PDF sheet; cause: the specific-icon guard returns before row artwork; fix: let the PDF tab use the row artwork; src/index.ts"
   - log: 2026-10-15T12:14:41Z @kj closed: PDF tab now uses the browser row PDF artwork
+- [x] `DEF-TABS-78` **tab outline fills transparent icon cutouts** - MEDIUM; the tab contrast outline paints the ink colour into transparent cutouts, so the Makefile cogs and other holes show grey on inactive dark tabs and Steel themes; fix: recolour below-bar fills instead of outlining; `src/index.ts`
+  - evidence: Galata full suite 67/67 and tab-icons 13/13; 24 states over six themes, every fill clears 3:1 (worst 3.054), 360 Makefile cutout samples show no foreign ink; mutation to the binary variant fails the new test
+  - related: ACC-TABS-54
+  - attachment: defects/DEF-TABS-78-tab-outline.png sha256:7c3958c77d86d1b4 edited:2026-10-18T15:10:01Z
+  - repro: dark theme, open a Makefile, make another tab active - the cogs are grey; Galaxa Steel shows it on the active tab too
+  - test-tags: UNIT, E2E
+  - root-cause: 2026-10-18T15:09:58Z @kj the tab outline is four 0.5px drop-shadows in the theme ink colour; at 14px the 1-2px transparent cutouts of the artwork fill with the shadow, so the Makefile cogs render grey
+  - log: 2026-10-18T15:09:58Z @kj added
+  - log: 2026-10-18T15:10:01Z @kj attached defects/DEF-TABS-78-tab-outline.png sha256:7c3958c77d86d1b4
+  - log: 2026-10-18T16:01:18Z @kj closed: fixed: per-background recolour replaces the tab outline; gear cutouts stay transparent
 
 ## Icon coverage `ICONS`
 

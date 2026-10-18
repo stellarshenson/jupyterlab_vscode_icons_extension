@@ -440,6 +440,28 @@ Icons on the dock panel tabs of open documents, matching the file browser
   - mechanism: 2026-10-15T12:13:55Z @kj the tab painter accepts ui-components:pdf for PDFs whose rows use pdfSvg; the document-icons setting gates both surfaces
   - log: 2026-10-15T12:13:55Z @kj added
   - log: 2026-10-15T12:14:40Z @kj closed: PDF tab now uses the same pdfSvg as its browser row
+- [x] `ACC-TABS-53` **One tab icon content box** - HIGH; every painted tab icon fits a 13px square content box inside the 16px host, keeps its aspect ratio and is not clipped; the host keeps width 16px, height 16px and margin-right 2px
+  - evidence: 24 states: 16x16 border-box host, 1.5px padding, 13x13 content box, contain/content-box; Makefile ink 10.057x13 and square icons 13x13, 0 padding-ring ink; jest 155
+  - test: Galata: open a Makefile and a square-icon file, read computed box-sizing, padding, backgroundSize, backgroundOrigin and the ink box
+  - test-tags: E2E
+  - mechanism: 2026-10-18T15:09:53Z @kj the tab rule uses box-sizing border-box, padding calc((16px - 13px)/2), background-origin content-box, background-size contain and background-repeat no-repeat
+  - log: 2026-10-18T15:09:53Z @kj added
+  - log: 2026-10-18T16:01:18Z @kj closed: verified: one 13px content box
+- [x] `ACC-TABS-54` **Contrast recolour instead of outline** - HIGH; a painted tab icon none of whose stated colours clears 3:1 against its tab background is repainted with one shared mix that clears 3:1 for every stated fill, with no drop-shadow filter and its transparent cutouts left transparent
+  - evidence: every decoded fill clears 3:1 across 24 states over six themes (worst 3.054); no tab carries data-vscode-tab-outline or a filter; unit tests over seven backgrounds; jest 155
+  - test: unit: recolourForContrast on #c2544f over #424242, #212121, #eeeeee, #ffffff, #444b53, #bec3ca and #aeb4bc; Galata: a Makefile tab on dark inactive has variant contrast and computed filter none
+  - test-tags: UNIT, E2E
+  - mechanism: 2026-10-18T15:09:54Z @kj paintTabIcon computes recolourForContrast from the measured tab background when needsOutlineOn; each below-bar fill is mixed toward black or white until 3.05:1
+  - log: 2026-10-18T15:09:54Z @kj added
+  - log: 2026-10-18T16:01:18Z @kj closed: verified: contrast recolour, no outline
+  - log: 2026-10-18T16:24:11Z @kj amended text "a painted tab icon whose stated colour is below 3:1 against its tab background is repainted in a recoloured fill that clears 3:1, with no drop-shadow filter and its transparent cutouts left transparent" -> "a painted tab icon none of whose stated colours clears 3:1 against its tab background is repainted with one shared mix that clears 3:1 for every stated fill, with no drop-shadow filter and its transparent cutouts left transparent"; reason: adversarial review round 1 change 2 - the gate is best-of, not every colour
+- [x] `ACC-TABS-55` **Contrast variant repaints on background change** - MEDIUM; a tab repaints its artwork when it becomes active or inactive or the theme changes, so the contrast variant matches the current tab background
+  - evidence: contrast-to-contrast active-to-inactive test passes; variant carries the measured background; mutation to the binary variant fails the test; Galata 67/67
+  - test: Galata: open probe.yml on dark, switch theme or activation, assert backgroundImage changes and the variant repaints
+  - test-tags: E2E
+  - mechanism: 2026-10-18T15:09:54Z @kj the paint guard compares the variant attribute as well as the icon key
+  - log: 2026-10-18T15:09:54Z @kj added
+  - log: 2026-10-18T16:01:19Z @kj closed: verified: repaint follows the background
 
 ## Symbolic link badges `LINK`
 

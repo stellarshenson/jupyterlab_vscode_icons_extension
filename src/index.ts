@@ -8,7 +8,7 @@ import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { FileBrowserModel, IDefaultFileBrowser } from '@jupyterlab/filebrowser';
 import { fileIcon, LabIcon, markdownIcon } from '@jupyterlab/ui-components';
 
-import { needsOutlineOn } from './contrast';
+import { needsOutlineOn, recolourForContrast } from './contrast';
 // Loaded eagerly on purpose: activate() registers every mapped file type up
 // front, so the icon map is needed before the application starts. The directive
 // must sit on the line immediately above the import to attach to it.
@@ -916,14 +916,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
         /* A painted tab glyph is vendor artwork drawn for VSCode's dark sidebar,
            and some of it is invisible on a JupyterLab tab bar: measured in the
            running lab, the yaml wordmark's best pixel is 1.20:1 against a white
-           tab. The same artwork is excellent on the dark bar (13:1), so this is
-           not a per-glyph list but a per-theme test the painter runs - it sets
-           data-vscode-tab-outline when the artwork cannot clear 3:1 against the
-           bar it is about to sit on, and this rule gives those glyphs an edge.
-           Measured with it: 19.69:1 best, 16.5% of the box at or above 3:1, and the
-           artwork's own colours are untouched (DEF-COLOUR-32). */
-        /* One rule for both painted hosts: the row marker and the tab marker
-           are decided by the same measure and want the same edge. */
+           tab. The painter measures the artwork against the bar it is about to
+           sit on, and recolours only when the artwork's best colour the
+           measure reads (a stated hex, or the black an unfilled element paints)
+           is below the bar. When any stated colour is below 3:1, one shared
+           mix toward black or white applies to every stated colour it
+           rewrites. Artwork with no rewriteable colour cannot be corrected
+           inside a data URI, so it keeps data-vscode-tab-outline; the row glyph
+           always keeps the drop-shadow edge, and the tab uses it only in that
+           fallback. */
         .jp-DirListing-itemIcon[data-vscode-row-outline],
         .lm-TabBar-tabIcon[data-vscode-tab-outline] {
           filter: drop-shadow(0.5px 0 0 var(--jp-ui-font-color1, #212121))
@@ -939,20 +940,26 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
         /* Lab sizes this host at 14px through a three-class selector while its
            own tab icons are inline svgs at their intrinsic 16px, so a painted
-           tab sat 2px short of a stock one (DEF-TABS-33-1). The maintainer
-           asked for padding rather than scaling: the box grows to 16px and the
-           glyph keeps the 14px lab draws it at, centred in the new box. That
-           matches the ink, because lab's own 16px svgs carry their own internal
-           padding, and 16+2 keeps the label exactly where 14+4 put it. These
-           selectors carry one attribute more than lab's, so they win. */
+           tab sat 2px short of a stock one (DEF-TABS-33-1). The host is now one
+           16px border box whose 1.5px padding leaves a 13px content box; the
+           background is painted into that box at contain, so every artwork
+           fits by its longest side and keeps its aspect ratio. The 16+2
+           footprint keeps the label exactly where 14+4 put it. These selectors
+           carry one attribute more than lab's, so they win. */
         .lm-DockPanel-tabBar
           .lm-TabBar-tab
           .lm-TabBar-tabIcon[data-vscode-tab-icon],
         .lm-TabPanel-tabBar
           .lm-TabBar-tab
           .lm-TabBar-tabIcon[data-vscode-tab-icon] {
+          --vscode-tab-icon-art: 13px;
+          box-sizing: border-box;
           width: 16px;
+          padding: calc((16px - var(--vscode-tab-icon-art)) / 2);
           margin-right: 2px;
+          background-origin: content-box;
+          background-size: contain;
+          background-repeat: no-repeat;
           background-position: center;
         }
         .lm-TabBar-tabIcon[data-vscode-tab-icon] > svg {
@@ -1991,6 +1998,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         if (host.hasAttribute('data-vscode-tab-icon')) {
           host.removeAttribute('data-vscode-tab-icon');
           host.removeAttribute('data-vscode-tab-outline');
+          host.removeAttribute('data-vscode-tab-variant');
           host.style.backgroundImage = '';
         }
       };
@@ -2005,23 +2013,37 @@ const plugin: JupyterFrontEndPlugin<void> = {
         key: string,
         svgstr: string
       ): void => {
-        // The outline is decided on every pass, before the key guard below.
+        // The treatment is decided on every pass, before the key guard below.
         // Deciding it once per key left a tab painted on the dark theme with no
-        // outline after a switch to the light one, where the same artwork
+        // treatment after a switch to the light one, where the same artwork
         // measures 1.06:1 - the very symptom this rule exists to prevent - and
         // it also froze the measurement to whichever background the tab had
         // when it was first painted, current or inactive.
-        if (needsOutlineOn(svgstr, getComputedStyle(tab).backgroundColor)) {
+        const background = getComputedStyle(tab).backgroundColor;
+        const outline = needsOutlineOn(svgstr, background);
+        const recolour = outline
+          ? recolourForContrast(svgstr, background)
+          : null;
+        // The measured background rides in the variant: two below-bar
+        // backgrounds both recolour, so a binary marker would let the guard
+        // return and keep a fill computed for the previous background.
+        const variant = recolour === null ? '' : 'contrast:' + background;
+        if (recolour === null && outline) {
           host.setAttribute('data-vscode-tab-outline', '');
         } else {
           host.removeAttribute('data-vscode-tab-outline');
         }
-        if (host.getAttribute('data-vscode-tab-icon') === key) {
+        const previousVariant = host.getAttribute('data-vscode-tab-variant');
+        host.setAttribute('data-vscode-tab-variant', variant);
+        if (
+          host.getAttribute('data-vscode-tab-icon') === key &&
+          previousVariant === variant
+        ) {
           return;
         }
         host.setAttribute('data-vscode-tab-icon', key);
         host.style.backgroundImage = `url("data:image/svg+xml;utf8,${encodeURIComponent(
-          svgstr
+          recolour ?? svgstr
         )}")`;
       };
 
@@ -2076,8 +2098,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
             // Nothing specific anywhere. A tab still shows an icon. Lab's own
             // fileIcon carries fill #616161, which measures 6.19:1 on a light
-            // tab and 2.60:1 on a dark one, so the contrast measure outlines it
-            // on dark and leaves it alone on light (DEF-COLOUR-34).
+            // tab and 2.60:1 on a dark one, so the painter recolours it on dark
+            // and leaves it alone on light (DEF-COLOUR-34).
             if (!owner) {
               paintTabIcon(host, tab, 'generic-file', fileIcon.svgstr);
             }
@@ -2233,14 +2255,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
         markTabIcons();
       }, 1000);
 
-      // A theme switch changes the background both outline measures are taken
-      // against, and it fires nothing the painters already watch: measured,
-      // .jp-DirListing-content emitted no mutation records in the 20 seconds
-      // after a switch, so a row kept the previous theme's marker until the
-      // listing next changed (DEF-COLOUR-48). JupyterLab writes the theme onto
-      // the body element, which is the one place a switch is observable, and
-      // both painters re-decide their marker above the key guard, so re-running
-      // them is enough - neither repaints artwork that has not changed.
+      // A theme switch changes the background both painters' measures are
+      // taken against, and it fires nothing the painters already watch:
+      // measured, .jp-DirListing-content emitted no mutation records in the 20
+      // seconds after a switch, so a row kept the previous theme's marker until
+      // the listing next changed (DEF-COLOUR-48). JupyterLab writes the theme
+      // onto the body element, which is the one place a switch is observable,
+      // and both painters re-decide their marker above the key guard, so
+      // re-running them is enough - neither repaints artwork that has not
+      // changed.
       const themeObserver = new MutationObserver(() => {
         markRowIcons();
         markTabIcons();

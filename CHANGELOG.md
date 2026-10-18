@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.11] - 2026-10-18
+
+### Changed
+
+- Tab icons are slightly smaller, fitting a 13px content box inside the 16px host and keeping their aspect ratio without clipping
+- A tab icon that cannot clear 3:1 against its tab background is recoloured in one shared mix that keeps its internal colours distinct, instead of being outlined
+
+### Fixed
+
+- A tab icon's transparent cutouts no longer fill with the outline colour, so the Makefile cogs stay transparent on inactive dark tabs and custom themes
+
 ## [1.2.10] - 2026-10-18
 
 ### Fixed

@@ -248,12 +248,13 @@ test.describe('document tab icons', () => {
 });
 
 test.describe('painted tab glyph box', () => {
-  // DEF-TABS-33-1. JupyterLab sizes the icon host at 14px while rendering its
-  // own tab icons at their intrinsic 16px, so a painted tab sat 2px short of a
-  // stock one. The maintainer asked for the box to be padded rather than the
-  // glyph scaled: 16px of box, the glyph still drawn at lab's 14px and centred,
-  // and 2px of gutter so the label does not move from lab's 14+4.
-  test('is padded to 16px with the glyph left at 14px', async ({
+  // DEF-TABS-78 / ACC-TABS-53. JupyterLab sizes the icon host at 14px while
+  // rendering its own tab icons at their intrinsic 16px, so a painted tab sat
+  // 2px short of a stock one (DEF-TABS-33-1). The host is one 16px border box
+  // with 1.5px of padding, leaving a 13x13 content box; the artwork is painted
+  // into that box with `contain`, so every aspect ratio fits and nothing is
+  // clipped.
+  test('keeps one 13px content box inside a 16px host', async ({
     page,
     tmpPath
   }) => {
@@ -291,18 +292,135 @@ test.describe('painted tab glyph box', () => {
       return {
         width: Math.round(rect.width),
         height: Math.round(rect.height),
+        contentWidth: Math.round(
+          rect.width -
+            parseFloat(style.paddingLeft) -
+            parseFloat(style.paddingRight)
+        ),
+        contentHeight: Math.round(
+          rect.height -
+            parseFloat(style.paddingTop) -
+            parseFloat(style.paddingBottom)
+        ),
+        boxSizing: style.boxSizing,
+        padding: style.padding,
         backgroundSize: style.backgroundSize,
+        backgroundOrigin: style.backgroundOrigin,
         backgroundPosition: style.backgroundPosition,
+        backgroundRepeat: style.backgroundRepeat,
         marginRight: style.marginRight
       };
     });
     expect(box.width, JSON.stringify(box)).toBe(16);
     expect(box.height, JSON.stringify(box)).toBe(16);
-    // The glyph is not scaled: lab's 14px stands.
-    expect(box.backgroundSize.startsWith('14px'), JSON.stringify(box)).toBe(
-      true
-    );
+    expect(box.contentWidth, JSON.stringify(box)).toBe(13);
+    expect(box.contentHeight, JSON.stringify(box)).toBe(13);
+    expect(box.boxSizing, JSON.stringify(box)).toBe('border-box');
+    expect(box.padding, JSON.stringify(box)).toBe('1.5px');
+    expect(box.backgroundSize, JSON.stringify(box)).toBe('contain');
+    expect(box.backgroundOrigin, JSON.stringify(box)).toBe('content-box');
+    expect(box.backgroundPosition, JSON.stringify(box)).toBe('50% 50%');
+    expect(box.backgroundRepeat, JSON.stringify(box)).toBe('no-repeat');
     expect(box.marginRight, JSON.stringify(box)).toBe('2px');
+  });
+
+  // DEF-TABS-78: the Makefile artwork is portrait, and the old
+  // `background-size: 14px auto` drew it about 18.1px high inside a 16px box,
+  // clipping the top and bottom. The content box is now 13x13 and the computed
+  // size is `contain`, so the fitted image box must fit inside it. The runtime
+  // artwork's viewBox is tight, so its long side lands on the content-box edge;
+  // the guarantee is that no part extends past that edge, which the old
+  // fixed-width size violates.
+  test('fits the portrait Makefile inside the content box', async ({
+    page,
+    tmpPath
+  }) => {
+    await page.contents.uploadContent(
+      'all:\n\techo hi\n',
+      'text',
+      `${tmpPath}/Makefile`
+    );
+    await page.filebrowser.openDirectory(tmpPath);
+    await page.filebrowser.open(`${tmpPath}/Makefile`);
+    await page.waitForFunction(
+      () => {
+        const tab = [
+          ...document.querySelectorAll(
+            '.lm-TabBar-tab[data-type="document-title"]'
+          )
+        ].find(t => {
+          const label = t.querySelector('.lm-TabBar-tabLabel');
+          return !!label && label.textContent === 'Makefile';
+        });
+        const host = tab ? tab.querySelector('.lm-TabBar-tabIcon') : null;
+        return !!host && !!host.getAttribute('data-vscode-tab-icon');
+      },
+      undefined,
+      { timeout: 30000 }
+    );
+    const fit = await page.evaluate(() => {
+      const tab = [
+        ...document.querySelectorAll(
+          '.lm-TabBar-tab[data-type="document-title"]'
+        )
+      ].find(t => {
+        const label = t.querySelector('.lm-TabBar-tabLabel');
+        return !!label && label.textContent === 'Makefile';
+      });
+      const host = tab!.querySelector('.lm-TabBar-tabIcon') as HTMLElement;
+      const style = getComputedStyle(host);
+      const rect = host.getBoundingClientRect();
+      const contentWidth =
+        rect.width -
+        parseFloat(style.paddingLeft) -
+        parseFloat(style.paddingRight);
+      const contentHeight =
+        rect.height -
+        parseFloat(style.paddingTop) -
+        parseFloat(style.paddingBottom);
+      const uri = style.backgroundImage
+        .replace(/^url\("?/, '')
+        .replace(/"?\)$/, '');
+      const svg = decodeURIComponent(uri.replace(/^data:[^,]*,/, ''));
+      const viewBox = (svg.match(/viewBox="([^"]+)"/) || [])[1] || '';
+      const vw = Number(viewBox.split(/\s+/)[2]);
+      const vh = Number(viewBox.split(/\s+/)[3]);
+      const size = style.backgroundSize;
+      let drawWidth: number;
+      let drawHeight: number;
+      if (size === 'contain') {
+        const scale = Math.min(contentWidth / vw, contentHeight / vh);
+        drawWidth = vw * scale;
+        drawHeight = vh * scale;
+      } else {
+        // Any fixed width keeps the intrinsic ratio for the auto axis; the old
+        // stylesheet computed this as `14px auto`.
+        drawWidth = parseFloat(size);
+        drawHeight = (drawWidth * vh) / vw;
+      }
+      return {
+        contentWidth,
+        contentHeight,
+        viewBox,
+        backgroundSize: size,
+        drawWidth,
+        drawHeight
+      };
+    });
+    expect(Math.round(fit.contentWidth), JSON.stringify(fit)).toBe(13);
+    expect(Math.round(fit.contentHeight), JSON.stringify(fit)).toBe(13);
+    expect(fit.viewBox, JSON.stringify(fit)).toBeTruthy();
+    expect(fit.backgroundSize, JSON.stringify(fit)).toBe('contain');
+    // Portrait: the fitted height fills the box and side margins remain. No
+    // part of the image box may extend past the content box, so the old
+    // 14px-wide, auto-high fit (18.1px tall in a 16px box) cannot satisfy this.
+    expect(fit.drawHeight, JSON.stringify(fit)).toBeLessThanOrEqual(
+      fit.contentHeight
+    );
+    expect(fit.drawWidth, JSON.stringify(fit)).toBeLessThanOrEqual(
+      fit.contentWidth
+    );
+    expect(fit.drawWidth, JSON.stringify(fit)).toBeLessThan(fit.drawHeight);
   });
 });
 
@@ -423,13 +541,17 @@ test.describe('group toggles reach the tab', () => {
 });
 
 test.describe('painted tab glyphs stay visible', () => {
-  // DEF-COLOUR-32: the vendor artwork was drawn for VSCode's dark sidebar, and
-  // some of it has no perceivable contrast on a JupyterLab tab bar - measured
-  // in this lab, the yaml wordmark's best pixel is 1.20:1 against a white tab.
-  // The painter measures the artwork against the tab it is about to sit on and
-  // marks the ones that cannot clear 3:1, which the stylesheet then outlines;
-  // measured with the outline, the same glyph reads 19.69:1.
-  test('a low-contrast glyph is marked and a legible one is not', async ({
+  // DEF-COLOUR-32 and DEF-TABS-78: the vendor artwork was drawn for VSCode's
+  // dark sidebar, and some of it has no perceivable contrast on a JupyterLab
+  // tab bar - measured in this lab, the yaml wordmark's best pixel is 1.20:1
+  // against a white tab. The painter measures the artwork against the tab it is
+  // about to sit on, and recolours only when the artwork's best colour the
+  // measure reads (a stated hex, or the black an unfilled element paints) is
+  // below the bar. When any stated colour is below 3:1, one shared mix toward
+  // black or white applies to every stated colour it rewrites. The old
+  // drop-shadow edge is gone because it filled the transparent cutouts; it
+  // remains only for artwork with no rewriteable colour.
+  test('a low-contrast glyph is recoloured and a legible one is not', async ({
     page,
     tmpPath
   }) => {
@@ -452,7 +574,9 @@ test.describe('painted tab glyphs stay visible', () => {
         return {
           name: label ? label.textContent : null,
           painted: host ? host.getAttribute('data-vscode-tab-icon') : null,
-          outlined: host ? host.hasAttribute('data-vscode-tab-outline') : null
+          variant: host ? host.getAttribute('data-vscode-tab-variant') : null,
+          outlined: host ? host.hasAttribute('data-vscode-tab-outline') : null,
+          filter: host ? getComputedStyle(host).filter : null
         };
       })
     );
@@ -460,26 +584,38 @@ test.describe('painted tab glyphs stay visible', () => {
     const jar = tabs.find(t => t.name === 'probe.jar');
     expect(yaml, JSON.stringify(tabs)).toBeDefined();
     expect(yaml!.painted, JSON.stringify(tabs)).toBe('file-type-yaml');
-    // 1.20:1 on a white tab, so it must be marked.
-    expect(yaml!.outlined, JSON.stringify(tabs)).toBe(true);
-    // The jar glyph clears the bar on its own, so marking it would be noise.
+    // 1.20:1 on a white tab, so its stated fill is rewritten. The variant
+    // carries the measured background after the colon.
+    expect(yaml!.variant?.startsWith('contrast'), JSON.stringify(tabs)).toBe(
+      true
+    );
+    expect(yaml!.filter, JSON.stringify(tabs)).toBe('none');
+    expect(yaml!.outlined, JSON.stringify(tabs)).toBe(false);
+    // The jar glyph clears the bar on its own and keeps the original fill.
     expect(jar!.painted, JSON.stringify(tabs)).toBe('file-type-jar');
+    expect(jar!.variant, JSON.stringify(tabs)).toBe('');
     expect(jar!.outlined, JSON.stringify(tabs)).toBe(false);
+    // No stated-colour tab falls back to the outline: the recolour covers them
+    // all.
+    const outlined = await page.evaluate(
+      () => document.querySelectorAll('[data-vscode-tab-outline]').length
+    );
+    expect(outlined, JSON.stringify(tabs)).toBe(0);
   });
 });
 
-test.describe('the outline follows the theme', () => {
+test.describe('the contrast variant follows the theme', () => {
   // DEF-COLOUR-32 again: the decision used to be taken once per icon key, so a
-  // tab painted on the dark theme kept no outline after a switch to the light
-  // one, where the same artwork measures 1.06:1. It is now decided on every
-  // pass, and any tab open, close or activation fires one.
-  test('a glyph legible on dark gets its edge after a switch to light', async ({
+  // tab painted on the dark theme kept its original fill after a switch to the
+  // light one, where the same artwork measures 1.06:1. The painter now
+  // recolours on every pass and the guard watches the variant, so any tab
+  // open, close or activation that fires one is enough.
+  test('a glyph repainted for the light theme replaces the original fill', async ({
     page,
     tmpPath
   }) => {
     await page.theme.setDarkTheme();
     await page.contents.uploadContent('a: 1\n', 'text', `${tmpPath}/probe.yml`);
-    await page.contents.uploadContent('x', 'text', `${tmpPath}/other.jar`);
     await page.filebrowser.openDirectory(tmpPath);
     await page.filebrowser.open(`${tmpPath}/probe.yml`);
     await page.waitForTimeout(2000);
@@ -499,22 +635,209 @@ test.describe('the outline follows the theme', () => {
           : null;
         return {
           painted: host ? host.getAttribute('data-vscode-tab-icon') : null,
-          outlined: host ? host.hasAttribute('data-vscode-tab-outline') : null
+          variant: host ? host.getAttribute('data-vscode-tab-variant') : null,
+          outlined: host ? host.hasAttribute('data-vscode-tab-outline') : null,
+          background: host ? host.style.backgroundImage : null
         };
       });
 
     const onDark = await read();
     expect(onDark.painted, JSON.stringify(onDark)).toBe('file-type-yaml');
-    // 13:1 against the dark bar, so no edge is wanted there.
+    // 13:1 against the dark bar, so the original fill is kept.
+    expect(onDark.variant, JSON.stringify(onDark)).toBe('');
     expect(onDark.outlined, JSON.stringify(onDark)).toBe(false);
 
     await page.theme.setLightTheme();
-    // A theme switch mutates no tab node, so the next pass is what re-decides:
-    // opening another file fires one, which is the journey a user takes.
-    await page.filebrowser.open(`${tmpPath}/other.jar`);
+    // The theme switch mutates the body attributes the observer watches and
+    // calls markTabIcons; the tab node itself need not mutate.
     await page.waitForTimeout(2000);
     const onLight = await read();
     expect(onLight.painted, JSON.stringify(onLight)).toBe('file-type-yaml');
-    expect(onLight.outlined, JSON.stringify(onLight)).toBe(true);
+    expect(
+      onLight.variant?.startsWith('contrast'),
+      JSON.stringify(onLight)
+    ).toBe(true);
+    expect(onLight.outlined, JSON.stringify(onLight)).toBe(false);
+    // The recoloured data URI must have replaced the original one: this is the
+    // regression for the guard that ignored the variant.
+    expect(onLight.background, JSON.stringify(onLight)).not.toBe(
+      onDark.background
+    );
+  });
+});
+
+/** The WCAG relative luminance of an sRGB colour, channels in 0-255. */
+const relativeLuminance = (channels: [number, number, number]): number => {
+  const linear = channels.map(value => {
+    const c = value / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+};
+
+/** The three channels of an `rgb(...)` string or a `#rgb`/`#rrggbb` value. */
+const channelsOf = (value: string): [number, number, number] => {
+  const rgb = value.match(/rgba?\(([^)]+)\)/);
+  if (rgb) {
+    const parts = rgb[1].split(',').map(part => parseFloat(part));
+    return [parts[0], parts[1], parts[2]];
+  }
+  const hex = value.trim().match(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+  if (!hex) {
+    throw new Error(`unreadable colour: ${value}`);
+  }
+  const full =
+    hex[1].length === 3
+      ? hex[1]
+          .split('')
+          .map(c => c + c)
+          .join('')
+      : hex[1];
+  return [
+    parseInt(full.slice(0, 2), 16),
+    parseInt(full.slice(2, 4), 16),
+    parseInt(full.slice(4, 6), 16)
+  ];
+};
+
+/** The WCAG ratio between two colours. */
+const contrastRatio = (a: string, b: string): number => {
+  const first = relativeLuminance(channelsOf(a));
+  const second = relativeLuminance(channelsOf(b));
+  return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+};
+
+/** Every hex `fill` carried by a painted `url("data:...")` background. */
+const paintedFills = (backgroundImage: string): string[] => {
+  const uri = backgroundImage.replace(/^url\("?/, '').replace(/"?\)$/, '');
+  const svg = decodeURIComponent(uri.replace(/^data:[^,]*,/, ''));
+  const stated = svg.match(/fill="(#[0-9a-fA-F]{3,6})"/g) || [];
+  return stated.map(attribute =>
+    attribute.replace(/^fill="/, '').replace(/"$/, '')
+  );
+};
+
+test.describe('a contrast variant follows its background', () => {
+  // ACC-TABS-55 / DEF-TABS-78: the guard used to compare only the icon key and
+  // a binary 'contrast' marker, so a tab moving between two backgrounds that
+  // both need a recolour - the active white tab and the inactive #eeeeee one -
+  // returned before repainting and kept the fill measured for the old
+  // background. The variant now carries the measured background, so the guard
+  // sees the change. The fills are read back from the painted URI and measured
+  // against the tab's own computed background; the expected values are not
+  // hardcoded.
+  test('contrast to contrast repaints for the new background', async ({
+    page,
+    tmpPath
+  }) => {
+    await page.theme.setLightTheme();
+    await page.contents.uploadContent('a: 1\n', 'text', `${tmpPath}/probe.yml`);
+    await page.contents.uploadContent('x', 'text', `${tmpPath}/other.jar`);
+    await page.filebrowser.openDirectory(tmpPath);
+    // The jar is opened first so its tab exists and can be clicked below;
+    // probe.yml is opened last so it starts active on the white tab.
+    await page.filebrowser.open(`${tmpPath}/other.jar`);
+    await page.filebrowser.open(`${tmpPath}/probe.yml`);
+    await page.waitForFunction(
+      () => {
+        const host = [
+          ...document.querySelectorAll(
+            '.lm-TabBar-tab[data-type="document-title"]'
+          )
+        ]
+          .filter(tab => {
+            const label = tab.querySelector('.lm-TabBar-tabLabel');
+            return !!label && label.textContent === 'probe.yml';
+          })
+          .map(tab => tab.querySelector('.lm-TabBar-tabIcon'))[0];
+        const variant = host
+          ? host.getAttribute('data-vscode-tab-variant') || ''
+          : '';
+        return variant.startsWith('contrast');
+      },
+      undefined,
+      { timeout: 30000 }
+    );
+
+    const read = () =>
+      page.evaluate(() => {
+        const tab = [
+          ...document.querySelectorAll(
+            '.lm-TabBar-tab[data-type="document-title"]'
+          )
+        ].find(t => {
+          const label = t.querySelector('.lm-TabBar-tabLabel');
+          return !!label && label.textContent === 'probe.yml';
+        });
+        const host = tab
+          ? (tab.querySelector('.lm-TabBar-tabIcon') as HTMLElement | null)
+          : null;
+        return {
+          variant: host ? host.getAttribute('data-vscode-tab-variant') : null,
+          backgroundImage: host ? host.style.backgroundImage : null,
+          background: tab ? getComputedStyle(tab).backgroundColor : null
+        };
+      });
+
+    const active = await read();
+    expect(active.background, JSON.stringify(active)).toBe(
+      'rgb(255, 255, 255)'
+    );
+    expect(active.variant, JSON.stringify(active)).toContain('contrast');
+    const activeFills = paintedFills(active.backgroundImage!);
+    expect(activeFills.length, JSON.stringify(active)).toBeGreaterThan(0);
+    for (const fill of activeFills) {
+      expect(
+        contrastRatio(fill, active.background!),
+        `${fill} on the active background ${active.background}`
+      ).toBeGreaterThanOrEqual(3);
+    }
+
+    // Clicking the jar tab makes probe.yml inactive: the tab keeps its node
+    // but takes the #eeeeee background, which needs its own recolour.
+    await page
+      .locator('.lm-TabBar-tab[data-type="document-title"]')
+      .filter({ hasText: 'other.jar' })
+      .locator('.lm-TabBar-tabLabel')
+      .click();
+    await page.waitForFunction(
+      (previous: string) => {
+        const host = [
+          ...document.querySelectorAll(
+            '.lm-TabBar-tab[data-type="document-title"]'
+          )
+        ]
+          .filter(tab => {
+            const label = tab.querySelector('.lm-TabBar-tabLabel');
+            return !!label && label.textContent === 'probe.yml';
+          })
+          .map(tab => tab.querySelector('.lm-TabBar-tabIcon'))[0];
+        const variant = host
+          ? host.getAttribute('data-vscode-tab-variant')
+          : null;
+        return (
+          !!variant && variant.startsWith('contrast') && variant !== previous
+        );
+      },
+      active.variant,
+      { timeout: 30000 }
+    );
+
+    const inactive = await read();
+    expect(inactive.background, JSON.stringify(inactive)).toBe(
+      'rgb(238, 238, 238)'
+    );
+    expect(inactive.variant, JSON.stringify(inactive)).not.toBe(active.variant);
+    expect(inactive.backgroundImage, JSON.stringify(inactive)).not.toBe(
+      active.backgroundImage
+    );
+    const inactiveFills = paintedFills(inactive.backgroundImage!);
+    expect(inactiveFills.length, JSON.stringify(inactive)).toBeGreaterThan(0);
+    for (const fill of inactiveFills) {
+      expect(
+        contrastRatio(fill, inactive.background!),
+        `${fill} on the inactive background ${inactive.background}`
+      ).toBeGreaterThanOrEqual(3);
+    }
   });
 });
