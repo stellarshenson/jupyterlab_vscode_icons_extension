@@ -353,6 +353,7 @@ Icons on the dock panel tabs of open documents, matching the file browser
 - [x] `ACC-TABS-27` **Tab shows an icon for its file type** - HIGH; the document tab of an open file shows a glyph for that file's type rather than JupyterLab's generic editor icon. It may differ from the row: a row keeps the specific icon JupyterLab registered, while a tab carries only the generic editor glyph, which is sanctioned to override.
   - evidence: tab-icons.spec.ts asserts the tab marker for tabbed.js equals registry:<the row's data-file-type> and that the slot is never empty; painting a constant key makes it fail
   - related: ACC-ICONS-1 - the same glyph map this must read
+  - overridden-by: ACC-TABS-56
   - test: open one file per mapped extension, compare each tab icon against that file's row in the browser
   - test-tags: MANUAL
   - mechanism: 2026-10-14T07:29:23Z @kj measured live: a file editor tab carries lab's own `ui-components:text-editor` svg inside `.lm-TabBar-tabIcon`, so the registered file type's icon never reaches it; override by swapping that node and yield whenever `data-icon` sits outside the `ui-components:` namespace
@@ -420,6 +421,7 @@ Icons on the dock panel tabs of open documents, matching the file browser
 - [x] `ACC-TABS-33` **Generic icons lose to specific ones** - HIGH; a generic tab icon - JupyterLab's editor glyph, its plain-file glyph, or no icon at all - is always replaced by the file's specific vscode-icons glyph; a specific icon another extension delivers is not generic and is kept
   - evidence: tab-icons.spec.ts 'a tab mirrors its file browser row' opens tabbed.js, where JupyterLab puts its generic editor glyph, and asserts the tab carries the registry icon its row resolved
   - related: ACC-TABS-31 - the other half of the priority rule
+  - overridden-by: ACC-TABS-56
   - test: open a .js and a .py file, assert each tab carries its language glyph, not the editor glyph
   - test-tags: E2E
   - log: 2026-10-14T07:30:14Z @kj added
@@ -462,6 +464,16 @@ Icons on the dock panel tabs of open documents, matching the file browser
   - mechanism: 2026-10-18T15:09:54Z @kj the paint guard compares the variant attribute as well as the icon key
   - log: 2026-10-18T15:09:54Z @kj added
   - log: 2026-10-18T16:01:19Z @kj closed: verified: repaint follows the background
+- [x] `ACC-TABS-56` **Editor tab mirrors the row for a JupyterLab-claimed type** - HIGH; a document tab whose icon slot carries JupyterLab's generic file or editor glyph shows the same JupyterLab icon as its file-browser row, for a file type JupyterLab claims
+  - evidence: md-tab-match.spec.ts 4 passed, tab-icons.spec.ts 13 passed, full Galata 71 passed, jest 169 passed, make test exit 0
+  - overrides: ACC-TABS-27
+  - overrides: ACC-TABS-33
+  - related: ACC-TABS-31 - another extension's specific tab icon still wins
+  - test: open mod.md, mod.py and mod.rs with the Editor: the first two tabs' data-icon and fill equal the row's, mod.rs keeps the bundled rust art
+  - test-tags: UNIT, E2E
+  - mechanism: 2026-10-19T13:48:07Z @kj title.icon set to the file type's ui-components LabIcon through a memoized mainAreaTab view so jp-icon-contrast keeps theming; rows untouched; a rename to a type JupyterLab does not claim restores the original icon; another extension's specific tab icon still wins
+  - log: 2026-10-19T13:48:07Z @kj added
+  - log: 2026-10-19T13:58:16Z @kj closed: fixed: editor tabs mirror the row for JupyterLab-claimed types
 
 ## Symbolic link badges `LINK`
 

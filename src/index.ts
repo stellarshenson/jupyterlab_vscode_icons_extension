@@ -7,6 +7,7 @@ import { Contents, ServerConnection } from '@jupyterlab/services';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { FileBrowserModel, IDefaultFileBrowser } from '@jupyterlab/filebrowser';
 import { fileIcon, LabIcon, markdownIcon } from '@jupyterlab/ui-components';
+import type { Widget } from '@lumino/widgets';
 
 import { needsOutlineOn, recolourForContrast } from './contrast';
 // Loaded eagerly on purpose: activate() registers every mapped file type up
@@ -16,6 +17,7 @@ import { needsOutlineOn, recolourForContrast } from './contrast';
 import { generateIconSVG, getIconForFile, getIconSVG } from './icons';
 import { parsePyprojectToml, parseSetupPy } from './parsers';
 import { applyJupytext1191Hotfix } from './hotfixes';
+import { mirrorIconForTypes } from './tab-mirror';
 
 const PLUGIN_ID = 'jupyterlab_vscode_icons_extension:plugin';
 
@@ -2003,6 +2005,36 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
       };
 
+      // DEF-TABS-79: a document tab whose icon slot carries one of Lab's
+      // generic glyphs shows the same JupyterLab icon as its file browser row,
+      // for every type JupyterLab claims. The mirror is title.icon, never a
+      // data URI: copying the icon's svgstr drops jp-icon-contrast, the class
+      // that themes it (DEF-TABS-19).
+      //
+      // Each mirrored title remembers the icon it wore before the first
+      // mirror, so a rename to a type with no mirror target can put it back
+      // (see the restore branch in markTabIcons). The applied view is compared
+      // by identity to tell our own mirror from an icon another extension set.
+      const mirroredTitles = new WeakMap<
+        Widget,
+        { original: Widget['title']['icon']; applied: LabIcon }
+      >();
+      // The shell binds a main-area icon to the mainAreaTab stylesheet once,
+      // when the widget is added (shell.js:1063-1067): 14x14 with a 4px right
+      // margin. A mirror assigned later must carry the same binding, and the
+      // view must be memoized: bindprops returns a fresh object, so re-binding
+      // every pass would make each pass differ from the remembered one and
+      // re-render forever.
+      const mirrorViews = new Map<LabIcon, LabIcon>();
+      const mirrorView = (icon: LabIcon): LabIcon => {
+        let view = mirrorViews.get(icon);
+        if (!view) {
+          view = icon.bindprops({ stylesheet: 'mainAreaTab' });
+          mirrorViews.set(icon, view);
+        }
+        return view;
+      };
+
       // The glyph is painted as a background image, which the page's
       // stylesheet cannot reach into, so the artwork's own colours decide
       // whether it can be seen. src/contrast.ts holds the measurement and its
@@ -2048,6 +2080,21 @@ const plugin: JupyterFrontEndPlugin<void> = {
       };
 
       const markTabIcons = (): void => {
+        // One lookup per pass, not per tab: shell.add sets title.dataset.id
+        // to the widget id and Lumino spreads the dataset onto the tab node,
+        // so the data-id join finds the one widget whose title.icon drives
+        // the tab's icon node.
+        const widgetsById = new Map<string, Widget>();
+        for (const widget of app.shell.widgets('main')) {
+          widgetsById.set(widget.id, widget);
+        }
+        // shell.add rebinds title.icon on every main-area add (including the
+        // re-add when returning from Simple Interface); bindprops returns
+        // Object.create(this), so a rebound view loses object identity but
+        // inherits the name.
+        const showsApplied = (widget: Widget, applied: LabIcon): boolean =>
+          widget.title.icon === applied ||
+          (widget.title.icon as LabIcon | undefined)?.name === applied.name;
         document
           .querySelectorAll('.lm-TabBar-tab[data-type="document-title"]')
           .forEach(tab => {
@@ -2072,7 +2119,77 @@ const plugin: JupyterFrontEndPlugin<void> = {
               namespace === 'ui-components:pdf' &&
               fileName.toLowerCase().endsWith('.pdf') &&
               settings.enableDocIcons;
+            // The target is computed before the specific-icon guard on
+            // purpose: a tab showing Lab's generic editor glyph is exactly the
+            // case the guard would keep, and this block replaces it with the
+            // icon the row uses.
+            const resolved = resolveIcon(fileName);
+            const slotReplaceable =
+              !namespace || labGenericIcons.has(namespace);
+            const tabWidget = widgetsById.get(
+              tab.getAttribute('data-id') || ''
+            );
+            const target = mirrorIconForTypes(
+              docRegistry.getFileTypesForPath(fileName)
+            );
+            // The row artwork is deliberate and is what the row shows for
+            // .pdf, .svg, .bpmn, .db, uv.lock, pytest.ini and conftest.py
+            // (ACC-TABS-37, DEF-TABS-50, index.ts:1914-1920). Mirroring a
+            // JupyterLab icon over it would make the tab disagree with the row
+            // instead of agree.
+            const rowArtworkActive =
+              !!resolved && resolved.key.startsWith('artwork:');
+            // A rename from one Lab-claimed type to another leaves our own
+            // mirror in the slot, which is specific (ui-components:markdown is
+            // not in labGenericIcons). The remembered applied view is what
+            // distinguishes that mirror from a third party's specific icon;
+            // shell.add rebinds title.icon, so a shell-rebound view of the
+            // same LabIcon is matched by name as well as identity.
+            const entry = tabWidget ? mirroredTitles.get(tabWidget) : undefined;
+            const alreadyMirrored =
+              !!tabWidget && !!entry && showsApplied(tabWidget, entry.applied);
+            let restored = false;
             if (
+              target &&
+              tabWidget &&
+              !rowArtworkActive &&
+              (slotReplaceable || alreadyMirrored)
+            ) {
+              // Clear a previous paint first: the stylesheet hides the inline
+              // svg only while data-vscode-tab-icon is present.
+              clearTabIcon(host);
+              const view = mirrorView(target);
+              if (
+                entry &&
+                entry.applied === view &&
+                tabWidget.title.icon === view
+              ) {
+                // Already the target; clearing the paint above is the whole
+                // job.
+                return;
+              }
+              if (entry) {
+                entry.applied = view;
+              } else {
+                mirroredTitles.set(tabWidget, {
+                  original: tabWidget.title.icon,
+                  applied: view
+                });
+              }
+              tabWidget.title.icon = view;
+              return;
+            }
+            if ((!target || rowArtworkActive) && tabWidget) {
+              if (entry) {
+                mirroredTitles.delete(tabWidget);
+                if (showsApplied(tabWidget, entry.applied)) {
+                  tabWidget.title.icon = entry.original;
+                  restored = true;
+                }
+              }
+            }
+            if (
+              !restored &&
               namespace &&
               !labGenericIcons.has(namespace) &&
               !ownPdfArtwork
@@ -2084,7 +2201,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
               return;
             }
 
-            const resolved = resolveIcon(fileName);
             if (resolved) {
               paintTabIcon(host, tab, resolved.key, resolved.svgstr);
               return;

@@ -1,0 +1,1 @@
+- 2026-10-19T12:46:18Z @kj defects.md 75100701 sha256:ccafdd32e5d8dd074ef1fffd9c297cac8a6c3569e064dafad338f31b7adc1922: attach has no detach or rename; the first attach stored a path outside the repository; replacing it with the copy in docs/defects/

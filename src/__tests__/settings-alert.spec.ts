@@ -52,7 +52,11 @@ const harness = async (): Promise<{
       getFileTypeForModel: () => ({ name: 'text' }),
       fileTypes: () => []
     },
-    shell: { add: () => undefined, currentWidget: null },
+    shell: {
+      add: () => undefined,
+      currentWidget: null,
+      widgets: () => []
+    },
     commands: { addCommand: () => undefined },
     started: Promise.resolve(),
     restored: Promise.resolve()

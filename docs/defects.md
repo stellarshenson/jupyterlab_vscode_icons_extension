@@ -263,6 +263,19 @@ Icons on the dock panel tabs of open documents
   - log: 2026-10-18T15:09:58Z @kj added
   - log: 2026-10-18T15:10:01Z @kj attached defects/DEF-TABS-78-tab-outline.png sha256:7c3958c77d86d1b4
   - log: 2026-10-18T16:01:18Z @kj closed: fixed: per-background recolour replaces the tab outline; gear cutouts stay transparent
+- [x] `DEF-TABS-79` **Markdown editor tab shows bundled artwork while its row shows JupyterLab's** - MEDIUM; a .md opened with the Editor shows the bundled file-type-markdown glyph (boxed M-down-arrow, #755838) on the tab, while the row keeps JupyterLab's ui-components:markdown; cause: resolveIcon discards a ui-components registry hit on a generic editor tab and falls through to the bundled glyph; fix under investigation; `src/index.ts`
+  - evidence: full Galata 71 passed, jest 169 passed, make test exit 0 on the final tree; adversarial review round 2 SHIP
+  - attachment: defects/DEF-TABS-79-markdown-tab.png sha256:6927a63c9af027eb edited:2026-10-19T12:46:15Z
+  - repro: open a plain .md with the Editor: tab shows the bundled boxed M-down-arrow recoloured for the tab background, row shows JupyterLab's purple markdown glyph
+  - test-tags: FUNCTIONAL
+  - root-cause: 2026-10-19T13:00:07Z @kj the editor factory puts ui-components:text-editor on the tab, so markTabIcons resolves; resolveIcon rejects the ui-components:markdown registry hit and returns the bundled file-type-markdown, while markRowIcons keeps the specific markdown icon on the row
+  - root-cause: 2026-10-19T12:45:53Z @kj the markTabIcons specific-icon guard keeps ui-components:markdown and returns before resolveIcon; the row paints this extension's markdown artwork
+  - log: 2026-10-19T12:45:53Z @kj added
+  - log: 2026-10-19T12:45:56Z @kj attached ../../../../../../../tmp/paste-clippings/paste-20261019-143823.png sha256:6927a63c9af027eb
+  - log: 2026-10-19T13:00:01Z @kj edited title "Markdown tab shows JupyterLab's glyph while its row shows the extension's" -> "Markdown editor tab shows bundled artwork while its row shows JupyterLab's"; text "opening a .md shows JupyterLab's markdown glyph (M with a down arrow) on the tab while the file-browser row shows this extension's markdown artwork; cause: markTabIcons keeps a specific tab icon and returns before resolveIcon, and a markdown tab carries ui-components:markdown; fix under investigation; `src/index.ts`" -> "MEDIUM; a .md opened with the Editor shows the bundled file-type-markdown glyph (boxed M-down-arrow, #755838) on the tab, while the row keeps JupyterLab's ui-components:markdown; cause: resolveIcon discards a ui-components registry hit on a generic editor tab and falls through to the bundled glyph; fix under investigation; `src/index.ts`"; repro "open a .md file in the editor: the tab shows JupyterLab's M-down-arrow glyph, the browser row shows this extension's markdown artwork" -> "open a plain .md with the Editor: tab shows the bundled boxed M-down-arrow recoloured for the tab background, row shows JupyterLab's purple markdown glyph"
+  - log: 2026-10-19T13:00:07Z @kj diagnosed: wf_1d681f8c-bf9 verifier reproduced tab file-type-markdown vs row ui-components:markdown; default viewer tab matches; the title.icon mirror is the fix route DEF-TABS-19 recorded
+  - log: 2026-10-19T13:00:07Z @kj attempted: jupytext-simulated purple row - not the reported case, jupytext absent and the screenshot matches the editor tab of a plain .md
+  - log: 2026-10-19T14:53:59Z @kj closed: fixed: editor tabs mirror the row icon for JupyterLab-claimed types via widget.title.icon, including the rename restore
 
 ## Icon coverage `ICONS`
 

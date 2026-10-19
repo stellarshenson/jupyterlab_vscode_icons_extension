@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.12] - 2026-10-19
+
+### Changed
+
+- An editor tab for a file type JupyterLab claims (.md, .py, .json, .yaml, .csv, images, CHANGELOG.md) shows JupyterLab's own icon, the same glyph as its file-browser row, instead of the bundled vscode glyph
+
+### Fixed
+
+- A Markdown tab no longer shows a different icon from its file-browser row (DEF-TABS-79)
+
 ## [1.2.11] - 2026-10-18
 
 ### Changed

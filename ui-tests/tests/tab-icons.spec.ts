@@ -543,7 +543,7 @@ test.describe('group toggles reach the tab', () => {
 test.describe('painted tab glyphs stay visible', () => {
   // DEF-COLOUR-32 and DEF-TABS-78: the vendor artwork was drawn for VSCode's
   // dark sidebar, and some of it has no perceivable contrast on a JupyterLab
-  // tab bar - measured in this lab, the yaml wordmark's best pixel is 1.20:1
+  // tab bar - measured in this lab, the log glyph's green #00bd02 is 2.54:1
   // against a white tab. The painter measures the artwork against the tab it is
   // about to sit on, and recolours only when the artwork's best colour the
   // measure reads (a stated hex, or the black an unfilled element paints) is
@@ -551,14 +551,17 @@ test.describe('painted tab glyphs stay visible', () => {
   // black or white applies to every stated colour it rewrites. The old
   // drop-shadow edge is gone because it filled the transparent cutouts; it
   // remains only for artwork with no rewriteable colour.
+  //
+  // The fixture is .log rather than .yml since DEF-TABS-79: a .yml tab now
+  // mirrors its row's JupyterLab icon and carries no painted glyph.
   test('a low-contrast glyph is recoloured and a legible one is not', async ({
     page,
     tmpPath
   }) => {
-    await page.contents.uploadContent('a: 1\n', 'text', `${tmpPath}/probe.yml`);
+    await page.contents.uploadContent('a: 1\n', 'text', `${tmpPath}/probe.log`);
     await page.contents.uploadContent('x', 'text', `${tmpPath}/probe.jar`);
     await page.filebrowser.openDirectory(tmpPath);
-    for (const name of ['probe.yml', 'probe.jar']) {
+    for (const name of ['probe.log', 'probe.jar']) {
       await page.filebrowser.open(`${tmpPath}/${name}`);
       await page.waitForTimeout(1200);
     }
@@ -580,17 +583,17 @@ test.describe('painted tab glyphs stay visible', () => {
         };
       })
     );
-    const yaml = tabs.find(t => t.name === 'probe.yml');
+    const log = tabs.find(t => t.name === 'probe.log');
     const jar = tabs.find(t => t.name === 'probe.jar');
-    expect(yaml, JSON.stringify(tabs)).toBeDefined();
-    expect(yaml!.painted, JSON.stringify(tabs)).toBe('file-type-yaml');
-    // 1.20:1 on a white tab, so its stated fill is rewritten. The variant
+    expect(log, JSON.stringify(tabs)).toBeDefined();
+    expect(log!.painted, JSON.stringify(tabs)).toBe('file-type-log');
+    // 2.54:1 on a white tab, so its stated fill is rewritten. The variant
     // carries the measured background after the colon.
-    expect(yaml!.variant?.startsWith('contrast'), JSON.stringify(tabs)).toBe(
+    expect(log!.variant?.startsWith('contrast'), JSON.stringify(tabs)).toBe(
       true
     );
-    expect(yaml!.filter, JSON.stringify(tabs)).toBe('none');
-    expect(yaml!.outlined, JSON.stringify(tabs)).toBe(false);
+    expect(log!.filter, JSON.stringify(tabs)).toBe('none');
+    expect(log!.outlined, JSON.stringify(tabs)).toBe(false);
     // The jar glyph clears the bar on its own and keeps the original fill.
     expect(jar!.painted, JSON.stringify(tabs)).toBe('file-type-jar');
     expect(jar!.variant, JSON.stringify(tabs)).toBe('');
@@ -607,7 +610,7 @@ test.describe('painted tab glyphs stay visible', () => {
 test.describe('the contrast variant follows the theme', () => {
   // DEF-COLOUR-32 again: the decision used to be taken once per icon key, so a
   // tab painted on the dark theme kept its original fill after a switch to the
-  // light one, where the same artwork measures 1.06:1. The painter now
+  // light one, where the same artwork measures 2.54:1. The painter now
   // recolours on every pass and the guard watches the variant, so any tab
   // open, close or activation that fires one is enough.
   test('a glyph repainted for the light theme replaces the original fill', async ({
@@ -615,9 +618,9 @@ test.describe('the contrast variant follows the theme', () => {
     tmpPath
   }) => {
     await page.theme.setDarkTheme();
-    await page.contents.uploadContent('a: 1\n', 'text', `${tmpPath}/probe.yml`);
+    await page.contents.uploadContent('a: 1\n', 'text', `${tmpPath}/probe.log`);
     await page.filebrowser.openDirectory(tmpPath);
-    await page.filebrowser.open(`${tmpPath}/probe.yml`);
+    await page.filebrowser.open(`${tmpPath}/probe.log`);
     await page.waitForTimeout(2000);
 
     const read = () =>
@@ -628,7 +631,7 @@ test.describe('the contrast variant follows the theme', () => {
           )
         ].find(t => {
           const l = t.querySelector('.lm-TabBar-tabLabel');
-          return !!l && l.textContent === 'probe.yml';
+          return !!l && l.textContent === 'probe.log';
         });
         const host = tab
           ? (tab.querySelector('.lm-TabBar-tabIcon') as HTMLElement)
@@ -642,8 +645,8 @@ test.describe('the contrast variant follows the theme', () => {
       });
 
     const onDark = await read();
-    expect(onDark.painted, JSON.stringify(onDark)).toBe('file-type-yaml');
-    // 13:1 against the dark bar, so the original fill is kept.
+    expect(onDark.painted, JSON.stringify(onDark)).toBe('file-type-log');
+    // 6.35:1 against the dark bar, so the original fill is kept.
     expect(onDark.variant, JSON.stringify(onDark)).toBe('');
     expect(onDark.outlined, JSON.stringify(onDark)).toBe(false);
 
@@ -652,7 +655,7 @@ test.describe('the contrast variant follows the theme', () => {
     // calls markTabIcons; the tab node itself need not mutate.
     await page.waitForTimeout(2000);
     const onLight = await read();
-    expect(onLight.painted, JSON.stringify(onLight)).toBe('file-type-yaml');
+    expect(onLight.painted, JSON.stringify(onLight)).toBe('file-type-log');
     expect(
       onLight.variant?.startsWith('contrast'),
       JSON.stringify(onLight)
@@ -731,13 +734,13 @@ test.describe('a contrast variant follows its background', () => {
     tmpPath
   }) => {
     await page.theme.setLightTheme();
-    await page.contents.uploadContent('a: 1\n', 'text', `${tmpPath}/probe.yml`);
+    await page.contents.uploadContent('a: 1\n', 'text', `${tmpPath}/probe.log`);
     await page.contents.uploadContent('x', 'text', `${tmpPath}/other.jar`);
     await page.filebrowser.openDirectory(tmpPath);
     // The jar is opened first so its tab exists and can be clicked below;
-    // probe.yml is opened last so it starts active on the white tab.
+    // probe.log is opened last so it starts active on the white tab.
     await page.filebrowser.open(`${tmpPath}/other.jar`);
-    await page.filebrowser.open(`${tmpPath}/probe.yml`);
+    await page.filebrowser.open(`${tmpPath}/probe.log`);
     await page.waitForFunction(
       () => {
         const host = [
@@ -747,7 +750,7 @@ test.describe('a contrast variant follows its background', () => {
         ]
           .filter(tab => {
             const label = tab.querySelector('.lm-TabBar-tabLabel');
-            return !!label && label.textContent === 'probe.yml';
+            return !!label && label.textContent === 'probe.log';
           })
           .map(tab => tab.querySelector('.lm-TabBar-tabIcon'))[0];
         const variant = host
@@ -767,7 +770,7 @@ test.describe('a contrast variant follows its background', () => {
           )
         ].find(t => {
           const label = t.querySelector('.lm-TabBar-tabLabel');
-          return !!label && label.textContent === 'probe.yml';
+          return !!label && label.textContent === 'probe.log';
         });
         const host = tab
           ? (tab.querySelector('.lm-TabBar-tabIcon') as HTMLElement | null)
@@ -793,7 +796,7 @@ test.describe('a contrast variant follows its background', () => {
       ).toBeGreaterThanOrEqual(3);
     }
 
-    // Clicking the jar tab makes probe.yml inactive: the tab keeps its node
+    // Clicking the jar tab makes probe.log inactive: the tab keeps its node
     // but takes the #eeeeee background, which needs its own recolour.
     await page
       .locator('.lm-TabBar-tab[data-type="document-title"]')
@@ -809,7 +812,7 @@ test.describe('a contrast variant follows its background', () => {
         ]
           .filter(tab => {
             const label = tab.querySelector('.lm-TabBar-tabLabel');
-            return !!label && label.textContent === 'probe.yml';
+            return !!label && label.textContent === 'probe.log';
           })
           .map(tab => tab.querySelector('.lm-TabBar-tabIcon'))[0];
         const variant = host
