@@ -1,11 +1,17 @@
 # Changelog
 
+## [1.2.20] - 2026-10-20
+
+### Changed
+
+- The M in JupyterLab's own Markdown icon, the one a plain .md row and tab show, is 10% shorter; the arrow is unchanged and the icon still turns white on a selected row
+
 ## [1.2.18] - 2026-10-20
 
 ### Changed
 
 - The README.md icon is slightly larger, and its "i" is drawn as shapes with a wider gap between the dot and the stem, so the gap no longer depends on the installed font
-- The M in the Markdown icon is shorter, and the drawing is centred in its icon box
+- The M in this extension's Markdown icon, shown on .md rows that jupytext claims, is shorter, and the drawing is centred in its icon box
 
 ### Fixed
 

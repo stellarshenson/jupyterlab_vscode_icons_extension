@@ -2700,6 +2700,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
         });
       }
 
+      // JupyterLab's own markdown icon is what a plain .md row and tab show
+      // (ACC-ICONS-35). Its M is drawn 10% shorter with the baseline (y 12.4)
+      // kept, by replacing the LabIcon's svg: every rendered view updates and
+      // keeps the jp-icon-selectable class that turns it white on a selected
+      // row. The arrow and the M are split into two paths so only the M scales.
+      if (settings.enableDocIcons) {
+        markdownIcon.svgstr = `<svg xmlns="http://www.w3.org/2000/svg" width="16" viewBox="0 0 22 22">
+        <path class="jp-icon-contrast0 jp-icon-selectable" fill="#7B1FA2" d="M5 14.9h12l-6.1 6z"/>
+        <path class="jp-icon-contrast0 jp-icon-selectable" fill="#7B1FA2" transform="translate(0,1.24) scale(1,0.9)" d="M14.4 8.1c0-1.3-.1-2.9-.1-4.5-.4 1.4-.9 2.9-1.3 4.3l-1.3 4.3h-2L8.5 7.9c-.4-1.3-.7-2.9-1-4.3-.1 1.6-.1 3.2-.2 4.6L7 12.4H4.8l.7-11h3.3L10 5c.4 1.2.7 2.7 1 3.9.3-1.2.7-2.6 1-3.9l1.2-3.7h3.3l.6 11h-2.4z"/>
+      </svg>`;
+      }
+
       // Register CHANGELOG.md with markdown icon (as RELEASE.md below)
       if (settings.enableDocIcons) {
         registerFileType({

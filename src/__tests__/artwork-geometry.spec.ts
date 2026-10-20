@@ -67,3 +67,23 @@ describe('the markdown M', () => {
     expect(Math.max(...ys)).toBeCloseTo(BASELINE, 4);
   });
 });
+
+describe("JupyterLab's markdown M", () => {
+  // A plain .md row and tab show JupyterLab's own markdown icon, so its M is
+  // the one drawn shorter: 0.9 of its height, scaled about y=0 and moved back
+  // down by baseline * (1 - scale) so the baseline stays at y 12.4.
+  const BASELINE = 12.4;
+
+  it('is drawn at 0.9 of its height with the baseline kept', () => {
+    const match = source.match(
+      /markdownIcon\.svgstr = `[\s\S]*?transform="translate\(0,([0-9.]+)\) scale\(1,([0-9.]+)\)"/
+    );
+    if (!match) {
+      throw new Error("JupyterLab's markdown M no longer carries a transform");
+    }
+    const translate = Number(match[1]);
+    const scale = Number(match[2]);
+    expect(scale).toBeCloseTo(0.9, 6);
+    expect(scale * BASELINE + translate).toBeCloseTo(BASELINE, 6);
+  });
+});
