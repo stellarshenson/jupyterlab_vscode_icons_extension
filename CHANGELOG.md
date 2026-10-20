@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.18] - 2026-10-20
+
+### Changed
+
+- The README.md icon is slightly larger, and its "i" is drawn as shapes with a wider gap between the dot and the stem, so the gap no longer depends on the installed font
+- The M in the Markdown icon is shorter, and the drawing is centred in its icon box
+
+### Fixed
+
+- A README.md tab in the markdown viewer shows the README icon, the same as its file-browser row, instead of JupyterLab's markdown icon
+
 ## [1.2.12] - 2026-10-19
 
 ### Changed

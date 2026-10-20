@@ -610,9 +610,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const powerpointIcon = createLabIcon('file-type-powerpoint');
 
       // Custom Markdown icon (from markdown.svg - purple M with arrow, #8a2ea5)
+      // The group translate centres the drawing in its viewBox; recompute it
+      // whenever the M scale changes.
       const markdownSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 309 327">
-        <path fill="#8a2ea5" opacity="1" stroke="none" d="m 138.68393,230.48651 c 36.58836,3.1e-4 72.68422,3.1e-4 108.78008,3.1e-4 0.13988,0.49669 0.0821,0.12537 -3.34406,3.81472 -27.34165,24.16766 -54.43119,49.41695 -81.72391,73.62893 -2.65146,2.35216 -4.5582,3.21609 -7.64686,0.37229 -26.89754,-24.76539 -75.191307,-68.40096 -80.889724,-74.12425 -0.744118,-0.74735 -1.274501,-1.57204 -2.95867,-3.69233 23.309236,0 45.299954,0 67.783144,3.3e-4 z"/>
-        <path fill="#8a2ea5" transform="translate(0,66.719382) scale(1,0.648)" d="m 61.156397,14.443673 h 69.176263 q 14.81059,56.661581 23.29958,97.452667 l 5.96036,-27.150338 q 3.61233,-15.870486 7.76652,-30.954008 l 10.6564,-39.348321 H 248.6367 L 276.09047,189.5437 H 221.90541 L 207.27544,69.137838 173.50009,189.5437 H 136.47364 L 101.07273,68.875516 86.984609,189.5437 H 35.147571 Z"/>
+        <g transform="translate(-1.12,-44.96)">
+          <path fill="#8a2ea5" opacity="1" stroke="none" d="m 138.68393,230.48651 c 36.58836,3.1e-4 72.68422,3.1e-4 108.78008,3.1e-4 0.13988,0.49669 0.0821,0.12537 -3.34406,3.81472 -27.34165,24.16766 -54.43119,49.41695 -81.72391,73.62893 -2.65146,2.35216 -4.5582,3.21609 -7.64686,0.37229 -26.89754,-24.76539 -75.191307,-68.40096 -80.889724,-74.12425 -0.744118,-0.74735 -1.274501,-1.57204 -2.95867,-3.69233 23.309236,0 45.299954,0 67.783144,3.3e-4 z"/>
+          <path fill="#8a2ea5" transform="translate(0,100.004772) scale(1,0.472392)" d="m 61.156397,14.443673 h 69.176263 q 14.81059,56.661581 23.29958,97.452667 l 5.96036,-27.150338 q 3.61233,-15.870486 7.76652,-30.954008 l 10.6564,-39.348321 H 248.6367 L 276.09047,189.5437 H 221.90541 L 207.27544,69.137838 173.50009,189.5437 H 136.47364 L 101.07273,68.875516 86.984609,189.5437 H 35.147571 Z"/>
+        </g>
       </svg>`;
 
       // Custom PDF icon (document with folded corner and red PDF banner)
@@ -653,9 +657,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // One README artwork, drawn once: this is the same circle the registered
       // vscode-readme icon uses further down, so a README.md row looks the same
       // whether or not jupytext is installed and claiming the row (DEF-ICONS-28).
+      // The i is drawn as shapes from Liberation Sans Bold metrics so the dot-stem gap does not depend on the installed font.
       const readmeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-        <circle cx="16" cy="16" r="11" fill="#9826c8"/>
-        <text x="16" y="22" font-size="18" font-weight="bold" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif">i</text>
+        <circle cx="16" cy="16" r="12.36" fill="#9826c8"/>
+        <rect x="14.68" y="7.55" width="2.61" height="1.93" fill="#ffffff"/>
+        <rect x="14.68" y="13.24" width="2.61" height="10.04" fill="#ffffff"/>
       </svg>`;
 
       // Get SVG content from VSCode icons
@@ -1804,11 +1810,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       // The document registry is the same resolver the file browser uses, so
       // asking it is what lets a tab mirror its row: measured, LICENSE mirrors
-      // (registry:vscode-license), and so does another extension's icon. A name
-      // whose extension JupyterLab itself claims does not mirror - README.md
-      // keeps lab's markdown glyph on the tab while its row shows this
-      // extension's custom icon - because the specific-icon guard in
-      // markTabIcons returns before the registry is asked. A group toggled off
+      // (registry:vscode-license), and so does another extension's icon.
+      // README.md and CLAUDE.md mirror as well: the specific-icon guard in
+      // markTabIcons yields when the tab holds a JupyterLab icon and the row
+      // shows this extension's own registered icon. A group toggled off
       // is not registered on the next page load, so the registry stops offering
       // its types then - until that reload it still answers while the painters
       // and the ::before path already honour the new value, which is what the
@@ -2188,15 +2193,24 @@ const plugin: JupyterFrontEndPlugin<void> = {
                 }
               }
             }
+            // The markdown viewer puts JupyterLab's markdown icon on a
+            // README.md tab while its row shows this extension's registered
+            // README icon; the tab takes the row's icon so the two agree.
+            const ownRegisteredOverLab =
+              namespace.startsWith('ui-components:') &&
+              !!resolved &&
+              resolved.key.startsWith('registry:vscode-');
             if (
               !restored &&
               namespace &&
               !labGenericIcons.has(namespace) &&
-              !ownPdfArtwork
+              !ownPdfArtwork &&
+              !ownRegisteredOverLab
             ) {
               // A specific icon is already on the tab - JupyterLab's own or
-              // another extension's. PDF is the one exception: its file
-              // browser row already uses this extension's artwork.
+              // another extension's. PDF and this extension's own registered
+              // icons over a JupyterLab icon are the exceptions: their file
+              // browser rows already use this extension's artwork.
               clearTabIcon(host);
               return;
             }
@@ -2630,8 +2644,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       // Register README.md with custom purple filled info icon
       const readmeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-        <circle cx="16" cy="16" r="11" fill="#9826c8"/>
-        <text x="16" y="22" font-size="18" font-weight="bold" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif">i</text>
+        <circle cx="16" cy="16" r="12.36" fill="#9826c8"/>
+        <rect x="14.68" y="7.55" width="2.61" height="1.93" fill="#ffffff"/>
+        <rect x="14.68" y="13.24" width="2.61" height="10.04" fill="#ffffff"/>
       </svg>`;
 
       const readmeIcon = new LabIcon({

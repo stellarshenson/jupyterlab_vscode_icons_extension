@@ -19,13 +19,14 @@ const source: string = require('fs').readFileSync(
 );
 
 describe('the markdown M', () => {
-  // Two earlier ten percent reductions, then twenty percent of the remaining
-  // height: 1 -> 0.9 -> 0.81 -> 0.648.
+  // Two earlier ten percent reductions, twenty percent of the remaining height,
+  // then ten percent three more times:
+  // 1 -> 0.9 -> 0.81 -> 0.648 -> 0.5832 -> 0.52488 -> 0.472392.
   // The transform scales about y=0, so a translate of baseline * (1 - scale)
   // puts the baseline back where it was and the letter loses height from the
   // top only. The M's baseline is the lowest coordinate in its own path data.
   const BASELINE = 189.5437;
-  const SCALE = 0.648;
+  const SCALE = 0.472392;
 
   const transform = (): { translate: number; scale: number } => {
     const match = source.match(
@@ -37,7 +38,7 @@ describe('the markdown M', () => {
     return { translate: Number(match[1]), scale: Number(match[2]) };
   };
 
-  it('is twenty percent shorter than the previous 81 percent height', () => {
+  it('is ten percent shorter than the previous 52.488 percent height', () => {
     expect(transform().scale).toBeCloseTo(SCALE, 6);
   });
 
