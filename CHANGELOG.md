@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.2.21] - 2026-10-24
+
+### Added
+
+- A tab without an icon shows its label at the left edge instead of after an empty icon box; the Collapse Empty Tab Icon Space setting turns this off
+- A tab showing a web page in a frame carries an outline globe: the brand colour for a page the lab or localhost serves, the accent colour for any other site
+- The extension's Settings Editor entry shows this extension's icon instead of the generic gear
+- Keeping the pointer on a tab for 0.8 seconds shows a tooltip with its full name, the file path, page address or terminal working directory, and the time of its last activity; a right-click, a key press or leaving the tab hides it
+
+### Changed
+
+- Where this extension has an icon for a file, the row and the tab show it even when another extension registered that file type with its own icon; the file type is left alone, so the other extension still opens the file
+- A tab for a file with no icon of its own shows the generic file icon
+- Each file name's icon is worked out once and reused, so a folder on a slow or network volume is not looked up again on every listing update
+
 ## [1.2.20] - 2026-10-20
 
 ### Changed

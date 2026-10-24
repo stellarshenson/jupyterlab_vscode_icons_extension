@@ -241,6 +241,9 @@ export function getIconSVG(iconName: string): string {
   return icon?.body || icons['default-file']?.body || '';
 }
 
+// The painters keep a result per file name, so the body is shared per key.
+const svgCache = new Map<string, string>();
+
 /**
  * Generate complete SVG element for an icon
  * @param iconName - The icon name
@@ -248,11 +251,18 @@ export function getIconSVG(iconName: string): string {
  * @returns Complete SVG string
  */
 export function generateIconSVG(iconName: string, className = ''): string {
+  const key = `${iconName}\n${className}`;
+  const cached = svgCache.get(key);
+  if (cached !== undefined) {
+    return cached;
+  }
   const body = getIconSVG(iconName);
   const classAttr = className ? ` class="${className}"` : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${getIconViewBox(
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${getIconViewBox(
     iconName
   )}"${classAttr}>${body}</svg>`;
+  svgCache.set(key, svg);
+  return svg;
 }
 
 /**

@@ -133,31 +133,59 @@ test.describe('disabled config filename owners', () => {
     );
   });
 
-  test('independent patterns and longest extensions keep their priority', async ({
+  test('a disabled owner hands its names to independent types, and this extension still wins elsewhere', async ({
     page,
     tmpPath
   }) => {
     await registerIndependent(page);
     await openFiles(page, tmpPath, [
       'Dockerfile.third',
-      'requirements.native.txt'
+      'requirements.native.txt',
+      'notes.txt'
     ]);
-    for (const [name, type] of [
-      ['Dockerfile.third', 'independent-pattern'],
-      ['requirements.native.txt', 'independent-long']
-    ]) {
-      await expect(row(page, name)).toHaveAttribute('data-file-type', type);
-      await expectNoOwnPaint(page, name);
-      await expect(row(page, name).locator('svg')).toHaveAttribute(
-        'data-icon',
-        'regression:independent'
-      );
-      const tab = await openTab(page, `${tmpPath}/${name}`, name);
-      await expect(tab).toHaveAttribute(
-        'data-vscode-tab-icon',
-        `registry:${type}`
-      );
-    }
+    // Dockerfile.third is a config name, and the config group is off, so the
+    // independent type's icon is the one the row and tab show.
+    const docker = 'Dockerfile.third';
+    await expect(row(page, docker)).toHaveAttribute(
+      'data-file-type',
+      'independent-pattern'
+    );
+    await expectNoOwnPaint(page, docker);
+    await expect(row(page, docker).locator('svg')).toHaveAttribute(
+      'data-icon',
+      'regression:independent'
+    );
+    const dockerTab = await openTab(page, `${tmpPath}/${docker}`, docker);
+    await expect(dockerTab).toHaveAttribute(
+      'data-vscode-tab-icon',
+      'registry:independent-pattern'
+    );
+
+    // requirements.native.txt has no disabled owner. The independent type's
+    // longer extension still wins the registry, so the type stays, but this
+    // extension's icon wins over its icon (ACC-CLASH-70, ACC-TABS-71): the
+    // file looks exactly like a plain .txt file.
+    const native = 'requirements.native.txt';
+    await expect(row(page, native)).toHaveAttribute(
+      'data-file-type',
+      'independent-long'
+    );
+    const beforeOf = (name: string) =>
+      row(page, name)
+        .locator('.jp-DirListing-itemIcon')
+        .evaluate(
+          (node: Element) => getComputedStyle(node, '::before').backgroundImage
+        );
+    const plainBefore = await beforeOf('notes.txt');
+    expect(plainBefore).toContain('url(');
+    expect(await beforeOf(native)).toBe(plainBefore);
+    const plainTab = await openTab(page, `${tmpPath}/notes.txt`, 'notes.txt');
+    const plainKey = await plainTab.getAttribute('data-vscode-tab-icon');
+    const nativeTab = await openTab(page, `${tmpPath}/${native}`, native);
+    await expect(nativeTab).toHaveAttribute(
+      'data-vscode-tab-icon',
+      plainKey ?? ''
+    );
   });
 });
 

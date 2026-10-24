@@ -11,13 +11,20 @@ import { expect, test } from '@jupyterlab/galata';
  * default markdown viewer tab is untouched.
  */
 
-const FILENAMES = ['notes.md', 'notes.py', 'notes.rs', 'README.md'];
+const FILENAMES = [
+  'notes.md',
+  'notes.py',
+  'notes.rs',
+  'README.md',
+  'notes.xyz123'
+];
 
 const CONTENT: Record<string, string> = {
   'notes.md': '# Notes\n\nmd-tab-match fixture\n',
   'notes.py': 'print("md-tab-match")\n',
   'notes.rs': 'fn main() {\n    println!("md-tab-match");\n}\n',
-  'README.md': '# Readme\n\nmd-tab-match fixture\n'
+  'README.md': '# Readme\n\nmd-tab-match fixture\n',
+  'notes.xyz123': 'md-tab-match fixture\n'
 };
 
 const uploadFixtures = async (page: any, tmpPath: string): Promise<void> => {
@@ -226,6 +233,22 @@ test.describe('DEF-TABS-79: document tab matches its file browser row', () => {
     expect(pair.tab.dataIcon).toBe('ui-components:python');
     expect(pair.tab.painted).toBeNull();
     expect(pair.tab.background).toBe('');
+    expect(pair.tab.fill).toBe(rowFill);
+  });
+
+  test('shows the generic file icon on an unknown file editor tab, matching its row', async ({
+    page,
+    tmpPath
+  }) => {
+    await uploadFixtures(page, tmpPath);
+    const rowFill = await collectRowFill(page, 'notes.xyz123');
+    await openEditor(page, `${tmpPath}/notes.xyz123`);
+    await waitForState(page, 'notes.xyz123', 'ui-components:file', null);
+    const pair = await collectPair(page, 'notes.xyz123');
+
+    expect(pair.row.dataIcon).toBe('ui-components:file');
+    expect(pair.tab.dataIcon).toBe('ui-components:file');
+    expect(pair.tab.painted).toBeNull();
     expect(pair.tab.fill).toBe(rowFill);
   });
 

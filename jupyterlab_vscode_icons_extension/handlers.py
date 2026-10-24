@@ -154,6 +154,28 @@ class ManifestValidationHandler(APIHandler):
         self.finish(json.dumps({'valid': valid}))
 
 
+class TerminalCwdHandler(APIHandler):
+    """Report the working directory of a running terminal's foreground process."""
+
+    @tornado.web.authenticated
+    @authorized(action='read', resource='terminals')
+    def get(self, name):
+        """Return the foreground process's current directory, or 404 when it cannot be read."""
+        manager = self.settings.get('terminal_manager')
+        # .terminals, not get_terminal(): that one starts a terminal for an unknown name.
+        terminal = manager.terminals.get(name) if manager else None
+        try:
+            # The foreground process group, so a nested shell's cd is seen, not
+            # only the starting shell's.
+            foreground = os.tcgetpgrp(terminal.ptyproc.fd)
+            # shortcut: Linux /proc only; macOS and Windows get 404 and the tooltip skips the line.
+            cwd = os.readlink(f'/proc/{foreground}/cwd')
+        except (AttributeError, OSError):
+            raise tornado.web.HTTPError(404, 'No working directory for this terminal')
+        self.set_header('Content-Type', 'application/json')
+        self.finish(json.dumps({'cwd': cwd}))
+
+
 def setup_handlers(web_app):
     """Register the API handlers beneath the configured base URL."""
     base_url = web_app.settings['base_url']
@@ -165,5 +187,6 @@ def setup_handlers(web_app):
     )
     handlers = [
         (url_path_join(base_url, 'vscode-icons', 'validate-manifest'), ManifestValidationHandler),
+        (url_path_join(base_url, 'vscode-icons', 'terminal-cwd', '([^/]+)'), TerminalCwdHandler),
     ]
     web_app.add_handlers('.*$', handlers)

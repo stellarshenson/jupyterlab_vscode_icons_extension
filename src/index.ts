@@ -11,13 +11,16 @@ import type { Widget } from '@lumino/widgets';
 
 import { needsOutlineOn, recolourForContrast } from './contrast';
 // Loaded eagerly on purpose: activate() registers every mapped file type up
-// front, so the icon map is needed before the application starts. The directive
-// must sit on the line immediately above the import to attach to it.
-// eslint-disable-next-line jupyter/prefer-lazy-imports
+// front, so the icon map is needed before the application starts.
 import { generateIconSVG, getIconForFile, getIconSVG } from './icons';
 import { parsePyprojectToml, parseSetupPy } from './parsers';
 import { applyJupytext1191Hotfix } from './hotfixes';
 import { mirrorIconForTypes } from './tab-mirror';
+import { pageKindForUrl } from './page-kind';
+// Loaded eagerly on purpose: activate() starts recording tab activity at
+// once, so a tab opened during start-up has its first activity time.
+// eslint-disable-next-line jupyter/prefer-lazy-imports
+import { installTabTooltips } from './tab-tooltip';
 
 const PLUGIN_ID = 'jupyterlab_vscode_icons_extension:plugin';
 
@@ -26,6 +29,30 @@ const PLUGIN_ID = 'jupyterlab_vscode_icons_extension:plugin';
 // did. Alpha lets the artwork under it read through instead of stamping a
 // solid tile.
 const symlinkBadgeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect x="8.4" y="8.4" width="7" height="7" fill="#263447" fill-opacity="0.72" stroke="#fff" stroke-opacity="0.5" stroke-width="0.8"/><path d="M10.3 13.5 13.5 10.3m-2.2 0h2.2v2.2" fill="none" stroke="#fff" stroke-opacity="0.95" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+// The Settings Editor resolves schema/plugin.json's setting-icon by name; the
+// icon is created at load so the name exists whichever groups are on.
+new LabIcon({
+  name: 'jupyterlab_vscode_icons_extension:settings',
+  svgstr: generateIconSVG('file-type-vscode')
+});
+
+// Tab icon for a main-area page that shows a web page in an iframe and has no
+// icon of its own: brand colour when the lab or a loopback host serves it,
+// accent colour for any other site. The theme variables keep it in step with
+// the light and dark themes.
+const globeSvg = (colour: string): string =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="16" viewBox="0 0 16 16"><g fill="none" stroke-width="1.2" style="stroke: ${colour}"><circle cx="8" cy="8" r="6.4"/><ellipse cx="8" cy="8" rx="2.7" ry="6.4"/><path d="M1.9 5.8h12.2M1.9 10.2h12.2"/></g></svg>`;
+const pageIcons = {
+  local: new LabIcon({
+    name: 'jupyterlab_vscode_icons_extension:local-page',
+    svgstr: globeSvg('var(--jp-brand-color1, #1976d2)')
+  }),
+  remote: new LabIcon({
+    name: 'jupyterlab_vscode_icons_extension:remote-page',
+    svgstr: globeSvg('var(--jp-accent-color1, #388e3c)')
+  })
+};
 
 // Icon groups for settings
 interface IIconSettings {
@@ -600,6 +627,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
     defaultFileBrowser: IDefaultFileBrowser | null
   ) => {
     const { docRegistry } = app;
+
+    installTabTooltips(app);
 
     // Function to inject CSS that overrides Jupytext icons
     const injectIconOverrideCSS = () => {
@@ -1406,42 +1435,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
         'data-vscode-bpmn': 'enableConfigIcons'
       };
 
-      // A name another extension registered wins over this extension's claim by
-      // extension - the longest-extension rule puts requirements.native.txt
-      // under its type where the config pattern ^requirements([_-].*?)?\.txt$
-      // does not reach it. Its icon is the row's, so no ::before artwork is
-      // painted over it. The row painter asks the same question of the rendered
-      // svg; this pass runs before the row has one, so it asks the registry.
-      // .bpmn is the one name this extension outranks by the maintainer's
-      // ruling, verbatim "we use ours", so the camunda modeller's tile does not
-      // take it.
-      const claimedByAnotherExtension = (
-        name: string,
-        item: Element
-      ): boolean => {
-        if (name.toLowerCase().endsWith('.bpmn')) {
-          return false;
-        }
-        const typeName = item.getAttribute('data-file-type');
-        if (!typeName) {
-          return false;
-        }
-        const type = docRegistry.getFileType(typeName);
-        if (!type || isOwnType(type)) {
-          return false;
-        }
-        const owner = ((type.icon as any)?.name as string) || '';
-        // JupyterLab's own types are the ones this extension paints over.
-        return !!owner && !owner.startsWith('ui-components:');
-      };
-
+      // A type another extension registered does not hold the artwork back:
+      // this extension's icon wins wherever it has one (ACC-CLASH-70), so the
+      // same file never shows two different icons depending on which
+      // extensions are installed or which registered first.
       const setOverride = (item: Element, attribute: string): void => {
         const group = overrideGroups[attribute];
         const name = item.querySelector('.jp-DirListing-itemText')?.textContent;
         if (
           (group && !settings[group]) ||
-          (group && name && disabledExplicitOwner(name)) ||
-          (group && name && claimedByAnotherExtension(name, item))
+          (group && name && disabledExplicitOwner(name))
         ) {
           return;
         }
@@ -1795,8 +1798,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
       //
       // Priority: a generic icon loses to a specific one. Lab's own glyphs sit
       // in the `ui-components:` namespace and are replaced; an icon from any
-      // other namespace is a specific one another extension delivered, and is
-      // kept. Only `data-type="document-title"` tabs are touched, so terminals,
+      // other namespace is another extension's, and loses to this extension's
+      // wherever this extension has one (ACC-TABS-71), so the same file shows
+      // the same icon whichever extensions are installed. Only
+      // `data-type="document-title"` tabs are touched, so terminals,
       // launchers and panels keep their own icons whatever they are named.
       // The label is the whole name this needs: DocumentRegistry's
       // getFileTypesForPath takes the basename on its first line and matches
@@ -1810,7 +1815,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       // The document registry is the same resolver the file browser uses, so
       // asking it is what lets a tab mirror its row: measured, LICENSE mirrors
-      // (registry:vscode-license), and so does another extension's icon.
+      // (registry:vscode-license), and so does another extension's icon where
+      // this extension has none.
       // README.md and CLAUDE.md mirror as well: the specific-icon guard in
       // markTabIcons yields when the tab holds a JupyterLab icon and the row
       // shows this extension's own registered icon. A group toggled off
@@ -1818,8 +1824,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // its types then - until that reload it still answers while the painters
       // and the ::before path already honour the new value, which is what the
       // refresh alert exists to cover.
+      // `foreign` picks the types another extension registered, or the rest
+      // (this extension's and JupyterLab's), so the caller can rank this
+      // extension's icon ahead of a type another extension registered first.
       const registryIconFor = (
-        path: string
+        path: string,
+        foreign: boolean
       ): { key: string; svgstr: string; owner: string } | null => {
         try {
           const types = disabledExplicitOwner(path)
@@ -1827,7 +1837,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
             : docRegistry.getFileTypesForPath(path);
           for (const type of types) {
             const icon = type.icon as any;
+            const isForeign =
+              !isOwnType(type) &&
+              !((icon?.name as string) || '').startsWith('ui-components:');
             if (
+              isForeign === foreign &&
               icon?.svgstr &&
               type.name !== 'default' &&
               type.name !== 'text'
@@ -1849,11 +1863,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // still differ for a type JupyterLab claims: the row keeps lab's specific
       // icon and the tab, which only ever gets the generic editor glyph, takes
       // this extension's - sanctioned, and recorded in the rejection of
-      // DEF-TABS-19. Both callers ask it only for a
-      // slot that holds a generic JupyterLab glyph - a specific icon, whoever
-      // supplied it, is kept untouched - so the order here is: hand artwork,
-      // then any registered icon outside the ui-components namespace, then the
-      // bundled vscode glyph, and abstain if none of those applies. A file
+      // DEF-TABS-19. Both callers ask it for a slot that holds a generic
+      // JupyterLab glyph or another extension's icon - JupyterLab's own
+      // specific icons are kept - so the order here is: hand artwork, then
+      // this extension's registered icon, then the bundled vscode glyph, then
+      // another extension's registered icon (marked foreign), and abstain if
+      // none of those applies. A file
       // editor tab is the one place where a type JupyterLab claims (.md, .py,
       // .json) still reaches the bundled glyph, because the editor factory
       // puts the generic text-editor icon there rather than the type's own.
@@ -1914,9 +1929,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       // The two glyphs the painters below treat as replaceable: the plain file
       // glyph, and the text-editor glyph a file editor tab gets regardless of
-      // file type. A specific icon - JupyterLab's own or another extension's -
-      // is left alone by markRowIcons and markTabIcons, because replacing
-      // those changed files the maintainer had deliberately left alone.
+      // file type. JupyterLab's own specific icons are left alone by
+      // markRowIcons and markTabIcons, because replacing those changed files
+      // the maintainer had deliberately left alone. Another extension's icon
+      // is replaced wherever this extension has one (ACC-CLASH-70,
+      // ACC-TABS-71).
       //
       // This governs the painters only. markSpecialFiles and the ::before
       // blocks it drives are a separate, older path that overrides by file name
@@ -1924,7 +1941,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // measured, .pdf and .svg replace lab's own glyphs, conftest.py replaces
       // ui-components:python, and .xlsx and .db replace the tabular data
       // viewer's. That artwork is the project's own and is kept deliberately;
-      // ACC-ICONS-35 and ACC-CLASH-9 record the exception.
+      // ACC-ICONS-35 and ACC-CLASH-70 record it.
       const labGenericIcons = new Set([
         'ui-components:file',
         'ui-components:text-editor'
@@ -1932,7 +1949,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       const resolveIcon = (
         fileName: string
-      ): { key: string; svgstr: string } | null => {
+      ): { key: string; svgstr: string; foreign?: boolean } | null => {
+        if (!resolvedByName.has(fileName)) {
+          resolvedByName.set(fileName, resolveIconUncached(fileName));
+        }
+        return resolvedByName.get(fileName)!;
+      };
+
+      const resolveIconUncached = (
+        fileName: string
+      ): { key: string; svgstr: string; foreign?: boolean } | null => {
         // The hand artwork is consulted first, ahead of this extension's own
         // registrations: .ini is registered as vscode-file-type-ini and would
         // otherwise win for pytest.ini, painting the bundled INI glyph on the
@@ -1953,7 +1979,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           }
         }
 
-        const registered = registryIconFor(fileName);
+        const registered = registryIconFor(fileName, false);
         if (registered && !registered.owner.startsWith('ui-components:')) {
           return registered;
         }
@@ -1963,8 +1989,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
         // the jp-icon-contrast class that themes it, so the tab would carry a
         // glyph that does not follow the theme.
 
+        // Another extension's icon comes last, only where this extension has
+        // none, so a tab can still mirror a row that keeps it (ACC-TABS-71).
+        // Looked up only where it is returned.
+        const foreign = () => {
+          const other = registryIconFor(fileName, true);
+          return other ? { ...other, foreign: true } : null;
+        };
         if (disabledOwner) {
-          return null;
+          return foreign();
         }
         const iconName = getIconForFile(fileName);
         const group = groupFor(fileName);
@@ -1994,7 +2027,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         // data-URI background cannot reach, so copying one freezes it - vega's
         // baked #212121 is invisible on the dark panel, where lab draws white.
         // Leaving it alone keeps the themed svg the caller already has.
-        return null;
+        return foreign();
       };
 
       // The icon is painted on the host element rather than written into it:
@@ -2038,6 +2071,26 @@ const plugin: JupyterFrontEndPlugin<void> = {
           mirrorViews.set(icon, view);
         }
         return view;
+      };
+
+      // jupyter-server-proxy and the proxy launcher open their pages with no
+      // tab icon. Only an empty slot is filled; any icon already set, this
+      // extension's included, is left alone. The shell adds jp-Icon to every
+      // main-area iconClass, so that class alone is no icon.
+      const markFramePage = (widget: Widget): void => {
+        const frame =
+          !widget.title.icon &&
+          widget.title.iconClass
+            .split(' ')
+            .every(name => !name || name === 'jp-Icon')
+            ? widget.node.querySelector('iframe')
+            : null;
+        if (frame) {
+          const kind = pageKindForUrl(frame.src, window.location.origin);
+          if (kind) {
+            widget.title.icon = mirrorView(pageIcons[kind]);
+          }
+        }
       };
 
       // The glyph is painted as a background image, which the page's
@@ -2092,6 +2145,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
         const widgetsById = new Map<string, Widget>();
         for (const widget of app.shell.widgets('main')) {
           widgetsById.set(widget.id, widget);
+          // Pages added before the shell.add hook below, restored ones
+          // included, are marked here.
+          markFramePage(widget);
         }
         // shell.add rebinds title.icon on every main-area add (including the
         // re-add when returning from Simple Interface); bindprops returns
@@ -2134,9 +2190,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
             const tabWidget = widgetsById.get(
               tab.getAttribute('data-id') || ''
             );
-            const target = mirrorIconForTypes(
-              docRegistry.getFileTypesForPath(fileName)
-            );
+            const types = docRegistry.getFileTypesForPath(fileName);
+            // A file no type claims falls to JupyterLab's default text type,
+            // whose plain file glyph is what its row shows (ACC-TABS-62).
+            const unclaimed =
+              !resolved &&
+              types.every(
+                type => type.name === 'default' || type.name === 'text'
+              );
+            const target =
+              mirrorIconForTypes(types) ?? (unclaimed ? fileIcon : null);
             // The row artwork is deliberate and is what the row shows for
             // .pdf, .svg, .bpmn, .db, uv.lock, pytest.ini and conftest.py
             // (ACC-TABS-37, DEF-TABS-50, index.ts:1914-1920). Mirroring a
@@ -2153,12 +2216,33 @@ const plugin: JupyterFrontEndPlugin<void> = {
             const entry = tabWidget ? mirroredTitles.get(tabWidget) : undefined;
             const alreadyMirrored =
               !!tabWidget && !!entry && showsApplied(tabWidget, entry.applied);
+            // Another extension's icon on the tab loses wherever this
+            // extension has an icon for the file (ACC-TABS-71): to the row's
+            // JupyterLab icon where the row keeps one (DEF-TABS-84), else to
+            // this extension's own, painted below.
+            const ownOverForeign =
+              !!namespace &&
+              !namespace.startsWith('ui-components:') &&
+              !ownIconNames().has(namespace) &&
+              !!resolved &&
+              !resolved.foreign;
+            // A mirror over another extension's icon holds only while this
+            // extension has an icon for the file; a rename to a name with none
+            // gives that extension's icon back (DEF-TABS-85).
+            const originalName =
+              (entry?.original as { name?: string } | undefined)?.name || '';
+            const foreignMirrorLapsed =
+              !!originalName &&
+              !originalName.startsWith('ui-components:') &&
+              !ownIconNames().has(originalName) &&
+              (!resolved || !!resolved.foreign);
             let restored = false;
             if (
               target &&
               tabWidget &&
               !rowArtworkActive &&
-              (slotReplaceable || alreadyMirrored)
+              !foreignMirrorLapsed &&
+              (slotReplaceable || alreadyMirrored || ownOverForeign)
             ) {
               // Clear a previous paint first: the stylesheet hides the inline
               // svg only while data-vscode-tab-icon is present.
@@ -2184,7 +2268,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
               tabWidget.title.icon = view;
               return;
             }
-            if ((!target || rowArtworkActive) && tabWidget) {
+            if (
+              (!target || rowArtworkActive || foreignMirrorLapsed) &&
+              tabWidget
+            ) {
               if (entry) {
                 mirroredTitles.delete(tabWidget);
                 if (showsApplied(tabWidget, entry.applied)) {
@@ -2205,12 +2292,14 @@ const plugin: JupyterFrontEndPlugin<void> = {
               namespace &&
               !labGenericIcons.has(namespace) &&
               !ownPdfArtwork &&
-              !ownRegisteredOverLab
+              !ownRegisteredOverLab &&
+              !ownOverForeign
             ) {
-              // A specific icon is already on the tab - JupyterLab's own or
-              // another extension's. PDF and this extension's own registered
-              // icons over a JupyterLab icon are the exceptions: their file
-              // browser rows already use this extension's artwork.
+              // A specific icon is already on the tab - JupyterLab's own, this
+              // extension's, or another extension's where this extension has
+              // none. PDF and this extension's own registered icons over a
+              // JupyterLab icon are the exceptions: their file browser rows
+              // already use this extension's artwork.
               clearTabIcon(host);
               return;
             }
@@ -2236,9 +2325,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
           });
       };
 
-      // File browser rows. Only a row whose icon JupyterLab itself supplied is
-      // repainted; one already showing this extension's own registered icon, or
-      // another extension's, is left exactly as the registry rendered it. The
+      // File browser rows. A row whose generic icon JupyterLab supplied, or
+      // whose icon another extension's type supplied, is repainted with this
+      // extension's icon; one already showing this extension's own registered
+      // icon, or JupyterLab's specific one, is left as the registry rendered
+      // it. The row's file type is never changed, so the other extension still
+      // opens the file. The
       // listing reuses row nodes, so a row that no longer qualifies is cleared
       // rather than left carrying the previous file's glyph.
       // The listing's background, which is what a painted row glyph sits on.
@@ -2250,6 +2342,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
           ? getComputedStyle(panel).backgroundColor
           : 'rgb(255, 255, 255)';
       };
+
+      // The outline decision per glyph and background, measured once.
+      const outlineByKey = new Map<string, boolean>();
 
       const markRowIcons = (): void => {
         // Read once per pass: reading it inside the loop forced a style flush
@@ -2278,21 +2373,30 @@ const plugin: JupyterFrontEndPlugin<void> = {
           const fileName = nameSpan.textContent;
           const owner = host.querySelector('svg[data-icon]');
           const ownerName = owner ? owner.getAttribute('data-icon') || '' : '';
-          if (ownerName && !labGenericIcons.has(ownerName)) {
-            // A specific icon is already on the row - JupyterLab's own or
-            // another extension's. Leave it.
+          // Another extension's icon loses to this extension's (ACC-CLASH-70),
+          // so it is treated like a generic glyph; this extension's own
+          // registered icons are kept out of it by name.
+          const foreignRow =
+            !!ownerName &&
+            !ownerName.startsWith('ui-components:') &&
+            !ownIconNames().has(ownerName);
+          if (ownerName && !labGenericIcons.has(ownerName) && !foreignRow) {
+            // A specific icon is already on the row - JupyterLab's own or this
+            // extension's. Leave it.
             clear();
             return;
           }
 
           const resolved = resolveIcon(fileName);
-          // `registry:` means the row already renders that icon itself, and
-          // `artwork:` means a ::before override already paints it - in both
-          // cases this pass has nothing to add.
+          // `artwork:` means a ::before override already paints it, and a
+          // foreign result is the icon the row already renders. `registry:`
+          // means the row renders this extension's registered icon itself,
+          // unless the row is another extension's, which it then paints over.
           if (
             !resolved ||
-            resolved.key.startsWith('registry:') ||
-            resolved.key.startsWith('artwork:')
+            resolved.foreign ||
+            resolved.key.startsWith('artwork:') ||
+            (resolved.key.startsWith('registry:') && !foreignRow)
           ) {
             clear();
             return;
@@ -2311,7 +2415,14 @@ const plugin: JupyterFrontEndPlugin<void> = {
           // Re-decided on every pass, but a theme change schedules no pass, so
           // a marker stays as the previous theme left it until the listing next
           // mutates - a click in it is enough (DEF-COLOUR-43, DEF-COLOUR-48).
-          if (needsOutlineOn(resolved.svgstr, background)) {
+          const outlineKey = `${resolved.key}\n${background}`;
+          if (!outlineByKey.has(outlineKey)) {
+            outlineByKey.set(
+              outlineKey,
+              needsOutlineOn(resolved.svgstr, background)
+            );
+          }
+          if (outlineByKey.get(outlineKey)) {
             host.setAttribute('data-vscode-row-outline', '');
           } else {
             host.removeAttribute('data-vscode-row-outline');
@@ -2346,6 +2457,17 @@ const plugin: JupyterFrontEndPlugin<void> = {
       if (shell && shell.layoutModified && shell.layoutModified.connect) {
         shell.layoutModified.connect(scheduleTabIcons);
       }
+
+      // Both layoutModified signals are posted and debounced, so a page that
+      // got its globe only on the pass above painted once with its slot
+      // collapsed and its label moved 20px when the globe arrived
+      // (DEF-TABS-80). Marked before the shell adds it, its first paint
+      // carries the globe.
+      const shellAdd = shell.add.bind(shell);
+      shell.add = (widget: Widget, ...rest: unknown[]) => {
+        markFramePage(widget);
+        return shellAdd(widget, ...rest);
+      };
 
       // Lumino re-renders a tab's children whenever its title, dirty marker or
       // selection changes, which drops the icon JupyterLab had rendered and
@@ -2431,6 +2553,30 @@ const plugin: JupyterFrontEndPlugin<void> = {
       enableImageIcons: true,
       enableExecutableIcons: false
     };
+
+    // Each file name is resolved once until the registry or the settings
+    // change: the listing repaints on every mutation and each resolution walks
+    // every registered file type, so a large folder paid that walk per row on
+    // every pass. The walk is in memory and reads nothing from disk.
+    // shortcut: holds every distinct name shown until the next registry or
+    // settings change; bound it if a session lists millions of names.
+    const resolvedByName = new Map<
+      string,
+      { key: string; svgstr: string; foreign?: boolean } | null
+    >();
+    // This extension's registered icons, by name, so an icon on a row or a tab
+    // can be told from another extension's.
+    let ownIconNamesCache: Set<string | undefined> | null = null;
+    const ownIconNames = (): Set<string | undefined> =>
+      (ownIconNamesCache ??= new Set(
+        [...docRegistry.fileTypes()]
+          .filter(isOwnType)
+          .map(type => type.icon?.name)
+      ));
+    docRegistry.changed.connect(() => {
+      resolvedByName.clear();
+      ownIconNamesCache = null;
+    });
 
     // Which settings group a file belongs to is resolved from the same two
     // fields registration uses, pattern first and extension second - the order
@@ -3025,8 +3171,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
               settings[key as keyof IIconSettings] = value;
             }
           });
+          // style/base.css collapses an empty tab icon slot unless this
+          // attribute is on the body.
+          document.body.toggleAttribute(
+            'data-vscode-keep-empty-tab-icon',
+            loadedSettings.get('collapseEmptyTabIcons').composite === false
+          );
 
           registerFileTypes();
+          // A row pass can run before the settings arrive, and with every group off no registry change clears the memo.
+          resolvedByName.clear();
 
           // Listen for settings changes
           loadedSettings.changed.connect(() => {
@@ -3036,6 +3190,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
                 settings[key as keyof IIconSettings] = value;
               }
             });
+            resolvedByName.clear();
 
             // Debounce the alert to show only once when multiple settings change
             if (settingsChangeTimeout) {

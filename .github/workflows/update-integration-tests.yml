@@ -38,6 +38,8 @@ jobs:
           set -eux
           jlpm
           python -m pip install .
+          # Test requirements: the Galata ownership tests need other extensions' file types
+          python -m pip install jupyterlab_zip_extension jupyterlab_terraform_file_type_extension jupyterlab_camunda_modeller_extension
 
       - uses: jupyterlab/maintainer-tools/.github/actions/update-snapshots@v1
         with:

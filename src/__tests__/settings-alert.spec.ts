@@ -50,7 +50,8 @@ const harness = async (): Promise<{
       getFileTypesForPath: () => [],
       getFileType: () => undefined,
       getFileTypeForModel: () => ({ name: 'text' }),
-      fileTypes: () => []
+      fileTypes: () => [],
+      changed: { connect: () => undefined }
     },
     shell: {
       add: () => undefined,

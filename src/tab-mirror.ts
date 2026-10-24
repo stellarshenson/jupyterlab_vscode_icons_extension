@@ -23,7 +23,8 @@ export interface IMirrorCandidate {
  * - The first type that carries an icon object decides; the scan never
  *   continues past it, because the registry order is what the row uses.
  * - Only a JupyterLab-owned icon outside the two generic glyphs qualifies;
- *   another extension's icon must keep winning (ACC-TABS-31).
+ *   a type another extension registered is not JupyterLab's to mirror, and
+ *   the tab painter puts this extension's icon there instead (ACC-TABS-71).
  * - Only a file content type qualifies; a notebook's own tab icon is
  *   already specific and is not mirrored.
  */

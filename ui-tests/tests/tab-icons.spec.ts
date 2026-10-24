@@ -117,18 +117,23 @@ test.describe('document tab icons', () => {
     expect(painted.drawn, JSON.stringify(painted)).toBe(true);
   });
 
-  test('a tab keeps the icon another extension registered', async ({
+  test("a tab shows this extension's icon over another extension's", async ({
     page,
     tmpPath
   }) => {
-    // ACC-TABS-31: .tf resolves to the `terraform` type that
-    // jupyterlab_terraform_file_type_extension registers, measured ahead of
-    // this project's own vscode-file-type-terraform. The tab painter must hand
-    // that icon through rather than paint its own bundled glyph over it. The
-    // subject used to be .bpmn, which no longer tests the rule: the
-    // maintainer's instruction, verbatim "we use ours", makes .bpmn a
-    // deliberate exception, proven by `the bpmn tab takes this extension's
-    // mark` below.
+    // ACC-TABS-71: .tf resolves to the `terraform` type that
+    // jupyterlab_terraform_file_type_extension, a test requirement, registers
+    // ahead of this project's own vscode-file-type-terraform. The tab still
+    // takes this extension's icon, as its row does, so the same file shows the
+    // same icon whichever extensions are installed.
+    expect(
+      await page.evaluate(() =>
+        (window as any).jupyterapp.docRegistry
+          .getFileTypesForPath('owned.tf')
+          .map((type: any) => type.name)
+      ),
+      'the test environment must have jupyterlab_terraform_file_type_extension installed'
+    ).toContain('terraform');
     await page.contents.uploadContent(
       'resource "null_resource" "x" {}',
       'text',
@@ -149,37 +154,217 @@ test.describe('document tab icons', () => {
       const host = found
         ? (found.querySelector('.lm-TabBar-tabIcon') as HTMLElement | null)
         : null;
-      const svg = host ? host.querySelector('svg') : null;
       return {
         found: !!found,
-        painted: host ? host.getAttribute('data-vscode-tab-icon') : 'no-host',
-        icon: svg ? svg.getAttribute('data-icon') : 'no-svg'
+        painted: host ? host.getAttribute('data-vscode-tab-icon') : 'no-host'
       };
     });
     expect(tab.found, JSON.stringify(tab)).toBe(true);
-    // The rule under test needs a competing claim to respect, and only this
-    // workstation has one: CI installs jupyterlab plus this project's wheel,
-    // where this extension's own vscode-file-type-terraform wins and there is
-    // nothing to defer to. Measured there, the tab carries
-    // `registry:vscode-file-type-terraform` and the assertions below would
-    // fail on a correct build - the same trade the row level sibling in
-    // file-browser-icons.spec.ts already makes.
-    test.skip(
-      tab.painted === 'registry:vscode-file-type-terraform',
-      'no third-party terraform provider installed in this environment'
+    expect(tab.painted, JSON.stringify(tab)).toBe(
+      'registry:vscode-file-type-terraform'
     );
-    // What must not appear is one of this extension's own keys: the icon on the
-    // tab comes from the registry and belongs to the other extension.
-    const painted = tab.painted || '';
-    expect(painted.startsWith('registry:'), JSON.stringify(tab)).toBe(true);
-    expect(
-      painted.startsWith('registry:vscode-') ||
-        painted.startsWith('file-type-'),
-      JSON.stringify(tab)
-    ).toBe(false);
+
+    // A viewer from another extension puts that extension's icon on the tab
+    // itself; this extension's icon still wins over it. The svg swap is
+    // immediate and the old marker survives on the host until the next pass,
+    // so the read waits past the pass instead of polling.
+    const foreignIcon = await page.evaluate(() => {
+      const app = (window as any).jupyterapp;
+      const widget = [...app.shell.widgets('main')].find(
+        (w: any) => w.title.label === 'owned.tf'
+      );
+      const icon = app.docRegistry.getFileType('terraform').icon;
+      widget.title.icon = icon;
+      return icon.name as string;
+    });
+    await page.waitForTimeout(1500);
+    const swapped = await page.evaluate(() => {
+      const found = [
+        ...document.querySelectorAll(
+          '.lm-TabBar-tab[data-type="document-title"]'
+        )
+      ].find(
+        t => t.querySelector('.lm-TabBar-tabLabel')?.textContent === 'owned.tf'
+      );
+      const host = found?.querySelector('.lm-TabBar-tabIcon');
+      return {
+        icon: host?.querySelector('svg')?.getAttribute('data-icon'),
+        painted: host?.getAttribute('data-vscode-tab-icon')
+      };
+    });
+    expect(swapped).toEqual({
+      icon: foreignIcon,
+      painted: 'registry:vscode-file-type-terraform'
+    });
   });
 
-  // The documented exception to the rule above: .bpmn is painted with this
+  // DEF-TABS-84: on a file JupyterLab claims, the row keeps JupyterLab's icon,
+  // so another extension's icon on the tab gives way to that icon, not to the
+  // bundled glyph.
+  test("a JupyterLab-claimed tab takes the row's icon over another extension's", async ({
+    page,
+    tmpPath
+  }) => {
+    await page.contents.uploadContent(
+      '# notes\n',
+      'text',
+      `${tmpPath}/notes.md`
+    );
+    await page.filebrowser.openDirectory(tmpPath);
+    await page.filebrowser.open(`${tmpPath}/notes.md`);
+    await page.waitForTimeout(1500);
+    await page.evaluate(() => {
+      const app = (window as any).jupyterapp;
+      const widget = [...app.shell.widgets('main')].find(
+        (w: any) => w.title.label === 'notes.md'
+      );
+      widget.title.icon = app.docRegistry.getFileType('zip').icon;
+    });
+    await page.waitForTimeout(1500);
+    const icons = await page.evaluate(() => {
+      const tab = [
+        ...document.querySelectorAll(
+          '.lm-TabBar-tab[data-type="document-title"]'
+        )
+      ].find(
+        t => t.querySelector('.lm-TabBar-tabLabel')?.textContent === 'notes.md'
+      );
+      const host = tab?.querySelector('.lm-TabBar-tabIcon');
+      const row = [...document.querySelectorAll('.jp-DirListing-item')].find(
+        r =>
+          r.querySelector('.jp-DirListing-itemText')?.textContent === 'notes.md'
+      );
+      return {
+        tab: host?.querySelector('svg')?.getAttribute('data-icon'),
+        painted: host?.getAttribute('data-vscode-tab-icon') ?? null,
+        row: row
+          ?.querySelector('.jp-DirListing-itemIcon svg')
+          ?.getAttribute('data-icon')
+      };
+    });
+    expect(icons).toEqual({
+      tab: 'ui-components:markdown',
+      painted: null,
+      row: 'ui-components:markdown'
+    });
+  });
+
+  // DEF-TABS-85: after that mirror, a rename to a name this extension has no
+  // icon for gives the other extension's icon back (ACC-TABS-71).
+  test("a rename to a name with no icon here gives the other extension's icon back", async ({
+    page,
+    tmpPath
+  }) => {
+    await page.contents.uploadContent(
+      '# notes\n',
+      'text',
+      `${tmpPath}/away.md`
+    );
+    await page.filebrowser.openDirectory(tmpPath);
+    await page.filebrowser.open(`${tmpPath}/away.md`);
+    await page.waitForTimeout(1500);
+    const foreignIcon = await page.evaluate(() => {
+      const app = (window as any).jupyterapp;
+      const widget = [...app.shell.widgets('main')].find(
+        (w: any) => w.title.label === 'away.md'
+      );
+      const icon = app.docRegistry.getFileType('zip').icon;
+      widget.title.icon = icon;
+      return icon.name as string;
+    });
+    await page.waitForTimeout(1500);
+    await page.contents.renameFile(`${tmpPath}/away.md`, `${tmpPath}/away.qqq`);
+    await page.waitForFunction(
+      () =>
+        [
+          ...document.querySelectorAll(
+            '.lm-TabBar-tab[data-type="document-title"] .lm-TabBar-tabLabel'
+          )
+        ].some(n => n.textContent === 'away.qqq'),
+      undefined,
+      { timeout: 30000 }
+    );
+    await page.waitForTimeout(1500);
+    const tab = await page.evaluate(() => {
+      const found = [
+        ...document.querySelectorAll(
+          '.lm-TabBar-tab[data-type="document-title"]'
+        )
+      ].find(
+        t => t.querySelector('.lm-TabBar-tabLabel')?.textContent === 'away.qqq'
+      );
+      const host = found?.querySelector('.lm-TabBar-tabIcon');
+      return {
+        icon: host?.querySelector('svg')?.getAttribute('data-icon'),
+        painted: host?.getAttribute('data-vscode-tab-icon') ?? null
+      };
+    });
+    expect(tab).toEqual({ icon: foreignIcon, painted: null });
+  });
+
+  // A name is resolved once until the registry or the settings change. A type
+  // another extension registers after the row showed the name, as the zip
+  // extension does from its lazily loaded code, still reaches the tab.
+  test('a file type registered after its row showed reaches the tab', async ({
+    page,
+    tmpPath
+  }) => {
+    await page.contents.uploadContent('x', 'text', `${tmpPath}/late.qqq`);
+    await page.filebrowser.openDirectory(tmpPath);
+    await page.waitForFunction(() =>
+      [...document.querySelectorAll('.jp-DirListing-itemText')].some(
+        label => label.textContent === 'late.qqq'
+      )
+    );
+    await page.waitForTimeout(1500);
+    await page.evaluate(() => {
+      const registry = (window as any).jupyterapp.docRegistry;
+      registry.addFileType({
+        name: 'late-qqq',
+        extensions: ['.qqq'],
+        contentType: 'file',
+        fileFormat: 'text',
+        mimeTypes: ['text/plain'],
+        icon: registry.getFileType('zip').icon
+      });
+    });
+    const { tabIcon } = await openAndRead(page, tmpPath, 'late.qqq');
+    expect(tabIcon).toBe('registry:late-qqq');
+  });
+
+  test('a setting changed in the open page reaches the tab', async ({
+    page,
+    tmpPath
+  }) => {
+    await page.contents.uploadContent(
+      '[pytest]\n',
+      'text',
+      `${tmpPath}/pytest.ini`
+    );
+    await page.contents.uploadContent('x', 'text', `${tmpPath}/other.txt`);
+    await page.filebrowser.openDirectory(tmpPath);
+    expect((await openAndRead(page, tmpPath, 'pytest.ini')).tabIcon).toBe(
+      'artwork:pytest'
+    );
+    await page.evaluate(async () => {
+      const settings = await (window as any).galata.getPlugin(
+        '@jupyterlab/apputils-extension:settings'
+      );
+      await settings.set(
+        'jupyterlab_vscode_icons_extension:plugin',
+        'enableConfigIcons',
+        false
+      );
+    });
+    // Opening files runs tab passes; the refresh alert is dismissed by
+    // Playwright.
+    await openAndRead(page, tmpPath, 'other.txt');
+    expect((await openAndRead(page, tmpPath, 'pytest.ini')).tabIcon).not.toBe(
+      'artwork:pytest'
+    );
+  });
+
+  // The rule above with hand-drawn artwork: .bpmn is painted with this
   // extension's own artwork even though camunda's icon is specific and
   // registered. The maintainer's instruction, verbatim: "we use ours".
   test("the bpmn tab takes this extension's mark", async ({

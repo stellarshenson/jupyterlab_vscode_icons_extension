@@ -10,114 +10,141 @@ Defects in the extension frontend and in its build and release tooling.
 
 The shared Makefile template, the lockfiles and the release path
 
-- [x] `DEF-BUILD-1` **jlpm test dirties the tree** - MEDIUM; `jlpm test` rewrites the tracked `junit.xml` on every run, so running tests leaves the tree dirty for a release that must end clean; `uv.lock` is tracked the same way; fix: untrack both and gitignore them
+- [x] `DEF-BUILD-1-JLPM-TEST` **jlpm test dirties the tree** - MEDIUM; `jlpm test` rewrites the tracked `junit.xml` on every run, so running tests leaves the tree dirty for a release that must end clean; `uv.lock` is tracked the same way; fix: untrack both and gitignore them
   - evidence: release 1.1.110 ended with git status --porcelain empty although jlpm test had rewritten junit.xml during publish
-  - related: ACC-BUILD-26 - the clean-tree criterion this breaks
+  - related: ACC-BUILD-26-CLEAN-TREE - the clean-tree criterion this breaks
   - repro: jlpm test, then git status --porcelain
   - test-tags: MANUAL
   - log: 2026-10-13T21:25:38Z @kj added
   - log: 2026-10-14T07:49:47Z @kj closed: untracked and gitignored, shipped in 1.1.110
-- [x] `DEF-BUILD-2` **package-lock.json tracked but unmaintained** - MINOR; `package-lock.json` is tracked yet no target regenerates it and the publish target stages only package.json and yarn.lock, so it drifts silently; cause: template 1.41 dropped `npm install` from build and dropped the file from the staged list; fix: untrack it, or restore a step that writes it
+  - log: 2026-10-23T06:32:17Z @kj coded JLPM-TEST
+- [x] `DEF-BUILD-2-PACKAGE-LOCK` **package-lock.json tracked but unmaintained** - MINOR; `package-lock.json` is tracked yet no target regenerates it and the publish target stages only package.json and yarn.lock, so it drifts silently; cause: template 1.41 dropped `npm install` from build and dropped the file from the staged list; fix: untrack it, or restore a step that writes it
   - evidence: git rm --cached package-lock.json; the file is in .gitignore and no target writes it since template 1.41
-  - related: ACC-BUILD-21 - the version agreement this could undermine
+  - related: ACC-BUILD-21-VERSION-MOVES - the version agreement this could undermine
   - repro: compare git log -1 on package-lock.json against the last release commit
   - test-tags: MANUAL
   - log: 2026-10-13T21:25:38Z @kj added
   - log: 2026-10-14T07:49:47Z @kj closed: untracked and gitignored
-- [x] `DEF-BUILD-6` **CONTRIBUTING.md never mentions the Makefile** - MINOR; CONTRIBUTING.md:17 documents a .venv plus `pip install --editable` dev path that never names the Makefile, and :11 invites `npm ci` against the unmaintained package-lock.json; cause: template text taken verbatim at v4.6.5; fix: one orienting line at the top of `## Development install`
+  - log: 2026-10-23T06:32:17Z @kj coded PACKAGE-LOCK
+- [x] `DEF-BUILD-6-CONTRIBUTING` **CONTRIBUTING.md never mentions the Makefile** - MINOR; CONTRIBUTING.md:17 documents a .venv plus `pip install --editable` dev path that never names the Makefile, and :11 invites `npm ci` against the unmaintained package-lock.json; cause: template text taken verbatim at v4.6.5; fix: one orienting line at the top of `## Development install`
   - evidence: CONTRIBUTING.md Development install now names make install_dependencies, build, install, test and publish, and warns off npm ci
   - repro: read CONTRIBUTING.md ## Development install against the Makefile targets
   - test-tags: MANUAL
   - log: 2026-10-13T22:32:44Z @kj added
   - log: 2026-10-14T07:49:47Z @kj closed: orienting paragraph added above the template text
-- [x] `DEF-BUILD-7` **prettier is not verified anywhere** - MINOR; `jlpm test` runs eslint and stylelint but not `prettier:check`, so only three of four lint gates run before a release; `make build` applies formatting instead of verifying it; fix: add the gate call plus two .prettierignore entries for the pm registers in one commit
+  - log: 2026-10-23T06:32:17Z @kj coded CONTRIBUTING-MD
+  - log: 2026-10-23T06:32:53Z @kj renamed code "CONTRIBUTING-MD" -> "CONTRIBUTING"
+- [x] `DEF-BUILD-7-PRETTIER` **prettier is not verified anywhere** - MINOR; `jlpm test` runs eslint and stylelint but not `prettier:check`, so only three of four lint gates run before a release; `make build` applies formatting instead of verifying it; fix: add the gate call plus two .prettierignore entries for the pm registers in one commit
   - evidence: scripts.test is prettier:check then eslint:check then stylelint:check then jest; jlpm test exit 0
-  - related: ACC-BUILD-23 - the gate criterion this leaves three quarters closed
+  - related: ACC-BUILD-23-GATES-RUN - the gate criterion this leaves three quarters closed
   - repro: PATH=$PWD/.nodeenv/bin:$PATH jlpm prettier:check
   - test-tags: MANUAL
   - log: 2026-10-13T22:32:44Z @kj added
   - log: 2026-10-14T07:49:47Z @kj closed: the fourth gate added with the .prettierignore entries in place
-- [x] `DEF-BUILD-8` **update-snapshots-checkout@v1 tag unconfirmed** - MINOR; update-integration-tests.yml pins `update-snapshots-checkout@v1` on local evidence only - the v4.6.5 sibling ships that exact reference - with no network to confirm the tag resolves; if it does not, the comment-triggered snapshot job errors at start; fix: confirm the tag online
+  - log: 2026-10-23T06:32:17Z @kj coded PRETTIER-VERIFIED
+  - log: 2026-10-23T06:32:53Z @kj renamed code "PRETTIER-VERIFIED" -> "PRETTIER"
+- [x] `DEF-BUILD-8-SNAPSHOT-ACTION` **update-snapshots-checkout@v1 tag unconfirmed** - MINOR; update-integration-tests.yml pins `update-snapshots-checkout@v1` on local evidence only - the v4.6.5 sibling ships that exact reference - with no network to confirm the tag resolves; if it does not, the comment-triggered snapshot job errors at start; fix: confirm the tag online
   - evidence: git ls-remote shows refs/tags/v1 at c0477744; a depth-1 clone of that tag carries .github/actions/update-snapshots-checkout, base-setup, update-snapshots and check-links
   - repro: comment please update snapshots on a pull request and watch the job start
   - test-tags: MANUAL
   - log: 2026-10-13T22:32:44Z @kj added
   - log: 2026-10-14T07:50:28Z @kj closed: tag and action path both confirmed against the upstream repository
-- [x] `DEF-BUILD-13` **JUPYTER_TEST_PORT is undiscoverable** - MINOR; the knob that lets the Galata suite run while another lab holds 8888 is named only in two code comments; a contributor reads `Process from config.webServer was not able to start` with no documented remedy; fix: one sentence in ui-tests/README.md
+  - log: 2026-10-23T06:32:17Z @kj coded UPDATE-SNAPSHOTS
+  - log: 2026-10-23T06:32:53Z @kj renamed code "UPDATE-SNAPSHOTS" -> "SNAPSHOT-ACTION"
+- [x] `DEF-BUILD-13-TEST-PORT` **JUPYTER_TEST_PORT is undiscoverable** - MINOR; the knob that lets the Galata suite run while another lab holds 8888 is named only in two code comments; a contributor reads `Process from config.webServer was not able to start` with no documented remedy; fix: one sentence in ui-tests/README.md
   - evidence: ui-tests/README.md now carries the JUPYTER_TEST_PORT recipe and says the variable drives both the base URL and the test server
   - repro: grep JUPYTER_TEST_PORT across the repository markdown
   - test-tags: MANUAL
   - log: 2026-10-14T08:53:29Z @kj added
   - log: 2026-10-14T08:55:50Z @kj closed: documented where a contributor is sent
-- [x] `DEF-BUILD-52` **Parallel Make races tests and version changes** - MAJOR; make -j publish starts version increment and build before a failing test completes
+  - log: 2026-10-23T06:32:17Z @kj coded JUPYTER-TEST
+  - log: 2026-10-23T06:32:53Z @kj renamed code "JUPYTER-TEST" -> "TEST-PORT"
+- [x] `DEF-BUILD-52-PARALLEL-MAKE` **Parallel Make races tests and version changes** - MAJOR; make -j publish starts version increment and build before a failing test completes
   - evidence: four actual Make dependency-graph tests pass under serial and -j4 execution; all three pinned reviewers independently confirmed ordering
   - repro: replace recipes with harmless markers and make test fail after a delay; run make -j4 publish
   - test-tags: UNIT
   - root-cause: 2026-10-15T12:39:53Z @kj test and install are sibling prerequisites; increment_version and build are also siblings
   - log: 2026-10-15T12:39:53Z @kj added
   - log: 2026-10-15T12:53:38Z @kj closed: fixed and confirmed by architect, bug-hunter and ux-designer
-- [-] `DEF-BUILD-53` **Python 3.10 cannot read project extras** - MAJOR; the Makefile imports tomllib although supported Python starts at 3.10; bootstrap can hide the import failure behind xargs
-  - related: ACC-BUILD-41
+  - log: 2026-10-23T06:32:17Z @kj coded PARALLEL-MAKE
+- [-] `DEF-BUILD-53-PYTHON-EXTRAS` **Python 3.10 cannot read project extras** - MAJOR; the Makefile imports tomllib although supported Python starts at 3.10; bootstrap can hide the import failure behind xargs
+  - related: ACC-BUILD-41-PYTHON-MINIMUM
   - repro: run extras extraction on Python 3.10 without tomli
   - test-tags: UNIT
   - root-cause: 2026-10-15T12:39:53Z @kj tomllib entered the standard library in Python 3.11 and no backport is bootstrapped
   - log: 2026-10-15T12:39:53Z @kj added
   - log: 2026-10-15T12:41:22Z @kj maintainer set Python 3.11 as the minimum; remove the obsolete 3.10 support declaration instead of adding a backport
   - log: 2026-10-15T12:46:51Z @kj rejected: maintainer removed Python 3.10 support; ACC-BUILD-41 and rebuilt wheel require Python >=3.11, where tomllib is available
-- [-] `DEF-BUILD-58` **Release criterion promises atomic uploads** - MAJOR; ACC-BUILD-22 claims failed uploads never split npm and PyPI versions, while its test and release code require partial-publication reporting and recovery
-  - related: ACC-BUILD-42, ACC-BUILD-43, ACC-BUILD-44, ACC-BUILD-45
-  - repro: compare ACC-BUILD-22 with the npm-then-twine recipe
+  - log: 2026-10-23T06:32:17Z @kj coded PYTHON-CANNOT
+  - log: 2026-10-23T06:32:54Z @kj renamed code "PYTHON-CANNOT" -> "PYTHON-EXTRAS"
+- [-] `DEF-BUILD-58-ATOMIC-UPLOAD` **Release criterion promises atomic uploads** - MAJOR; ACC-BUILD-22-NPM-PYPI claims failed uploads never split npm and PyPI versions, while its test and release code require partial-publication reporting and recovery
+  - related: ACC-BUILD-42-VERSIONS-AGREE, ACC-BUILD-43-PARTIAL-REPORT, ACC-BUILD-44-PARTIAL-FAILS, ACC-BUILD-45-PARTIAL-RECOVERY
+  - repro: compare ACC-BUILD-22-NPM-PYPI with the npm-then-twine recipe
   - test-tags: UNIT
   - root-cause: 2026-10-15T12:39:54Z @kj the criterion body describes atomicity but the approved contract is sequential publishing with a recovery command
   - log: 2026-10-15T12:39:54Z @kj added
   - log: 2026-10-15T13:07:32Z @kj closed
   - log: 2026-10-15T16:47:57Z @kj rejected: rejected as a tracker wording entry, not a product fault; evidence retired: User selected recoverable partial publication; ACC-BUILD-22 replaced by ACC-BUILD-42 through ACC-BUILD-45. Actual publish recipe simulations pass (logs/goal-publish-contract.log), including failed PyPI upload warning and recovery.; reason: not a product fault: it records a wording contradiction between a criterion and its own test, which the tracker already settles by rejecting ACC-BUILD-22 and closing ACC-BUILD-42 to ACC-BUILD-45
+  - log: 2026-10-23T06:32:17Z @kj coded RELEASE-CRITERION
+  - log: 2026-10-23T06:32:54Z @kj renamed code "RELEASE-CRITERION" -> "ATOMIC-UPLOAD"
+  - log: 2026-10-23T06:33:30Z @kj amended text "ACC-BUILD-22 claims failed uploads never split npm and PyPI versions, while its test and release code require partial-publication reporting and recovery" -> "ACC-BUILD-22-NPM-PYPI claims failed uploads never split npm and PyPI versions, while its test and release code require partial-publication reporting and recovery"
+  - log: 2026-10-23T06:33:30Z @kj edited repro "compare ACC-BUILD-22 with the npm-then-twine recipe" -> "compare ACC-BUILD-22-NPM-PYPI with the npm-then-twine recipe"
 
 ## Test suite `TEST`
 
 Jest, the Playwright ui-tests and their output
 
-- [x] `DEF-TEST-3` **jest haste module naming collision** - MINOR; `jlpm test` prints `jest-haste-map: Haste module naming collision: jupyterlab_vscode_icons_extension` for the root package.json against jupyterlab_vscode_icons_extension/labextension/package.json; cause: the built labextension output sits inside the jest roots; fix: add that directory to modulePathIgnorePatterns
+- [x] `DEF-TEST-3-JEST-HASTE` **jest haste module naming collision** - MINOR; `jlpm test` prints `jest-haste-map: Haste module naming collision: jupyterlab_vscode_icons_extension` for the root package.json against jupyterlab_vscode_icons_extension/labextension/package.json; cause: the built labextension output sits inside the jest roots; fix: add that directory to modulePathIgnorePatterns
   - evidence: jlpm test after a build prints 0 occurrences of 'Haste module naming collision', 28 tests pass
   - repro: run jlpm test after a build has populated the labextension directory
   - test-tags: MANUAL
   - log: 2026-10-13T21:25:38Z @kj added
   - log: 2026-10-14T07:49:47Z @kj closed: labextension output excluded from the jest roots
-- [x] `DEF-TEST-14` **The never-empty tab assertion cannot fail** - MINOR; tab-icons.spec.ts asserts a background is set or an svg exists, which holds in any state the pass reached, so ACC-TABS-34 rests on a check that cannot see an empty slot; a height check does not help, lab gives the host width 14px and no height
+  - log: 2026-10-23T06:32:17Z @kj coded JEST-HASTE
+- [x] `DEF-TEST-14-EMPTY-ASSERTION` **The never-empty tab assertion cannot fail** - MINOR; tab-icons.spec.ts asserts a background is set or an svg exists, which holds in any state the pass reached, so ACC-TABS-34-NEVER-EMPTY rests on a check that cannot see an empty slot; a height check does not help, lab gives the host width 14px and no height
   - evidence: the test now requires a drawn svg box or a background on a host with non-zero area; hiding .lm-TabBar-tabIcon makes it fail, so it can fail
-  - related: ACC-TABS-34 - the criterion resting on it
+  - related: ACC-TABS-34-NEVER-EMPTY - the criterion resting on it
   - repro: read ui-tests/tests/tab-icons.spec.ts and ask which state would fail it
   - test-tags: MANUAL
   - log: 2026-10-14T08:53:35Z @kj added
   - log: 2026-10-14T08:55:50Z @kj closed: assertion rewritten against rendered geometry
-- [x] `DEF-TEST-16` **Galata row assertions read a row icon one frame before JupyterLab sets it** - MAJOR; The file browser reuses row elements and resolves a row icon inside a requestAnimationFrame callback, while the label text is written synchronously in the same pass. A spec that waits only for the label can read the previous row's glyph, so the suite fails on a clean run.
+  - log: 2026-10-23T06:32:17Z @kj coded EMPTY-ASSERTION
+  - log: 2026-10-23T06:33:30Z @kj amended text "tab-icons.spec.ts asserts a background is set or an svg exists, which holds in any state the pass reached, so ACC-TABS-34 rests on a check that cannot see an empty slot; a height check does not help, lab gives the host width 14px and no height" -> "tab-icons.spec.ts asserts a background is set or an svg exists, which holds in any state the pass reached, so ACC-TABS-34-NEVER-EMPTY rests on a check that cannot see an empty slot; a height check does not help, lab gives the host width 14px and no height"
+- [x] `DEF-TEST-16-FRAME-EARLY` **Galata row assertions read a row icon one frame before JupyterLab sets it** - MAJOR; The file browser reuses row elements and resolves a row icon inside a requestAnimationFrame callback, while the label text is written synchronously in the same pass. A spec that waits only for the label can read the previous row's glyph, so the suite fails on a clean run.
   - evidence: ui-tests/tests/file-browser-icons.spec.ts settleIcons waits two animation frames after every label wait; full suite 12 passed, logs/galata-final.log
   - repro: cd ui-tests && JUPYTER_TEST_PORT=8899 jlpm playwright test tests/file-browser-icons.spec.ts - 1 failed / 6 passed, 'another extension icon is never replaced' got ui-components:folder instead of bpmn:icon
   - test-tags: E2E
   - root-cause: 2026-10-14T11:29:18Z @kj @jupyterlab/filebrowser listing.js wraps LabIcon.resolveElement in requestAnimationFrame; the label is set synchronously, so waitForFunction on the label text returns before the icon host is rewritten
   - log: 2026-10-14T11:29:18Z @kj added
   - log: 2026-10-14T11:29:34Z @kj closed: fixed: settleIcons helper added after each label wait, suite green 12/12
-- [x] `DEF-TEST-38` **The galata suite oversubscribed its own lab server** - MEDIUM; playwright defaulted to a worker per core, so eight browsers drove the single test server; 'every row keeps its own glyph across navigation' timed out in three full runs while passing every time on its own, which made the suite unreliable as evidence
+  - log: 2026-10-23T06:32:17Z @kj coded GALATA-ASSERTIONS
+  - log: 2026-10-23T06:32:51Z @kj renamed code "GALATA-ASSERTIONS" -> "FRAME-EARLY"
+- [x] `DEF-TEST-38-OVERSUBSCRIBED` **The galata suite oversubscribed its own lab server** - MEDIUM; playwright defaulted to a worker per core, so eight browsers drove the single test server; 'every row keeps its own glyph across navigation' timed out in three full runs while passing every time on its own, which made the suite unreliable as evidence
   - evidence: workers pinned to 2 in ui-tests/playwright.config.js; two consecutive full runs of 33 tests passed with no skips and no flake, at 1.6 minutes each
   - repro: run the full suite on an 8-core machine and watch row-stability
   - test-tags: E2E
   - root-cause: 2026-10-14T13:57:37Z @kj one webServer serves the whole suite while workers defaults to the core count
   - log: 2026-10-14T13:57:37Z @kj added
   - log: 2026-10-14T13:57:37Z @kj closed
-- [x] `DEF-TEST-45` **The mcp contrast assertions measured a neighbouring constant** - MAJOR; fillOf searched a fixed 4000-character window for a six-digit fill; mcpSvg's only fill is the three-digit #eee, so the search ran past the end of its literal and returned the first colour of the constant that follows it
+  - log: 2026-10-23T06:32:17Z @kj coded GALATA-SUITE
+  - log: 2026-10-23T06:32:52Z @kj renamed code "GALATA-SUITE" -> "OVERSUBSCRIBED"
+- [x] `DEF-TEST-45-MCP-CONTRAST` **The mcp contrast assertions measured a neighbouring constant** - MAJOR; fillOf searched a fixed 4000-character window for a six-digit fill; mcpSvg's only fill is the three-digit #eee, so the search ran past the end of its literal and returned the first colour of the constant that follows it
   - evidence: measured before the fix, fillOf('mcpSvg') returned #56b3b4 at offset 1701, outside the literal; the five other artworks resolved inside theirs. After it the mcp cases read #eee, 13.88:1 dark and 1.16:1 light, and both still hold; recolouring the artwork now fails the block, measured 1 failed of 119
   - root-cause: 2026-10-14T16:08:08Z @kj the helper was bounded by a character count rather than by the literal it reads, so it degraded silently instead of failing when its pattern did not match
   - repro: run the spec's own fillOf over src/index.ts and compare the offset it returns against the end of the constant's template literal
   - test-tags: UNIT
   - log: 2026-10-14T16:08:08Z @kj added
   - log: 2026-10-14T16:08:09Z @kj closed: fixed: fillOf is bounded to the constant's own template literal and accepts three-digit fills; reason: the evidence has to carry the offset and the colour, because the symptom of this defect was a test that passed
-- [x] `DEF-TEST-68` **Galata runs against the installed labextension, not the working tree** - MEDIUM; ui-tests serve the labextension installed in the environment, so a run after editing src/ tests the last installed wheel and can pass on code never built; cause: the test server imports the installed package; fix: point JUPYTER_PATH at the repo build; `ui-tests/playwright.config.js`
+  - log: 2026-10-23T06:32:17Z @kj coded MCP-CONTRAST
+- [x] `DEF-TEST-68-INSTALLED-LABEXT` **Galata runs against the installed labextension, not the working tree** - MEDIUM; ui-tests serve the labextension installed in the environment, so a run after editing src/ tests the last installed wheel and can pass on code never built; cause: the test server imports the installed package; fix: point JUPYTER_PATH at the repo build; `ui-tests/playwright.config.js`
   - evidence: with only JUPYTER_TEST_PORT set, the suite served both halves from the tree: metadata-refresh 4/4 and the full run 59/59 on 2026-10-15
   - repro: edit the python-package marker value in src/index.ts without installing, run jlpm playwright test in ui-tests: the old value still appears
   - test-tags: E2E
   - log: 2026-10-15T21:38:33Z @kj added
   - log: 2026-10-15T21:50:36Z @kj closed: fixed: playwright.config.js points JUPYTER_PATH at the repo labextension and PYTHONPATH at the repo root
-- [x] `DEF-TEST-73` **CI Galata fails the dotfile specs** - MAJOR; Integration tests job red on every run since d20694e: mcp-contrast.spec.ts:73 and symlink-badges.spec.ts:115 find no .mcp.json or .hidden-link row; both pass locally
+  - log: 2026-10-23T06:32:17Z @kj coded GALATA-RUNS
+  - log: 2026-10-23T06:32:53Z @kj renamed code "GALATA-RUNS" -> "INSTALLED-LABEXT"
+- [x] `DEF-TEST-73-CI-DOTFILE` **CI Galata fails the dotfile specs** - MAJOR; Integration tests job red on every run since d20694e: mcp-contrast.spec.ts:73 and symlink-badges.spec.ts:115 find no .mcp.json or .hidden-link row; both pass locally
   - evidence: 4032e46: test server config sets ContentsManager.allow_hidden = True; GitHub Actions run 38944098084 green on all 4 jobs, Integration tests included; with allow_hidden = False both specs fail as in CI
   - repro: set c.ContentsManager.allow_hidden = False in ui-tests/jupyter_server_test_config.py, run tests/mcp-contrast.spec.ts:73 and tests/symlink-badges.spec.ts:115: both fail as in CI
   - test-tags: FUNCTIONAL
@@ -125,67 +152,88 @@ Jest, the Playwright ui-tests and their output
   - log: 2026-10-16T17:53:39Z @kj added
   - log: 2026-10-16T17:56:24Z @kj edited repro "JUPYTER_NO_CONFIG=1 npx playwright test tests/mcp-contrast.spec.ts:73 tests/symlink-badges.spec.ts:115" -> "set c.ContentsManager.allow_hidden = False in ui-tests/jupyter_server_test_config.py, run tests/mcp-contrast.spec.ts:73 and tests/symlink-badges.spec.ts:115: both fail as in CI"
   - log: 2026-10-16T18:29:55Z @kj closed
-- [x] `DEF-TEST-74` **CI Galata runs the checkout's server code** - MAJOR; the Integration tests job installs the wheel but imports jupyterlab_vscode_icons_extension from the checkout, so no Build job runs the wheel's server half; the frontend comes from the wheel
+  - log: 2026-10-23T06:32:17Z @kj coded CI-GALATA
+  - log: 2026-10-23T06:32:52Z @kj renamed code "CI-GALATA" -> "CI-DOTFILE"
+- [x] `DEF-TEST-74-CI-SERVER` **CI Galata runs the checkout's server code** - MAJOR; the Integration tests job installs the wheel but imports jupyterlab_vscode_icons_extension from the checkout, so no Build job runs the wheel's server half; the frontend comes from the wheel
   - evidence: 6b6eba9 gates the PYTHONPATH shim on the repo build; GitHub Actions run 38949588235 green on all 4 jobs, Integration tests on the wheel's server code
   - repro: in a checkout without jupyterlab_vscode_icons_extension/labextension, load ui-tests/playwright.config.js: PYTHONPATH is the checkout, JUPYTER_PATH is unset
   - test-tags: FUNCTIONAL
   - root-cause: 2026-10-16T18:21:36Z @kj the PYTHONPATH shim in ui-tests/playwright.config.js fires whenever handlers.py exists, which is always in a checkout; the JUPYTER_PATH shim fires only where the repo build exists
   - log: 2026-10-16T18:21:36Z @kj added
   - log: 2026-10-16T18:52:53Z @kj closed
-- [x] `DEF-TEST-75` **No CI job checks the wheel enables its server extension** - MEDIUM; a wheel whose jupyter_server_config.d JSON is missing or malformed passes build, test_isolated and Integration tests, because the test server config force-enables the extension; users would get no listing flags and no symlink or executable badges
+  - log: 2026-10-23T06:32:17Z @kj coded CI-GALATA
+  - log: 2026-10-23T06:32:52Z @kj renamed code "CI-GALATA" -> "CI-SERVER"
+- [x] `DEF-TEST-75-SERVER-ENABLED` **No CI job checks the wheel enables its server extension** - MEDIUM; a wheel whose jupyter_server_config.d JSON is missing or malformed passes build, test_isolated and Integration tests, because the test server config force-enables the extension; users would get no listing flags and no symlink or executable badges
   - evidence: 6b6eba9 adds the jupyter server extension list check to test_isolated; GitHub Actions run 38949588235 green on all 4 jobs
-  - related: DEF-TEST-74
+  - related: DEF-TEST-74-CI-SERVER
   - repro: delete jupyter-config/server-config from the build, run the Build workflow: every job passes
   - test-tags: MANUAL
   - root-cause: 2026-10-16T18:21:36Z @kj test_isolated checks only the labextension; no step runs jupyter server extension list against the installed wheel
   - log: 2026-10-16T18:21:36Z @kj added
   - log: 2026-10-16T18:52:54Z @kj closed
+  - log: 2026-10-23T06:32:17Z @kj coded CI-JOB
+  - log: 2026-10-23T06:32:53Z @kj renamed code "CI-JOB" -> "SERVER-ENABLED"
+- [x] `DEF-TEST-86-TMP-BASE` **Patch base copies under tmp/ reach jest and prettier** - MINOR; spec and source copies kept under tmp/workflows as patch bases were collected by jest and checked by prettier, so make test failed twice (r3-base, r10-base) on files outside the project
+  - evidence: jest.config.js modulePathIgnorePatterns and .prettierignore list tmp/; jest --listTests finds 0 files under tmp/; make test green with r10-base and r11-base present (logs/test-rename-2.log)
+  - repro: copy a spec file to tmp/workflows/x/src/__tests__/ and run make test
+  - test-tags: UNIT
+  - root-cause: 2026-10-23T23:33:12Z @kj jest testRegex matches any src/ path and modulePathIgnorePatterns did not list tmp/; .prettierignore did not list tmp/
+  - log: 2026-10-23T23:33:12Z @kj added
+  - log: 2026-10-23T23:34:31Z @kj closed
 
 ## Lint and static analysis `LINT`
 
 Warnings and errors from eslint, stylelint and prettier
 
-- [x] `DEF-LINT-4` **prefer-lazy-imports warning on the icons import** - MINOR; lint:check warns `'./icons' is imported at the top of a plugin module and used in activate()`; cause: @jupyter/eslint-plugin rules arrived with template v4.6.5, never addressed; fix: import it in the callback that needs it, or disable the rule there; `src/index.ts:9`
+- [x] `DEF-LINT-4-PREFER-LAZY` **prefer-lazy-imports warning on the icons import** - MINOR; lint:check warns `'./icons' is imported at the top of a plugin module and used in activate()`; cause: @jupyter/eslint-plugin rules arrived with template v4.6.5, never addressed; fix: import it in the callback that needs it, or disable the rule there; `src/index.ts:9`
   - evidence: jlpm test exit 0 with 0 eslint warnings; the directive sits on the line above the import so it attaches
-  - related: ACC-BUILD-23 - the lint gate these warnings sit in
+  - related: ACC-BUILD-23-GATES-RUN - the lint gate these warnings sit in
   - repro: PATH=$PWD/.nodeenv/bin:$PATH jlpm run lint:check
   - test-tags: MANUAL
   - log: 2026-10-13T21:25:51Z @kj added
   - log: 2026-10-14T07:49:47Z @kj closed: suppressed with a reason - activate needs the map before start
-- [x] `DEF-LINT-5` **no-pageconfig-base-url warning** - MINOR; lint:check warns `PageConfig.getBaseUrl() should not be called outside of makeSettings()`; cause: the same new plugin rules; fix: hold a ServerConnection.ISettings and read .baseUrl from it, or disable the rule there; `src/index.ts:1002`
+  - log: 2026-10-23T06:32:17Z @kj coded PREFER-LAZY
+- [x] `DEF-LINT-5-PAGECONFIG` **no-pageconfig-base-url warning** - MINOR; lint:check warns `PageConfig.getBaseUrl() should not be called outside of makeSettings()`; cause: the same new plugin rules; fix: hold a ServerConnection.ISettings and read .baseUrl from it, or disable the rule there; `src/index.ts:1002`
   - evidence: the executables probe now builds its URL from ServerConnection.makeSettings().baseUrl and calls makeRequest; jlpm test exit 0 with 0 eslint warnings
   - repro: PATH=$PWD/.nodeenv/bin:$PATH jlpm run lint:check
   - test-tags: MANUAL
   - log: 2026-10-13T21:25:51Z @kj added
   - log: 2026-10-14T07:49:47Z @kj closed: fixed at the root, not suppressed
+  - log: 2026-10-23T06:32:17Z @kj coded PAGECONFIG-BASE
+  - log: 2026-10-23T06:32:53Z @kj renamed code "PAGECONFIG-BASE" -> "PAGECONFIG"
 
 ## Document tab icons `TABS`
 
 Icons on the dock panel tabs of open documents
 
-- [x] `DEF-TABS-9` **Tabs show the editor glyph, not the file's icon** - MEDIUM; opening `babel.config.js` or `routes.py` shows JupyterLab's `ui-components:text-editor` glyph on the tab while the file browser shows the vscode glyph; cause: the editor factory sets the title icon, so the registered file type's icon never reaches the tab; fix: paint the glyph on the tab icon host
+- [x] `DEF-TABS-9-EDITOR-GLYPH` **Tabs show the editor glyph, not the file's icon** - MEDIUM; opening `babel.config.js` or `routes.py` shows JupyterLab's `ui-components:text-editor` glyph on the tab while the file browser shows the vscode glyph; cause: the editor factory sets the title icon, so the registered file type's icon never reaches the tab; fix: paint the glyph on the tab icon host
   - evidence: jlpm test exit 0, 28 tests pass, 0 lint errors; babel.config.js tab measured as file-type-js-official in the running lab
-  - related: ACC-TABS-27 - the criterion it fails
+  - related: ACC-TABS-27-TYPE-ICON - the criterion it fails
   - repro: open any .js or .py file and compare the tab icon with its file browser row
   - test-tags: MANUAL
   - log: 2026-10-14T07:37:42Z @kj added
   - log: 2026-10-14T07:40:36Z @kj closed: fixed by painting the glyph on the tab icon host
-- [x] `DEF-TABS-10` **bpmn tab shows no icon at all** - MEDIUM; `supplier_process.bpmn` opens with an empty tab icon slot; jupyterlab_camunda_modeller_extension registers a bpmn file type with `bpmn:icon`, which never reaches the tab, and this extension has no bpmn glyph to supply; fix: fall back to the registry's icon, then to JupyterLab's generic file glyph
+  - log: 2026-10-23T06:32:17Z @kj coded EDITOR-GLYPH
+- [x] `DEF-TABS-10-BPMN-BLANK` **bpmn tab shows no icon at all** - MEDIUM; `supplier_process.bpmn` opens with an empty tab icon slot; jupyterlab_camunda_modeller_extension registers a bpmn file type with `bpmn:icon`, which never reaches the tab, and this extension has no bpmn glyph to supply; fix: fall back to the registry's icon, then to JupyterLab's generic file glyph
   - evidence: supplier_process.bpmn tab measured as registry:bpmn in the running lab, previously an empty slot
-  - related: ACC-TABS-34 - the always-an-icon criterion it fails
+  - related: ACC-TABS-34-NEVER-EMPTY - the always-an-icon criterion it fails
   - repro: open a .bpmn file with jupyterlab_camunda_modeller_extension installed
   - test-tags: MANUAL
   - log: 2026-10-14T07:37:42Z @kj added
   - log: 2026-10-14T07:40:36Z @kj closed: fixed by falling back to the registry icon then the generic glyph
-- [-] `DEF-TABS-19` **Row and tab differ where JupyterLab claims the type** - MINOR; a .md, .py or .json file shows JupyterLab's icon on its row and this extension's bundled glyph on its tab; resolveIcon discards a ui-components registry hit instead of yielding to it
-  - related: ACC-TABS-27
+  - log: 2026-10-23T06:32:17Z @kj coded BPMN
+  - log: 2026-10-23T06:32:52Z @kj renamed code "BPMN" -> "BPMN-BLANK"
+- [-] `DEF-TABS-19-ROW-TAB` **Row and tab differ where JupyterLab claims the type** - MINOR; a .md, .py or .json file shows JupyterLab's icon on its row and this extension's bundled glyph on its tab; resolveIcon discards a ui-components registry hit instead of yielding to it
+  - related: ACC-TABS-27-TYPE-ICON
   - repro: open README.md, compare the row icon with the tab icon
   - test-tags: E2E
   - root-cause: 2026-10-14T11:45:47Z @kj the tab slot holds only the generic editor glyph, so the registry hit is the only specific icon available and it is rejected for being lab's own
   - log: 2026-10-14T11:45:47Z @kj added
   - log: 2026-10-14T11:45:52Z @kj awaiting the maintainer's decision: mirror lab's own icon on the tab, or leave the tab's bundled glyph; ACC-TABS-27 currently sanctions the difference
   - log: 2026-10-14T11:50:31Z @kj rejected: sanctioned, not a defect: the maintainer's instruction is to override JupyterLab's standard tab icons where that makes sense, and ACC-TABS-27 states the row-tab difference; a real mirror needs the tab's title.icon, since copying lab's svg into a data-URI background drops the jp-icon-contrast class that colours it per theme
-- [x] `DEF-TABS-23` **requirements.txt shows the txt sheet on its row and the python glyph on its tab** - MEDIUM; markSpecialFiles sets data-vscode-txt for any name ending .txt, overriding this project's own pattern that maps requirements.txt to file-type-python; the tab resolves through the registry and gets python
+  - log: 2026-10-23T06:32:17Z @kj coded DIFFER-WHERE
+  - log: 2026-10-23T06:32:55Z @kj renamed code "DIFFER-WHERE" -> "ROW-TAB"
+- [x] `DEF-TABS-23-REQUIREMENTS-TXT` **requirements.txt shows the txt sheet on its row and the python glyph on its tab** - MEDIUM; markSpecialFiles sets data-vscode-txt for any name ending .txt, overriding this project's own pattern that maps requirements.txt to file-type-python; the tab resolves through the registry and gets python
   - evidence: the .txt override now applies only where the row's file type is not one of this extension's own; file-browser-icons.spec.ts 'a registered .txt keeps its own icon' asserts requirements.txt stays vscode-file-type-python with no override while notes.txt still takes one, and removing the guard fails it
   - repro: open requirements.txt and compare its row icon with its tab icon
   - test-tags: E2E
@@ -194,7 +242,8 @@ Icons on the dock panel tabs of open documents
   - log: 2026-10-14T12:22:03Z @kj added
   - log: 2026-10-14T12:34:26Z @kj closed: fixed: the generic txt override yields to a specific registration
   - log: 2026-10-14T12:56:25Z @kj regressed as DEF-TABS-23-1
-- [x] `DEF-TABS-23-1` **requirements.txt shows the txt sheet on its row and the python glyph on its tab** - MEDIUM; markSpecialFiles sets data-vscode-txt for any name ending .txt, overriding this project's own pattern that maps requirements.txt to file-type-python; the tab resolves through the registry and gets python
+  - log: 2026-10-23T06:32:17Z @kj coded REQUIREMENTS-TXT
+- [x] `DEF-TABS-23-REQUIREMENTS-TXT-1` **requirements.txt shows the txt sheet on its row and the python glyph on its tab** - MEDIUM; markSpecialFiles sets data-vscode-txt for any name ending .txt, overriding this project's own pattern that maps requirements.txt to file-type-python; the tab resolves through the registry and gets python
   - evidence: the .txt override yields where the row's file type is this extension's own; file-browser-icons.spec.ts 'requirements.txt keeps python on the row' asserts vscode-file-type-python with no override, notes.txt still taking one, and the tab marker containing python
   - test-tags: E2E
   - repro: open requirements.txt and compare its row icon with its tab icon
@@ -202,7 +251,8 @@ Icons on the dock panel tabs of open documents
   - log: 2026-10-14T12:56:43Z @kj edited repro added "open requirements.txt and compare its row icon with its tab icon"; test-tags added "E2E"
   - log: 2026-10-14T14:29:39Z @kj closed: fixed on the maintainer's instruction: python everywhere for requirements.txt, row and tab
   - log: 2026-10-14T14:39:52Z @kj regressed as DEF-TABS-23-2
-- [x] `DEF-TABS-23-2` **requirements.txt shows the txt sheet on its row and the python glyph on its tab** - MEDIUM; markSpecialFiles sets data-vscode-txt for any name ending .txt, overriding this project's own pattern that maps requirements.txt to file-type-python; the tab resolves through the registry and gets python
+  - log: 2026-10-23T06:32:17Z @kj coded REQUIREMENTS-TXT
+- [x] `DEF-TABS-23-REQUIREMENTS-TXT-2` **requirements.txt shows the txt sheet on its row and the python glyph on its tab** - MEDIUM; markSpecialFiles sets data-vscode-txt for any name ending .txt, overriding this project's own pattern that maps requirements.txt to file-type-python; the tab resolves through the registry and gets python
   - evidence: guard re-applied and covered: file-browser-icons.spec.ts 'requirements.txt keeps python on the row' asserts vscode-file-type-python with no override while notes.txt still takes one
   - test-tags: E2E
   - repro: open requirements.txt and compare its row icon with its tab icon
@@ -211,7 +261,8 @@ Icons on the dock panel tabs of open documents
   - log: 2026-10-14T14:47:30Z @kj closed: closed on the maintainer's instruction of 2026-10-14, verbatim 'python everywhere' - the earlier reversal was made without sight of it
   - log: 2026-10-14T15:16:37Z @kj regressed as DEF-TABS-23-3
   - log: 2026-10-14T16:33:46Z @kj correction: the earlier log on this item saying the instruction was never given is false. Two claude processes ran on one session id; the writer could not see the live conversation, so real maintainer decisions looked unsourced. It has stood down and confirmed this.
-- [x] `DEF-TABS-23-3` **requirements.txt shows the txt sheet on its row and the python glyph on its tab** - MEDIUM; markSpecialFiles sets data-vscode-txt for any name ending .txt, overriding this project's own pattern that maps requirements.txt to file-type-python; the tab resolves through the registry and gets python
+  - log: 2026-10-23T06:32:17Z @kj coded REQUIREMENTS-TXT
+- [x] `DEF-TABS-23-REQUIREMENTS-TXT-3` **requirements.txt shows the txt sheet on its row and the python glyph on its tab** - MEDIUM; markSpecialFiles sets data-vscode-txt for any name ending .txt, overriding this project's own pattern that maps requirements.txt to file-type-python; the tab resolves through the registry and gets python
   - evidence: the .txt branch yields where the row's data-file-type starts with vscode-, so requirements.txt keeps python on row and tab and notes.txt still takes the sheet; file-browser-icons.spec.ts 'requirements.txt keeps the python glyph' asserts all four and fails without the guard
   - test-tags: E2E
   - repro: open requirements.txt and compare its row icon with its tab icon
@@ -219,14 +270,17 @@ Icons on the dock panel tabs of open documents
   - log: 2026-10-14T15:16:46Z @kj edited repro added "open requirements.txt and compare its row icon with its tab icon"; test-tags added "E2E"
   - log: 2026-10-14T15:33:21Z @kj closed: fixed on the maintainer's instruction of 2026-10-14, verbatim 'python everywhere'; reason: the evidence names the guard, both resolution paths, the negative case and the mutation result, which is what distinguishes this closure from the two that were reverted for citing a fix that was not in the tree
   - log: 2026-10-14T16:33:46Z @kj correction: the earlier log on this item saying the instruction was never given is false. Two claude processes ran on one session id; the writer could not see the live conversation, so real maintainer decisions looked unsourced. It has stood down and confirmed this.
-- [x] `DEF-TABS-33` **Painted tab glyphs render 14px beside JupyterLab's own 16px** - MINOR; The painted host takes lab's background-size 14px, which beats the rule's height 16px on specificity, while lab's own tab icons are inline svgs at their intrinsic 16px. The two sizes sit on the same tab bar.
+  - log: 2026-10-23T06:32:17Z @kj coded REQUIREMENTS-TXT
+- [x] `DEF-TABS-33-TAB-SIZE` **Painted tab glyphs render 14px beside JupyterLab's own 16px** - MINOR; The painted host takes lab's background-size 14px, which beats the rule's height 16px on specificity, while lab's own tab icons are inline svgs at their intrinsic 16px. The two sizes sit on the same tab bar.
   - evidence: the painted host now carries width 16px, background-size 16px and margin-right 2px through a selector one attribute more specific than lab's; tab-icons.spec.ts measures 16/16/16px/2px in the running lab, and removing the rule returns 14/16/14px/4px
   - repro: Open one file this extension paints and one it does not, and compare the glyph heights on the tab bar
   - test-tags: MANUAL
   - log: 2026-10-14T13:01:40Z @kj added
   - log: 2026-10-14T14:17:56Z @kj closed: fixed: the painted glyph is the size JupyterLab renders its own at, and 16+2 keeps the label where 14+4 put it
   - log: 2026-10-14T14:39:52Z @kj regressed as DEF-TABS-33-1
-- [x] `DEF-TABS-33-1` **Painted tab glyphs render 14px beside JupyterLab's own 16px** - MINOR; The painted host takes lab's background-size 14px, which beats the rule's height 16px on specificity, while lab's own tab icons are inline svgs at their intrinsic 16px. The two sizes sit on the same tab bar.
+  - log: 2026-10-23T06:32:17Z @kj coded PAINTED-GLYPHS
+  - log: 2026-10-23T06:32:53Z @kj renamed code "PAINTED-GLYPHS" -> "TAB-SIZE"
+- [x] `DEF-TABS-33-TAB-SIZE-1` **Painted tab glyphs render 14px beside JupyterLab's own 16px** - MINOR; The painted host takes lab's background-size 14px, which beats the rule's height 16px on specificity, while lab's own tab icons are inline svgs at their intrinsic 16px. The two sizes sit on the same tab bar.
   - evidence: the painted host is padded to 16px with 2px of gutter and the glyph left at lab's 14px, centred; tab-icons.spec.ts measures 16/16, background-size 14px and margin-right 2px in the running lab
   - test-tags: E2E
   - repro: open one file this extension paints and one it does not, and compare the glyph heights on the tab bar
@@ -235,7 +289,9 @@ Icons on the dock panel tabs of open documents
   - log: 2026-10-14T14:55:19Z @kj closed: closed on the maintainer's instruction, verbatim 'pad': the box is padded rather than the glyph scaled
   - log: 2026-10-14T15:16:37Z @kj regressed as DEF-TABS-33-2
   - log: 2026-10-14T16:33:46Z @kj correction: the earlier log on this item saying the instruction was never given is false. Two claude processes ran on one session id; the writer could not see the live conversation, so real maintainer decisions looked unsourced. It has stood down and confirmed this.
-- [x] `DEF-TABS-33-2` **Painted tab glyphs render 14px beside JupyterLab's own 16px** - MINOR; The painted host takes lab's background-size 14px, which beats the rule's height 16px on specificity, while lab's own tab icons are inline svgs at their intrinsic 16px. The two sizes sit on the same tab bar.
+  - log: 2026-10-23T06:32:17Z @kj coded PAINTED-GLYPHS
+  - log: 2026-10-23T06:32:53Z @kj renamed code "PAINTED-GLYPHS" -> "TAB-SIZE"
+- [x] `DEF-TABS-33-TAB-SIZE-2` **Painted tab glyphs render 14px beside JupyterLab's own 16px** - MINOR; The painted host takes lab's background-size 14px, which beats the rule's height 16px on specificity, while lab's own tab icons are inline svgs at their intrinsic 16px. The two sizes sit on the same tab bar.
   - evidence: measured live with the current build: a painted host is 16px wide, 16px tall, background-size 14px auto, margin-right 2px, beside lab's 14px host with a 16px svg and 4px gutter; tab-icons.spec.ts 'is padded to 16px with the glyph left at 14px' passes
   - test-tags: E2E
   - repro: open one file this extension paints and one it does not, and compare the glyph heights on the tab bar
@@ -244,18 +300,21 @@ Icons on the dock panel tabs of open documents
   - log: 2026-10-14T15:32:38Z @kj correction to my own log: the padding rule is at src/index.ts:853 and its test at tab-icons.spec.ts, both present in the state I restored and reported green. The open question is whether a padded 16px box with the glyph left at 14px is wanted
   - log: 2026-10-14T15:33:21Z @kj closed: not a defect in the shipped behaviour: closed on the maintainer's instruction of 2026-10-14, verbatim 'pad'; reason: the measurement has to name both boxes and all four values, because the claim is that the 14px glyph is the chosen design rather than the symptom
   - log: 2026-10-14T16:33:47Z @kj correction: the earlier log on this item saying the instruction was never given is false. Two claude processes ran on one session id; the writer could not see the live conversation, so real maintainer decisions looked unsourced. It has stood down and confirmed this.
-- [x] `DEF-TABS-50` **PDF tab icon differs from its browser row** - MINOR; an open PDF tab shows JupyterLab's PDF glyph while its browser row shows this extension's red PDF sheet; cause: the specific-icon guard returns before row artwork; fix: let the PDF tab use the row artwork; src/index.ts
+  - log: 2026-10-23T06:32:17Z @kj coded PAINTED-GLYPHS
+  - log: 2026-10-23T06:32:53Z @kj renamed code "PAINTED-GLYPHS" -> "TAB-SIZE"
+- [x] `DEF-TABS-50-PDF-DIFFERS` **PDF tab icon differs from its browser row** - MINOR; an open PDF tab shows JupyterLab's PDF glyph while its browser row shows this extension's red PDF sheet; cause: the specific-icon guard returns before row artwork; fix: let the PDF tab use the row artwork; src/index.ts
   - evidence: tab-icons.spec.ts verifies PDF row data-vscode-pdf and tab artwork:pdf; settings-groups.spec.ts verifies stock tab icon when document icons are off; 21 Galata tests and 128 unit tests pass
-  - related: ACC-TABS-37
+  - related: ACC-TABS-37-PDF-ART
   - repro: with document icons on, upload and open a .pdf: compare the browser row with its tab
   - test-tags: E2E
   - root-cause: 2026-10-15T12:12:47Z @kj markTabIcons treats ui-components:pdf as an untouchable specific icon, so resolveIcon never reaches artwork:pdf even though the row paints pdfSvg
   - log: 2026-10-15T12:12:47Z @kj added
   - log: 2026-10-15T12:13:55Z @kj edited text "an open PDF tab shows JupyterLab\x27s PDF glyph while its browser row shows this extension\x27s red PDF sheet; cause: specific-icon guard returns before row artwork; fix: let the PDF tab use the row artwork; src/index.ts" -> "an open PDF tab shows JupyterLab's PDF glyph while its browser row shows this extension's red PDF sheet; cause: the specific-icon guard returns before row artwork; fix: let the PDF tab use the row artwork; src/index.ts"
   - log: 2026-10-15T12:14:41Z @kj closed: PDF tab now uses the browser row PDF artwork
-- [x] `DEF-TABS-78` **tab outline fills transparent icon cutouts** - MEDIUM; the tab contrast outline paints the ink colour into transparent cutouts, so the Makefile cogs and other holes show grey on inactive dark tabs and Steel themes; fix: recolour below-bar fills instead of outlining; `src/index.ts`
+  - log: 2026-10-23T06:32:17Z @kj coded PDF-DIFFERS
+- [x] `DEF-TABS-78-OUTLINE-FILLS` **tab outline fills transparent icon cutouts** - MEDIUM; the tab contrast outline paints the ink colour into transparent cutouts, so the Makefile cogs and other holes show grey on inactive dark tabs and Steel themes; fix: recolour below-bar fills instead of outlining; `src/index.ts`
   - evidence: Galata full suite 67/67 and tab-icons 13/13; 24 states over six themes, every fill clears 3:1 (worst 3.054), 360 Makefile cutout samples show no foreign ink; mutation to the binary variant fails the new test
-  - related: ACC-TABS-54
+  - related: ACC-TABS-54-CONTRAST-RECOLOUR
   - attachment: defects/DEF-TABS-78-tab-outline.png sha256:7c3958c77d86d1b4 edited:2026-10-18T15:10:01Z
   - repro: dark theme, open a Makefile, make another tab active - the cogs are grey; Galaxa Steel shows it on the active tab too
   - test-tags: UNIT, E2E
@@ -263,7 +322,8 @@ Icons on the dock panel tabs of open documents
   - log: 2026-10-18T15:09:58Z @kj added
   - log: 2026-10-18T15:10:01Z @kj attached defects/DEF-TABS-78-tab-outline.png sha256:7c3958c77d86d1b4
   - log: 2026-10-18T16:01:18Z @kj closed: fixed: per-background recolour replaces the tab outline; gear cutouts stay transparent
-- [x] `DEF-TABS-79` **Markdown editor tab shows bundled artwork while its row shows JupyterLab's** - MEDIUM; a .md opened with the Editor shows the bundled file-type-markdown glyph (boxed M-down-arrow, #755838) on the tab, while the row keeps JupyterLab's ui-components:markdown; cause: resolveIcon discards a ui-components registry hit on a generic editor tab and falls through to the bundled glyph; fix under investigation; `src/index.ts`
+  - log: 2026-10-23T06:32:17Z @kj coded OUTLINE-FILLS
+- [x] `DEF-TABS-79-MARKDOWN-EDITOR` **Markdown editor tab shows bundled artwork while its row shows JupyterLab's** - MEDIUM; a .md opened with the Editor shows the bundled file-type-markdown glyph (boxed M-down-arrow, #755838) on the tab, while the row keeps JupyterLab's ui-components:markdown; cause: resolveIcon discards a ui-components registry hit on a generic editor tab and falls through to the bundled glyph; fix under investigation; `src/index.ts`
   - evidence: full Galata 71 passed, jest 169 passed, make test exit 0 on the final tree; adversarial review round 2 SHIP
   - attachment: defects/DEF-TABS-79-markdown-tab.png sha256:6927a63c9af027eb edited:2026-10-19T12:46:15Z
   - repro: open a plain .md with the Editor: tab shows the bundled boxed M-down-arrow recoloured for the tab background, row shows JupyterLab's purple markdown glyph
@@ -276,32 +336,92 @@ Icons on the dock panel tabs of open documents
   - log: 2026-10-19T13:00:07Z @kj diagnosed: wf_1d681f8c-bf9 verifier reproduced tab file-type-markdown vs row ui-components:markdown; default viewer tab matches; the title.icon mirror is the fix route DEF-TABS-19 recorded
   - log: 2026-10-19T13:00:07Z @kj attempted: jupytext-simulated purple row - not the reported case, jupytext absent and the screenshot matches the editor tab of a plain .md
   - log: 2026-10-19T14:53:59Z @kj closed: fixed: editor tabs mirror the row icon for JupyterLab-claimed types via widget.title.icon, including the rename restore
+  - log: 2026-10-23T06:32:17Z @kj coded MARKDOWN-EDITOR
+- [x] `DEF-TABS-80-LABEL-SHIFT` **Proxy tab label shifts once when its globe arrives** - MINOR; a proxy or other iframe page tab first paints with its icon slot collapsed, then about 100 ms later the globe arrives and the label moves 20px right; once per open, with collapseEmptyTabIcons on (default)
+  - test-tags: FUNCTIONAL
+  - evidence: globe set in shell.add hook before Lumino renders the tab; tab-page-icons.spec.ts 'sets the globe as the shell adds the page' green, mutation-checked; Galata 86/86
+  - related: ACC-TABS-57-EMPTYSLOT, ACC-TABS-59-LOCALPAGE - the collapse and the globe that meet here
+  - repro: open a jupyter-server-proxy or proxy-launcher page in a lab tab; watch the label move right once the globe appears
+  - root-cause: 2026-10-23T06:49:35Z @kj style/base.css collapses the empty slot at first paint, while markTabIcons assigns the globe behind the 100 ms scheduleTabIcons debounce
+  - log: 2026-10-23T06:49:35Z @kj added
+  - log: 2026-10-23T06:49:35Z @kj deferred by adversarial review wf_08a40e5f-70d round 1: the only remedy is a new synchronous code path, admitted only for a material CRITICAL or MAJOR
+  - log: 2026-10-23T08:27:04Z @kj closed
+  - log: 2026-10-23T08:27:25Z @kj edited test-tags added "FUNCTIONAL"
+- [x] `DEF-TABS-81-TIP-CAPTION` **Tab tooltip hides JupyterLab caption** - MINOR; the tab tooltip removes the tab title on hover and does not show its caption, so Last Saved, Last Checkpoint and Read-only (documents) and Directory, Kernel, Connected (consoles) are no longer shown on hover; regression against HEAD
+  - evidence: tooltip appends title.caption lines that do not end in the label or path; ACC-TABS-68-TIP-CAPTION tests green, mutation-checked; Galata 87/87
+  - related: ACC-TABS-63-TIP-LABEL,ACC-TABS-64-TIP-LOCATION
+  - repro: open a saved .txt file, hover its tab 800 ms: tooltip shows name, path, last activity but no Last Saved line
+  - test-tags: FUNCTIONAL
+  - root-cause: 2026-10-23T08:43:18Z @kj show() in src/tab-tooltip.ts builds lines from label, locationOf and activity and never reads widget.title.caption, while mouseover removes the title attribute
+  - log: 2026-10-23T08:43:18Z @kj added
+  - log: 2026-10-23T10:08:15Z @kj closed
+  - log: 2026-10-23T10:08:22Z @kj edited evidence "tooltip appends title.caption lines that do not end in the label or path; ACC-TABS-68 tests green, mutation-checked; Galata 87/87" -> "tooltip appends title.caption lines that do not end in the label or path; ACC-TABS-68-TIP-CAPTION tests green, mutation-checked; Galata 87/87"
+- [x] `DEF-TABS-82-TERMCWD-NESTED` **Terminal tooltip shows outer shell directory** - MINOR; after the user starts a nested shell (bash, su, sudo -i, poetry shell) or tmux in a terminal and runs cd there, the tooltip's directory line still shows the outer shell's last directory
+  - evidence: handler reads /proc/<os.tcgetpgrp(pty fd)>/cwd: nested shells on the same pty (bash, sh) followed; own-pty shells (poetry shell, pipenv shell, script) and tmux show their start directory, su or sudo to another user leave the line out (owner-accepted); pytest and Galata nested steps fail against the pty pid read
+  - related: ACC-TABS-69-TIP-TERMCWD
+  - repro: in a terminal run bash, then cd /tmp, hover the tab 800 ms: second line is the outer shell's directory, not /tmp
+  - test-tags: UNIT, FUNCTIONAL
+  - root-cause: 2026-10-23T10:15:57Z @kj TerminalCwdHandler reads /proc/<terminal.ptyproc.pid>/cwd, the shell the pty started; a child shell's cd does not change its parent's cwd
+  - log: 2026-10-23T10:15:57Z @kj added
+  - log: 2026-10-23T10:25:23Z @kj closed
+  - log: 2026-10-23T10:32:39Z @kj edited evidence "handler reads /proc/<os.tcgetpgrp(pty fd)>/cwd; test_handlers.py subshell-in-sub test and Galata nested bash cd /usr step green, both fail against the pty pid read; Galata 87/87" -> "handler reads /proc/<os.tcgetpgrp(pty fd)>/cwd: nested shells on the same pty (bash, sh) followed; own-pty shells (poetry shell, pipenv shell, script) and tmux show their start directory, su or sudo to another user leave the line out (owner-accepted); pytest and Galata nested steps fail against the pty pid read"
+- [x] `DEF-TABS-83-TITLE-BACK` **Browser title tooltip returns during hover** - MINOR; while the pointer rests on a tab, a caption change (save, checkpoint) makes Lumino re-render the tab and write title back, so the browser's own tooltip can show beside the extension's
+  - evidence: titleWatch MutationObserver in src/tab-tooltip.ts; tab-tooltip.spec.ts 'a caption change while hovered keeps the title held back' passes 3/3 and fails with the observer removed; Galata 89/89
+  - repro: hover a just-opened file tab; when Last Checkpoint arrives the tab has a title attribute again
+  - test-tags: FUNCTIONAL
+  - root-cause: 2026-10-23T13:58:15Z @kj tab-tooltip.ts removes title once on mouseover; Lumino's virtual DOM writes title again whenever the caption changes
+  - log: 2026-10-23T13:58:15Z @kj added
+  - log: 2026-10-23T14:06:47Z @kj closed
+- [x] `DEF-TABS-84-FOREIGN-MIRROR` **Foreign viewer tab on lab-claimed file gets bundled glyph** - MINOR; when another extension puts its own icon on the tab of a .md, .py, .json, .yaml or image file, the tab shows the bundled vscode glyph while the row and that file's editor tab show JupyterLab's icon; owner question which icon wins there
+  - evidence: owner chose the row's icon; markTabIcons admits ownOverForeign to the mirror branch; tab-icons.spec.ts 'a JupyterLab-claimed tab takes the row's icon over another extension's' passes and fails with the arm removed; Galata 92/92
+  - related: ACC-TABS-71-OURS-WIN
+  - repro: open notes.md, set widget.title.icon to the zip extension's icon; after 2 s the tab is painted file-type-markdown, the row keeps ui-components:markdown
+  - test-tags: FUNCTIONAL
+  - root-cause: 2026-10-23T14:23:46Z @kj markTabIcons mirror branch accepts only slotReplaceable or alreadyMirrored, so a foreign tab icon skips it and ownOverForeign paints resolveIcon's bundled glyph
+  - log: 2026-10-23T14:23:46Z @kj added
+  - log: 2026-10-23T21:53:20Z @kj closed
+- [x] `DEF-TABS-85-RENAME-FOREIGN` **Rename drops another extension's tab icon** - MINOR; a file open in another extension's viewer, renamed to a name with no icon here (notes.md to notes.qqq), gets the generic file glyph on its tab instead of the viewer's own icon; regression of the DEF-TABS-84-FOREIGN-MIRROR fix
+  - evidence: foreignMirrorLapsed in markTabIcons restores the other extension's icon; tab-icons.spec.ts 'a rename to a name with no icon here gives the other extension's icon back' passes and fails with the condition disabled; make test green, lint 0 errors, Galata 93/93
+  - related: ACC-TABS-71-OURS-WIN
+  - repro: open notes.md, set widget.title.icon to the zip extension's icon, rename the file to notes.qqq; the tab shows ui-components:file
+  - test-tags: FUNCTIONAL
+  - root-cause: 2026-10-23T22:56:56Z @kj the DEF-TABS-84-FOREIGN-MIRROR mirror records the foreign icon as original; after the rename target is the unclaimed fileIcon and alreadyMirrored is true, so the mirror arm runs again and the restore arm, which needs a null target, never runs
+  - log: 2026-10-23T22:25:41Z @kj added
+  - log: 2026-10-23T22:52:21Z @kj closed
+  - log: 2026-10-23T22:56:56Z @kj edited text "a file open in another extension's viewer, renamed to a name with no icon here (notes.md to notes.qqq), gets the generic file glyph on its tab instead of the viewer's own icon; regression of the DEF-TABS-84 fix" -> "a file open in another extension's viewer, renamed to a name with no icon here (notes.md to notes.qqq), gets the generic file glyph on its tab instead of the viewer's own icon; regression of the DEF-TABS-84-FOREIGN-MIRROR fix"
+  - log: 2026-10-23T22:56:56Z @kj root-cause updated "2026-10-23T22:25:41Z @kj the DEF-TABS-84 mirror records the foreign icon as original; after the rename target is the unclaimed fileIcon and alreadyMirrored is true, so the mirror arm runs again and the restore arm, which needs a null target, never runs" -> "the DEF-TABS-84-FOREIGN-MIRROR mirror records the foreign icon as original; after the rename target is the unclaimed fileIcon and alreadyMirrored is true, so the mirror arm runs again and the restore arm, which needs a null target, never runs"
 
 ## Icon coverage `ICONS`
 
 Which file gets which glyph in the file browser and on tabs
 
-- [-] `DEF-ICONS-11` **JupyterLab's own file types win over the vscode glyph** - MEDIUM; a .py row shows `ui-components:python`, not the vscode python glyph; cause: lab registers python, markdown, json, yaml, csv and the image types before this extension, and getFileTypesForPath returns the first match; the glyph applies only where lab claims nothing; fix: decide whether to displace lab's types
-  - related: ACC-ICONS-1 - the criterion it contradicts
+- [-] `DEF-ICONS-11-LAB-TYPES` **JupyterLab's own file types win over the vscode glyph** - MEDIUM; a .py row shows `ui-components:python`, not the vscode python glyph; cause: lab registers python, markdown, json, yaml, csv and the image types before this extension, and getFileTypesForPath returns the first match; the glyph applies only where lab claims nothing; fix: decide whether to displace lab's types
+  - related: ACC-ICONS-1-MAPPED - the criterion it contradicts
   - repro: open a directory holding sample.py and sample.js and read data-file-type on each row
   - test-tags: FUNCTIONAL
   - log: 2026-10-14T07:59:53Z @kj added
   - log: 2026-10-14T08:16:49Z @kj closed: the vscode glyph now wins over JupyterLab's own icon
   - log: 2026-10-14T10:51:03Z @kj rejected: not a defect: the maintainer's direction is that icons already in place are kept. This extension fills the gaps JupyterLab leaves and replaces only its generic glyphs; displacing its specific icons changed notebook, html, json and markdown files that were deliberately left alone; evidence retired: jupyter_server_test_config.py row paints file-type-python with lab's svg hidden; galata file-browser-icons.spec.ts asserts it, 8 passed 0 skipped
-- [x] `DEF-ICONS-12` **Repainted row loses its executable badge** - MEDIUM; the new row rule hides `> img` unconditionally while all 17 pre-existing override blocks write `img:not(.vscode-exec-badge)`; the executable badge is an img inside that same icon host, so with enableExecutableIcons on a repainted row loses its play badge; fix: one token on the selector
+  - log: 2026-10-23T06:32:17Z @kj coded JUPYTERLABS-TYPES
+  - log: 2026-10-23T06:32:54Z @kj renamed code "JUPYTERLABS-TYPES" -> "LAB-TYPES"
+- [x] `DEF-ICONS-12-BADGE-LOST` **Repainted row loses its executable badge** - MEDIUM; the new row rule hides `> img` unconditionally while all 17 pre-existing override blocks write `img:not(.vscode-exec-badge)`; the executable badge is an img inside that same icon host, so with enableExecutableIcons on a repainted row loses its play badge; fix: one token on the selector
   - evidence: the row rule reads img:not(.vscode-exec-badge); jlpm test exit 0 and the galata suite 8 passed
-  - related: ACC-CONFIG-5 - the executable toggle it regresses
+  - related: ACC-CONFIG-5-GROUP-TOGGLE - the executable toggle it regresses
   - repro: enable enableExecutableIcons and list a directory holding an executable sample.py
   - test-tags: MANUAL
   - log: 2026-10-14T08:53:29Z @kj added
   - log: 2026-10-14T08:55:50Z @kj closed: selector now excludes the badge, matching the 17 sibling blocks
-- [x] `DEF-ICONS-15` **Three file types register a blank page icon** - MINOR; `file-type-csv`, `file-type-rst` and `file-type-pdf` have no body in the bundled set, so createLabIcon builds a blank page and registerFileTypes registers it; only .rst is visible, since JupyterLab claims csv and pdf first; present at HEAD, not a regression; fix: do not register a type whose glyph has no body
+  - log: 2026-10-23T06:32:17Z @kj coded REPAINTED-LOSES
+  - log: 2026-10-23T06:32:52Z @kj renamed code "REPAINTED-LOSES" -> "BADGE-LOST"
+- [x] `DEF-ICONS-15-BLANK-PAGE` **Three file types register a blank page icon** - MINOR; `file-type-csv`, `file-type-rst` and `file-type-pdf` have no body in the bundled set, so createLabIcon builds a blank page and registerFileTypes registers it; only .rst is visible, since JupyterLab claims csv and pdf first; present at HEAD, not a regression; fix: do not register a type whose glyph has no body
   - evidence: registerFileTypes skips a config whose glyph resolves to the default-file body; jlpm test 58 passed and the galata suite 8 passed
   - repro: list a directory holding a .rst file
   - test-tags: MANUAL
   - log: 2026-10-14T09:27:57Z @kj added
   - log: 2026-10-14T09:28:40Z @kj closed: the three bodiless types are no longer registered
-- [x] `DEF-ICONS-17` **Painted row collapses where the row is JupyterLab's own inline-grid** - CRITICAL; taking the host's svg out of flow leaves no in-flow child to size it, so the background paints nothing; only reachable on a lab without an extension that sets the row to display flex
+  - log: 2026-10-23T06:32:17Z @kj coded THREE-TYPES
+  - log: 2026-10-23T06:32:53Z @kj renamed code "THREE-TYPES" -> "BLANK-PAGE"
+- [x] `DEF-ICONS-17-ROW-COLLAPSE` **Painted row collapses where the row is JupyterLab's own inline-grid** - CRITICAL; taking the host's svg out of flow leaves no in-flow child to size it, so the background paints nothing; only reachable on a lab without an extension that sets the row to display flex
   - evidence: the row rule hides the svg with visibility hidden, keeping its 16px box in flow; galata 'a painted row has a box the background can fill' asserts a non-zero box and a painted background rather than the 20 x 19.5 this workstation happens to measure
   - root-cause: 2026-10-14T12:16:30Z @kj JupyterLab 4.6.4 sets .jp-DirListing-item to display inline-grid with grid-auto-columns max-content, which makes the flex 0 0 20px on .jp-DirListing-itemIcon inert; the host is then as wide as its in-flow children
   - root-cause: 2026-10-14T11:29:45Z @kj No defect. JupyterLab's own flex 0 0 20px on .jp-DirListing-itemIcon gives the row host a box of its own, so hiding the inline svg does not collapse it; only the tab host lacks a height, which the tab rule supplies
@@ -312,7 +432,9 @@ Which file gets which glyph in the file browser and on tabs
   - log: 2026-10-14T12:16:29Z @kj reopened: my rejection was wrong: I measured on this workstation, where jupyterlab_change_ui_font_size_fix sets the row to display flex; JupyterLab's own row is inline-grid, where the flex basis is inert and the claim holds
   - log: 2026-10-14T12:16:29Z @kj amended title "Claim: a painted file browser row paints into a 0x0 box and shows no icon" -> "Painted row collapses where the row is JupyterLab's own inline-grid"; text "Three review lenses and two refuters held that hiding the row host's svg with display none leaves the host at 0x0, because JupyterLab's flex 0 0 20px is inert on an inline-grid row, so every painted row would show nothing." -> "taking the host's svg out of flow leaves no in-flow child to size it, so the background paints nothing; only reachable on a lab without an extension that sets the row to display flex"
   - log: 2026-10-14T12:16:30Z @kj closed
-- [x] `DEF-ICONS-20` **BPMN end event is drawn as a filled node, not a ring** - MINOR; the artwork draws circle cx=88 r=9 with fill #fff outside the stroked group, so the end event reads as a disc; BPMN notation draws it as a thick ring
+  - log: 2026-10-23T06:32:17Z @kj coded PAINTED-COLLAPSES
+  - log: 2026-10-23T06:32:50Z @kj renamed code "PAINTED-COLLAPSES" -> "ROW-COLLAPSE"
+- [x] `DEF-ICONS-20-BPMN-END` **BPMN end event is drawn as a filled node, not a ring** - MINOR; the artwork draws circle cx=88 r=9 with fill #fff outside the stroked group, so the end event reads as a disc; BPMN notation draws it as a thick ring
   - evidence: the end event is a 5-unit stroke on an 8-unit radius inside the stroked group, which is the thick ring BPMN notation uses and what the artwork's own comment already claimed; same overall node size as the disc it replaces
   - repro: open a directory holding a .bpmn file without the camunda modeller installed
   - test-tags: MANUAL
@@ -322,7 +444,8 @@ Which file gets which glyph in the file browser and on tabs
   - log: 2026-10-14T13:48:38Z @kj closed
   - log: 2026-10-14T14:23:32Z @kj the artwork shipped a stroke of 8 where this item and the comment both said 5, which closed the ring at 14px; it is 5 now and the record matches the code
   - log: 2026-10-14T15:16:46Z @kj comment correction owed: it says the end event spans 68..92 and keeps the heavier stroke, but a 5-unit stroke on r=8 paints 69.5..90.5 and is lighter than the start ring's 6; the artwork is the maintainer's, so the comment is what should change
-- [-] `DEF-ICONS-24` **A running jupytext row loses the session dot and shifts 8px left** - MINOR; JupyterLab paints the running indicator on the same ::before the jupytext overrides use; the override wins content, width, height and background-image but inherits lab's position absolute and left -8px
+  - log: 2026-10-23T06:32:17Z @kj coded BPMN-END
+- [-] `DEF-ICONS-24-SESSION-DOT` **A running jupytext row loses the session dot and shifts 8px left** - MINOR; JupyterLab paints the running indicator on the same ::before the jupytext overrides use; the override wins content, width, height and background-image but inherits lab's position absolute and left -8px
   - repro: with jupytext installed, open a paired .py with a running kernel and watch the row icon
   - test-tags: MANUAL
   - root-cause: 2026-10-14T12:22:03Z @kj the four notebook ::before blocks do not reset position and left, which lab's jp-mod-running rule sets
@@ -334,34 +457,43 @@ Which file gets which glyph in the file browser and on tabs
   - log: 2026-10-14T14:59:38Z @kj reopened: same fabricated verbatim instruction; the real reason it stays open is that jupytext is not installed here
   - log: 2026-10-14T15:12:34Z @kj rejected: dropped on the maintainer's instruction of 2026-10-14, verbatim 'drop jupytext'
   - log: 2026-10-14T16:33:47Z @kj correction: the earlier log on this item saying the instruction was never given is false. Two claude processes ran on one session id; the writer could not see the live conversation, so real maintainer decisions looked unsourced. It has stood down and confirmed this.
-- [x] `DEF-ICONS-25` **The .svg row glyph changed from the picture icon to the vscode svg tile** - MEDIUM; this change set switched the data-vscode-svg-override artwork from createLabIcon('file-type-image') to 'file-type-svg', so every .svg row showed a different glyph than 1.1.110; reverted pending a decision, which would also make the row and the tab agree
+  - log: 2026-10-23T06:32:17Z @kj coded RUNNING-JUPYTEXT
+  - log: 2026-10-23T06:32:55Z @kj renamed code "RUNNING-JUPYTEXT" -> "SESSION-DOT"
+- [x] `DEF-ICONS-25-SVG-GLYPH` **The .svg row glyph changed from the picture icon to the vscode svg tile** - MEDIUM; this change set switched the data-vscode-svg-override artwork from createLabIcon('file-type-image') to 'file-type-svg', so every .svg row showed a different glyph than 1.1.110; reverted pending a decision, which would also make the row and the tab agree
   - evidence: the override constant is back to createLabIcon('file-type-image'), which is what 1.1.110 shipped, and the tab resolves the same constant, so row and tab agree; the alternative is recorded in the comment beside it
   - repro: compare a .svg row against release 1.1.110
   - test-tags: MANUAL
   - root-cause: 2026-10-14T12:56:13Z @kj the registered file type and the bundled map both use file-type-svg, so only the override disagreed; aligning them changes an icon the project already had
   - log: 2026-10-14T12:56:13Z @kj added
   - log: 2026-10-14T13:00:14Z @kj closed
-- [x] `DEF-ICONS-28` **Two different README artworks share one identifier** - MINOR; readmeSvg is declared twice: a 100x100 purple square with a grey letter for the jupytext ::before, and a 32x32 purple circle with a white letter for the registered vscode-readme type, so a README.md row shows one or the other depending on whether jupytext is installed
+  - log: 2026-10-23T06:32:17Z @kj coded SVG-GLYPH
+- [x] `DEF-ICONS-28-README-ID` **Two different README artworks share one identifier** - MINOR; readmeSvg is declared twice: a 100x100 purple square with a grey letter for the jupytext ::before, and a 32x32 purple circle with a white letter for the registered vscode-readme type, so a README.md row shows one or the other depending on whether jupytext is installed
   - evidence: the jupytext README override now draws the same circle as the registered vscode-readme icon, so a README.md row looks identical whether or not jupytext claims it
   - repro: compare a README.md row with and without jupytext installed
   - test-tags: MANUAL
   - log: 2026-10-14T12:56:25Z @kj added
   - log: 2026-10-14T13:00:15Z @kj closed
-- [x] `DEF-ICONS-29` **A glyph whose drawing box is not 32x32 rendered blank** - MEDIUM; generateIconSVG hardcoded viewBox 0 0 32 32 while 38 entries of the bundled set carry their own width and height; file-type-go is 254.5x225 and is the one such entry this extension maps, so a .go row drew no ink at all
+  - log: 2026-10-23T06:32:17Z @kj coded DIFFERENT-README
+  - log: 2026-10-23T06:32:53Z @kj renamed code "DIFFERENT-README" -> "README-ID"
+- [x] `DEF-ICONS-29-BLANK-VIEWBOX` **A glyph whose drawing box is not 32x32 rendered blank** - MEDIUM; generateIconSVG hardcoded viewBox 0 0 32 32 while 38 entries of the bundled set carry their own width and height; file-type-go is 254.5x225 and is the one such entry this extension maps, so a .go row drew no ink at all
   - evidence: getIconViewBox reads width and height off the record and falls back to 32x32; four cases in jupyterlab_vscode_icons_extension.spec.ts cover file-type-go, file-type-docusaurus, two default-box icons and an unknown name
   - repro: open a directory holding a .go file
   - test-tags: UNIT
   - root-cause: 2026-10-14T13:00:14Z @kj the collection default was assumed for every record instead of read from the record
   - log: 2026-10-14T13:00:14Z @kj added
   - log: 2026-10-14T13:00:14Z @kj closed
-- [x] `DEF-ICONS-30` **Icons whose artwork is not 32x32 render blank or cropped** - MAJOR; generateIconSVG and createLabIcon both wrote viewBox 0 0 32 32, but 38 keys in the bundled set declare their own drawing box. A body written in a 254.5x225 space draws nothing inside a 32x32 window.
+  - log: 2026-10-23T06:32:17Z @kj coded GLYPH-WHOSE
+  - log: 2026-10-23T06:32:52Z @kj renamed code "GLYPH-WHOSE" -> "BLANK-VIEWBOX"
+- [x] `DEF-ICONS-30-VIEWBOX` **Icons whose artwork is not 32x32 render blank or cropped** - MAJOR; generateIconSVG and createLabIcon both wrote viewBox 0 0 32 32, but 38 keys in the bundled set declare their own drawing box. A body written in a 254.5x225 space draws nothing inside a 32x32 window.
   - evidence: getIconViewBox reads width and height off the record; measured at 16px in headless chromium, file-type-go went from 0 ink pixels to 104 and file-type-docusaurus from 18 to 202, and four unit tests in jupyterlab_vscode_icons_extension.spec.ts pin the boxes
   - repro: Open a directory holding main.go: the row showed an empty icon slot, and after the tab painter landed the tab showed one too
   - test-tags: UNIT
   - root-cause: 2026-10-14T13:01:28Z @kj the collection default was assumed for every entry instead of read from the record, which carries width and height for the 38 that differ
   - log: 2026-10-14T13:01:28Z @kj added
   - log: 2026-10-14T13:01:40Z @kj closed: fixed: every svg this extension builds carries the icon's own drawing box
-- [x] `DEF-ICONS-31` **A reused row shows the previous file's glyph for the length of the debounce** - MAJOR; markRowIcons ran only inside the 100 ms debounce. The browser reuses row nodes, so until it ran the row kept the old marker and background while the CSS keyed on that attribute hid the glyph JupyterLab had just resolved.
+  - log: 2026-10-23T06:32:17Z @kj coded WHOSE-ARTWORK
+  - log: 2026-10-23T06:32:51Z @kj renamed code "WHOSE-ARTWORK" -> "VIEWBOX"
+- [x] `DEF-ICONS-31-REUSE-GLYPH` **A reused row shows the previous file's glyph for the length of the debounce** - MAJOR; markRowIcons ran only inside the 100 ms debounce. The browser reuses row nodes, so until it ran the row kept the old marker and background while the CSS keyed on that attribute hid the glyph JupyterLab had just resolved.
   - evidence: markRowIcons now runs synchronously in the MutationObserver callback and again after the debounced markSpecialFiles; both suites green, 82 unit and 29 galata. The window is a transient, so no test asserts it - stated rather than claimed covered
   - repro: Change directory and watch the icons: for about 100 ms each row carries the icon of the file that occupied it before
   - test-tags: MANUAL
@@ -369,7 +501,9 @@ Which file gets which glyph in the file browser and on tabs
   - log: 2026-10-14T13:01:28Z @kj added
   - log: 2026-10-14T13:01:40Z @kj closed: fixed: the row repaint runs on the mutation, the contents-API pass stays debounced
   - log: 2026-10-14T13:24:38Z @kj regressed as DEF-ICONS-31-1
-- [x] `DEF-ICONS-31-1` **A reused row shows the previous file's glyph for the length of the debounce** - MEDIUM; markRowIcons ran only inside the 100 ms debounce. The browser reuses row nodes, so until it ran the row kept the old marker and background while the CSS keyed on that attribute hid the glyph JupyterLab had just resolved.
+  - log: 2026-10-23T06:32:17Z @kj coded REUSED-PREVIOUS
+  - log: 2026-10-23T06:32:51Z @kj renamed code "REUSED-PREVIOUS" -> "REUSE-GLYPH"
+- [x] `DEF-ICONS-31-REUSE-GLYPH-1` **A reused row shows the previous file's glyph for the length of the debounce** - MEDIUM; markRowIcons ran only inside the 100 ms debounce. The browser reuses row nodes, so until it ran the row kept the old marker and background while the CSS keyed on that attribute hid the glyph JupyterLab had just resolved.
   - evidence: the DOM half of the override pass runs before the fetches now; row-reuse-window.spec.ts delays the two awaited requests by 300 ms and samples every frame through the navigation: 0 stale frames, and putting the reset back behind the debounce gives 7 stale frames over 100 ms
   - test-tags: E2E
   - repro: change directory twice and sample the rows immediately: measured 136 ms on localhost and 717 ms with 150 ms of emulated latency, during which a .js row showed the pdf sheet and a 644 shell script carried the executable badge
@@ -380,14 +514,18 @@ Which file gets which glyph in the file browser and on tabs
   - log: 2026-10-14T13:48:38Z @kj closed
   - log: 2026-10-14T14:11:13Z @kj the synchronous markSpecialFilesPass(null) is in the observer and answers this, but no test of mine distinguishes it: a recorder registered after the extension's observer saw no stale attribute with the fix removed, on one-row and six-row listings. Open rather than closed on a meaningless green
   - log: 2026-10-14T14:23:32Z @kj the earlier log asking for this to stay open predates the test rewrite: the sampler now runs inside the navigation with 300 ms injected on both awaited requests, giving 0 stale frames against 7 over 100 ms when reverted
-- [x] `DEF-ICONS-36` **A renamed file keeps the previous name's icon on its row and its tab** - MAJOR; Both painters are driven by MutationObservers watching childList only. JupyterLab renames in place: the label is a Lumino VirtualText node rewritten through textContent, and where its own glyph is unchanged LabIcon.element returns without touching the DOM. Neither emits a childList record.
+  - log: 2026-10-23T06:32:17Z @kj coded REUSED-PREVIOUS
+  - log: 2026-10-23T06:32:51Z @kj renamed code "REUSED-PREVIOUS" -> "REUSE-GLYPH"
+- [x] `DEF-ICONS-36-RENAME-STALE` **A renamed file keeps the previous name's icon on its row and its tab** - MAJOR; Both painters are driven by MutationObservers watching childList only. JupyterLab renames in place: the label is a Lumino VirtualText node rewritten through textContent, and where its own glyph is unchanged LabIcon.element returns without touching the DOM. Neither emits a childList record.
   - evidence: both observers now watch characterData; row-stability.spec.ts 'takes the icon of its new name' failed before with file-type-log under renamed.jar and passes now, and tab-icons.spec.ts 'its tab takes the icon of the new name' times out when the flag is removed from the tab observer alone
   - repro: Rename renamed.log to renamed.jar in the file browser, or rename an open open.js to open.vue, and watch the icon
   - test-tags: E2E
   - root-cause: 2026-10-14T13:30:34Z @kj the observers watched childList and subtree but not characterData, and a rename is a text edit in place
   - log: 2026-10-14T13:30:34Z @kj added
   - log: 2026-10-14T13:30:34Z @kj closed: fixed: the observers watch the in-place text edit a rename performs
-- [x] `DEF-ICONS-37` **A reused row keeps the previous file's executable badge until the detector answers** - MINOR; a badge whose file does not match the row is cleared on the first frame now; what remains is the same name in both directories with different +x bits, or a bit that changed on disk, where the badge waits for the detector
+  - log: 2026-10-23T06:32:17Z @kj coded RENAMED-PREVIOUS
+  - log: 2026-10-23T06:32:51Z @kj renamed code "RENAMED-PREVIOUS" -> "RENAME-STALE"
+- [x] `DEF-ICONS-37-REUSE-BADGE` **A reused row keeps the previous file's executable badge until the detector answers** - MINOR; a badge whose file does not match the row is cleared on the first frame now; what remains is the same name in both directories with different +x bits, or a bit that changed on disk, where the badge waits for the detector
   - evidence: the early pass clears a badge whose recorded file no longer matches; no test here can fail on it - with enableExecutableIcons on and the uploaded file chmodded to 755 in the server's mkdtemp root, no badge rendered in 30s, so the harness cannot exercise the path
   - repro: give two directories a file of the same name, one executable, and switch between them on a lab with latency
   - test-tags: E2E
@@ -400,7 +538,9 @@ Which file gets which glyph in the file browser and on tabs
   - log: 2026-10-14T14:45:33Z @kj closed: closed on the maintainer's instruction: fixed in the tree, without coverage, and the failed attempt is on the record
   - log: 2026-10-15T12:39:53Z @kj regressed as DEF-ICONS-37-1
   - log: 2026-10-15T21:50:36Z @kj mechanism superseded: the executable flag rides the listing, so no occupant marker is needed
-- [x] `DEF-ICONS-37-1` **Metadata badges stay stale after refresh** - MINOR; executable and Python-package markers keep the old metadata after same-directory refresh; pending older requests can restore stale results
+  - log: 2026-10-23T06:32:17Z @kj coded REUSED-PREVIOUS
+  - log: 2026-10-23T06:32:54Z @kj renamed code "REUSED-PREVIOUS" -> "REUSE-BADGE"
+- [x] `DEF-ICONS-37-REUSE-BADGE-1` **Metadata badges stay stale after refresh** - MINOR; executable and Python-package markers keep the old metadata after same-directory refresh; pending older requests can restore stale results
   - evidence: eight real browser metadata/link tests pass, including refresh, delayed responses, surrounding spaces and a trailing-space tab; all three pinned reviewers confirmed the closure
   - root-cause: 2026-10-15T12:40:02Z @kj per-directory caches invalidate only on navigation and asynchronous writes have no refresh generation
   - test-tags: E2E
@@ -408,19 +548,25 @@ Which file gets which glyph in the file browser and on tabs
   - log: 2026-10-15T12:39:53Z @kj regression of DEF-ICONS-37: review reproduced stale executable metadata after same-directory refresh
   - log: 2026-10-15T12:40:02Z @kj edited title "A reused row keeps the previous file's executable badge until the detector answers" -> "Metadata badges stay stale after refresh"; text "a badge whose file does not match the row is cleared on the first frame now; what remains is the same name in both directories with different +x bits, or a bit that changed on disk, where the badge waits for the detector" -> "executable and Python-package markers keep the old metadata after same-directory refresh; pending older requests can restore stale results"; repro added "change execute permission and package declarations without navigating away, refresh the browser, and compare markers"; test-tags added "E2E"
   - log: 2026-10-15T12:53:38Z @kj closed: fixed and confirmed by architect, bug-hunter and ux-designer
-- [x] `DEF-ICONS-42` **An in-flight detector pass paints the previous directory's answers** - MINOR; markSpecialFiles awaits two per-directory detectors then paints without checking the browser is still on the path they were fetched for, so a folder whose name a manifest in the previous directory declared keeps the python-package glyph
+  - log: 2026-10-23T06:32:17Z @kj coded REUSED-PREVIOUS
+  - log: 2026-10-23T06:32:54Z @kj renamed code "REUSED-PREVIOUS" -> "REUSE-BADGE"
+- [x] `DEF-ICONS-42-STALE-PASS` **An in-flight detector pass paints the previous directory's answers** - MINOR; markSpecialFiles awaits two per-directory detectors then paints without checking the browser is still on the path they were fetched for, so a folder whose name a manifest in the previous directory declared keeps the python-package glyph
   - evidence: markSpecialFiles captures the browser path before the awaits and returns without painting when it has changed; the observer has already scheduled the pass for the new path, so the stale answers are dropped
   - repro: with latency, open a directory whose pyproject declares a package name, then immediately open one holding a folder of that name
   - test-tags: E2E
   - root-cause: 2026-10-14T15:41:21Z @kj clearTimeout cancels a pending timer but not a call already past its await
   - log: 2026-10-14T15:41:21Z @kj added
   - log: 2026-10-14T15:41:27Z @kj closed
-- [-] `DEF-ICONS-47` **A directory whose name ends in a mapped extension is stamped as a file** - MINOR; markSpecialFilesPass stamps the name-based override attributes before the directory branch, so a folder named flow.bpmn or notes.txt takes the file artwork with its folder glyph hidden; the same shape covers pdf, word, excel, powerpoint, txt, db, svg and bpmn
+  - log: 2026-10-23T06:32:17Z @kj coded FLIGHT-DETECTOR
+  - log: 2026-10-23T06:32:54Z @kj renamed code "FLIGHT-DETECTOR" -> "STALE-PASS"
+- [-] `DEF-ICONS-47-DIR-EXTENSION` **A directory whose name ends in a mapped extension is stamped as a file** - MINOR; markSpecialFilesPass stamps the name-based override attributes before the directory branch, so a folder named flow.bpmn or notes.txt takes the file artwork with its folder glyph hidden; the same shape covers pdf, word, excel, powerpoint, txt, db, svg and bpmn
   - repro: mkdir flow.bpmn and look at its row in the file browser
   - test-tags: MANUAL
   - log: 2026-10-14T16:08:21Z @kj added
   - log: 2026-10-14T16:08:21Z @kj rejected: accepted as out of bar: a directory named after a file extension is not an input this extension is for; reason: the behaviour is eight families old and predates this change set; the bpmn arm only joined the existing block. Fixing it means moving the whole stamping block inside the directory branch, which touches all eight at once for a case nobody has hit
-- [x] `DEF-ICONS-49` **CHANGELOG.md registers as a plain text file** - MEDIUM; a CHANGELOG.md row is typed as text, not markdown: it resolves to the vscode-changelog type, mime type text/plain, and draws the grey text-page glyph instead of the markdown icon
+  - log: 2026-10-23T06:32:17Z @kj coded DIRECTORY-WHOSE
+  - log: 2026-10-23T06:32:55Z @kj renamed code "DIRECTORY-WHOSE" -> "DIR-EXTENSION"
+- [x] `DEF-ICONS-49-CHANGELOG-MD` **CHANGELOG.md registers as a plain text file** - MEDIUM; a CHANGELOG.md row is typed as text, not markdown: it resolves to the vscode-changelog type, mime type text/plain, and draws the grey text-page glyph instead of the markdown icon
   - evidence: activation.spec.ts 'types CHANGELOG.md as markdown and the bare CHANGELOG as text' and file-browser-icons.spec.ts 'CHANGELOG.md is markdown, the bare CHANGELOG is text' pass: CHANGELOG.md row is vscode-changelog-md, ui-components:markdown, text/markdown; 128 unit and 43 Galata green, logs/galata-2140.log
   - test-tags: UNIT, FUNCTIONAL
   - repro: upload CHANGELOG.md and notes.md to one folder: CHANGELOG.md resolves to vscode-changelog:text/plain with icon changelog-icon, notes.md to markdown:text/markdown with ui-components:markdown
@@ -430,35 +576,45 @@ Which file gets which glyph in the file browser and on tabs
   - log: 2026-10-14T19:25:11Z @kj reproduced with a Galata probe on port 8931: CHANGELOG.md row data-file-type vscode-changelog, data-icon changelog-icon, first registry type vscode-changelog:text/plain; logs/probe-changelog-2130.log
   - log: 2026-10-14T19:25:11Z @kj fixed: vscode-changelog now matches only ^CHANGELOG$; new vscode-changelog-md matches ^CHANGELOG\.md$ with text/markdown and lab's markdownIcon, the same registration RELEASE.md has
   - log: 2026-10-14T19:27:37Z @kj closed
-- [x] `DEF-ICONS-55` **Malformed manifests still mark package folders** - MAJOR; malformed TOML and truncated setup.py declarations still produce package folder names despite ACC-PYPKG-17
+  - log: 2026-10-23T06:32:17Z @kj coded CHANGELOG-MD
+- [x] `DEF-ICONS-55-MALFORMED-MANIFEST` **Malformed manifests still mark package folders** - MAJOR; malformed TOML and truncated setup.py declarations still produce package folder names despite ACC-PYPKG-17-UNREADABLE
   - evidence: manifest-validation.spec.ts passes 5 tests: an invalid answer takes no package name and a valid one keeps it; the validator answers invalid for deeply nested input instead of failing the call; pytest 28 passed, Galata 59 green
   - repro: parse a valid project name followed by an unterminated string, or setup(name="mypkg" without its closing parenthesis
   - test-tags: UNIT
   - root-cause: 2026-10-15T12:39:54Z @kj regex extraction runs without complete source syntax validation
   - log: 2026-10-15T12:39:54Z @kj added
   - log: 2026-10-15T17:20:28Z @kj closed
-- [x] `DEF-ICONS-57` **Executable badge has no accessible name** - MINOR; screen readers receive an unnamed image for the executable play badge
+  - log: 2026-10-23T06:32:17Z @kj coded MALFORMED-MANIFESTS
+  - log: 2026-10-23T06:32:51Z @kj renamed code "MALFORMED-MANIFESTS" -> "MALFORMED-MANIFEST"
+  - log: 2026-10-23T06:33:30Z @kj amended text "malformed TOML and truncated setup.py declarations still produce package folder names despite ACC-PYPKG-17" -> "malformed TOML and truncated setup.py declarations still produce package folder names despite ACC-PYPKG-17-UNREADABLE"
+- [x] `DEF-ICONS-57-BADGE-NAME` **Executable badge has no accessible name** - MINOR; screen readers receive an unnamed image for the executable play badge
   - evidence: the play badge carries alt=Executable; metadata-refresh.spec.ts asserts the accessible name; Galata 59 green
   - repro: enable executable icons and inspect a real executable badge in the accessibility tree
   - test-tags: E2E
   - root-cause: 2026-10-15T12:39:54Z @kj the injected image has neither alt text nor an ARIA name
   - log: 2026-10-15T12:39:54Z @kj added
   - log: 2026-10-15T17:20:28Z @kj closed
-- [x] `DEF-ICONS-62` **A subdirectory entry costs a thread hop** - MINOR; the async contents wrapper dispatches a directory model to the executor before the scan own content test runs, so a listing of 3000 folders is 34 percent slower and the hops queue on the two workers the icon routes share
+  - log: 2026-10-23T06:32:17Z @kj coded EXECUTABLE-BADGE
+  - log: 2026-10-23T06:32:54Z @kj renamed code "EXECUTABLE-BADGE" -> "BADGE-NAME"
+- [x] `DEF-ICONS-62-THREAD-HOP` **A subdirectory entry costs a thread hop** - MINOR; the async contents wrapper dispatches a directory model to the executor before the scan own content test runs, so a listing of 3000 folders is 34 percent slower and the hops queue on the two workers the icon routes share
   - evidence: the content-is-list test now runs before the thread hop, so a file entry and a subdirectory entry both return without one; pytest 28 passed with 25 subtests and jest 133 in 10 suites green
   - repro: list a directory holding 3000 subdirectories on an async contents manager and time it against the wrapper removed
   - test-tags: UNIT
   - root-cause: 2026-10-15T17:32:41Z @kj the guard before the hop tested the model type only, and a subdirectory entry is a directory model with no content list
   - log: 2026-10-15T17:32:41Z @kj added
   - log: 2026-10-15T17:33:31Z @kj closed
-- [x] `DEF-ICONS-63` **Manifest validation repeats on every refresh** - MINOR; the browser posts the same pyproject.toml or setup.py to validate-manifest about six times a minute while the listing poll runs, where the local parse it replaced sent no request
+  - log: 2026-10-23T06:32:17Z @kj coded SUBDIRECTORY-ENTRY
+  - log: 2026-10-23T06:32:54Z @kj renamed code "SUBDIRECTORY-ENTRY" -> "THREAD-HOP"
+- [x] `DEF-ICONS-63-MANIFEST-REPEAT` **Manifest validation repeats on every refresh** - MINOR; the browser posts the same pyproject.toml or setup.py to validate-manifest about six times a minute while the listing poll runs, where the local parse it replaced sent no request
   - evidence: the verdict is cached per manifest revision, keyed by path, last_modified and length; manifest-validation.spec.ts passes its 5 tests unchanged and jest 133 in 10 suites green
   - repro: open a python project root and count the validate-manifest calls across poll ticks
   - test-tags: UNIT
   - root-cause: 2026-10-15T17:32:41Z @kj the refreshed handler clears the package cache, so each refresh re-reads and re-validates the manifest
   - log: 2026-10-15T17:32:41Z @kj added
   - log: 2026-10-15T17:33:31Z @kj closed
-- [x] `DEF-ICONS-64` **Every file-browser poll pays a second directory listing** - MAJOR; every 10 s poll and every refresh fetched the contents API only to check for pyproject.toml and setup.py; cause: detectPythonPackages probed the directory listing; fix: the manifest fetch is its own probe, a miss landing as absence, no listing request remains; `src/index.ts`
+  - log: 2026-10-23T06:32:17Z @kj coded MANIFEST-VALIDATION
+  - log: 2026-10-23T06:32:54Z @kj renamed code "MANIFEST-VALIDATION" -> "MANIFEST-REPEAT"
+- [x] `DEF-ICONS-64-SECOND-LISTING` **Every file-browser poll pays a second directory listing** - MAJOR; every 10 s poll and every refresh fetched the contents API only to check for pyproject.toml and setup.py; cause: detectPythonPackages probed the directory listing; fix: the manifest fetch is its own probe, a miss landing as absence, no listing request remains; `src/index.ts`
   - evidence: adversarial review r1 reproduced the doubled request from the access log; after the change no contents request for the listing remains, the extension only contents requests are the two manifest reads per refresh; jest 133, pytest 22+23 subtests, Galata 59 green on 2026-10-15
   - repro: open a directory, watch the access log across two 10 s polls: a second contents request for the same path before the fix, gone after
   - test-tags: E2E
@@ -469,71 +625,87 @@ Which file gets which glyph in the file browser and on tabs
   - log: 2026-10-15T22:07:30Z @kj edited text "every 10 s poll and every refresh fetched the contents API for the open directory only to check for pyproject.toml and setup.py, which the model already holds; cause: detectPythonPackages asked the server instead of reading model.items(); fix: names read from the model; `src/index.ts`" -> "every 10 s poll and every refresh fetched the contents API only to check for pyproject.toml and setup.py; cause: detectPythonPackages probed the directory listing; fix: the manifest fetch is its own probe, a miss landing as absence, no listing request remains; `src/index.ts`"
   - log: 2026-10-15T22:18:26Z @kj edited evidence "adversarial review r1 reproduced the doubled request from the access log; after the change one contents request per poll; jest 133, pytest 28+25 subtests, Galata 59 green on 2026-10-15" -> "adversarial review r1 reproduced the doubled request from the access log; after the change no contents request for the listing remains, the extension only contents requests are the two manifest reads per refresh; jest 133, pytest 28+25 subtests, Galata 59 green on 2026-10-15"
   - log: 2026-10-15T22:30:28Z @kj edited evidence "adversarial review r1 reproduced the doubled request from the access log; after the change no contents request for the listing remains, the extension only contents requests are the two manifest reads per refresh; jest 133, pytest 28+25 subtests, Galata 59 green on 2026-10-15" -> "adversarial review r1 reproduced the doubled request from the access log; after the change no contents request for the listing remains, the extension only contents requests are the two manifest reads per refresh; jest 133, pytest 22+23 subtests, Galata 59 green on 2026-10-15"
-- [x] `DEF-ICONS-65` **A package folder loses its glyph on every listing mutation** - MEDIUM; on a listing change the pre-answer pass stripped the python-package marker from every folder, flickering the glyph off until the detectors answered; cause: the marker was removed unconditionally; fix: the marker carries the occupant name and the pass keeps a matching row marker; `src/index.ts`
+  - log: 2026-10-23T06:32:17Z @kj coded BROWSER-POLL
+  - log: 2026-10-23T06:32:52Z @kj renamed code "BROWSER-POLL" -> "SECOND-LISTING"
+- [x] `DEF-ICONS-65-PACKAGE-FOLDER` **A package folder loses its glyph on every listing mutation** - MEDIUM; on a listing change the pre-answer pass stripped the python-package marker from every folder, flickering the glyph off until the detectors answered; cause: the marker was removed unconditionally; fix: the marker carries the occupant name and the pass keeps a matching row marker; `src/index.ts`
   - evidence: metadata-refresh.spec.ts pins the occupant name on both markers; Galata 59 green on 2026-10-15
   - repro: refresh a directory holding a package folder on a throttled connection: the folder glyph flickers off until the detector answers
   - test-tags: E2E
   - log: 2026-10-15T21:36:55Z @kj added
   - log: 2026-10-15T21:36:59Z @kj closed: fixed: the marker carries the occupant name; the pre-answer pass keeps a matching row marker
   - log: 2026-10-15T21:51:49Z @kj regressed as DEF-ICONS-65-1
-- [x] `DEF-ICONS-65-1` **A package folder loses its glyph on every listing mutation** - MEDIUM; on a listing change the pre-answer pass stripped the python-package marker from every folder, flickering the glyph off until the detectors answered; cause: the marker was removed unconditionally; fix: the marker carries the occupant name and the pass keeps a matching row marker; `src/index.ts`
+  - log: 2026-10-23T06:32:17Z @kj coded PACKAGE-FOLDER
+- [x] `DEF-ICONS-65-PACKAGE-FOLDER-1` **A package folder loses its glyph on every listing mutation** - MEDIUM; on a listing change the pre-answer pass stripped the python-package marker from every folder, flickering the glyph off until the detectors answered; cause: the marker was removed unconditionally; fix: the marker carries the occupant name and the pass keeps a matching row marker; `src/index.ts`
   - test-tags: E2E
   - repro: refresh a directory holding a package folder on a throttled connection: the folder glyph flickers off until the detector answers
   - evidence: revert-first ruling of adversarial round 2; the strip-and-restore window mirrors the original report; jest 133 and Galata metadata-refresh 4/4 green on 2026-10-15
   - log: 2026-10-15T21:51:49Z @kj regression of DEF-ICONS-65
   - log: 2026-10-15T21:52:24Z @kj closed: wontfix: the round-2 adjudication removed the occupant-name marker because it keyed row identity on the folder name alone (MAJOR); the pre-answer strip is the accepted cost, the answered pass restores the glyph
   - log: 2026-10-15T21:52:28Z @kj edited repro added "refresh a directory holding a package folder on a throttled connection: the folder glyph flickers off until the detector answers"; test-tags added "E2E"
-- [x] `DEF-ICONS-66` **Every listing change pays a second full row sweep** - MINOR; each listing mutation runs the three row passes, the badge writes queue another observation batch, and that batch sweeps every row again; cause: the observer consumed the records its own painters produced; fix: takeRecords() after the painters drops the self-produced batch; `src/index.ts`
+  - log: 2026-10-23T06:32:17Z @kj coded PACKAGE-FOLDER
+- [x] `DEF-ICONS-66-SECOND-SWEEP` **Every listing change pays a second full row sweep** - MINOR; each listing mutation runs the three row passes, the badge writes queue another observation batch, and that batch sweeps every row again; cause: the observer consumed the records its own painters produced; fix: takeRecords() after the painters drops the self-produced batch; `src/index.ts`
   - evidence: adversarial review r1 counted the doubled batch in a jsdom harness; Galata 59 green on 2026-10-15
   - repro: count observer callbacks on a directory of 5,000 rows: two sweeps per change before, one after
   - test-tags: E2E
   - log: 2026-10-15T21:36:55Z @kj added
   - log: 2026-10-15T21:36:59Z @kj closed: fixed: takeRecords() after the painters drops the self-produced batch
-- [x] `DEF-ICONS-67` **The executables route re-lists the directory per request** - MEDIUM; with executable icons on, each poll pays a second directory model build (487 ms at 5,000 entries) plus a rescan; cause: the route re-lists to answer a name filter; fix: carry the executable fact on the contents annotation, delete the route and its client fetch; `handlers.py`, `src/index.ts`
+  - log: 2026-10-23T06:32:17Z @kj coded LISTING-CHANGE
+  - log: 2026-10-23T06:32:54Z @kj renamed code "LISTING-CHANGE" -> "SECOND-SWEEP"
+- [x] `DEF-ICONS-67-EXEC-ROUTE` **The executables route re-lists the directory per request** - MEDIUM; with executable icons on, each poll pays a second directory model build (487 ms at 5,000 entries) plus a rescan; cause: the route re-lists to answer a name filter; fix: carry the executable fact on the contents annotation, delete the route and its client fetch; `handlers.py`, `src/index.ts`
   - evidence: test_handlers.py reads the flags from one scandir pass; metadata-refresh.spec.ts 4/4 and the full Galata suite 59/59 pass against the tree build; make test green on 2026-10-15
   - repro: enable executable icons, open a 5,000-entry directory, watch /vscode-icons/executables requests against the listing poll rate
   - test-tags: E2E, UNIT
   - root-cause: 2026-10-15T21:36:55Z @kj the route predates the listing annotation; its entry path test costs 125 ms against 16 ms at 5,000 entries
   - log: 2026-10-15T21:36:55Z @kj added
   - log: 2026-10-15T21:50:36Z @kj closed: fixed: executable flags ride the contents annotation; the route, its handler, the client fetch and cache deleted
-- [x] `DEF-ICONS-69` **Manifest probe 404s in every folder** - CRITICAL; the file browser sends GET pyproject.toml and GET setup.py in every folder, 404 where absent, 2-3 times per refresh and on every 10 s poll; cause: detectPythonPackages fetches both names unconditionally (DEF-ICONS-64 change) and overlapping calls each fetch; `src/index.ts`
+  - log: 2026-10-23T06:32:17Z @kj coded EXECUTABLES-ROUTE
+  - log: 2026-10-23T06:32:52Z @kj renamed code "EXECUTABLES-ROUTE" -> "EXEC-ROUTE"
+- [x] `DEF-ICONS-69-MANIFEST-PROBE` **Manifest probe 404s in every folder** - CRITICAL; the file browser sends GET pyproject.toml and GET setup.py in every folder, 404 where absent, 2-3 times per refresh and on every 10 s poll; cause: detectPythonPackages fetches both names unconditionally (DEF-ICONS-64-SECOND-LISTING change) and overlapping calls each fetch; `src/index.ts`
   - evidence: ec5479e: a manifest is fetched only when the listing names it, in-flight read cached per listing revision; manifest-requests.spec.ts 4/4, 3 of them fail on 1.2.6; Galata 64/64, jest 133, pytest 22+23 subtests; devils-advocate review SHIP in round 5
-  - related: DEF-ICONS-64
+  - related: DEF-ICONS-64-SECOND-LISTING
   - repro: open a folder with neither manifest, wait two 10 s polls, watch the console for 404 on pyproject.toml and setup.py
   - test-tags: E2E
   - root-cause: 2026-10-16T15:22:48Z @kj the manifest fetch replaced the listing check because model.items() is name-filtered; the cache stores the finished result, so overlapping markSpecialFiles calls each send requests
   - log: 2026-10-16T15:22:48Z @kj added
   - log: 2026-10-16T15:36:17Z @kj edited severity "MEDIUM" -> "CRITICAL"
   - log: 2026-10-16T17:47:51Z @kj closed
-- [x] `DEF-ICONS-70` **Large folders open many times slower** - CRITICAL; a 1,000-entry folder opens in 14.4 s with the extension and 1.7 s without it; a 5,000-entry folder blocks the tab for minutes; present in 1.2.6; `src/index.ts` MutationObserver callback
+  - log: 2026-10-23T06:32:17Z @kj coded MANIFEST-PROBE
+  - log: 2026-10-23T06:33:30Z @kj amended text "the file browser sends GET pyproject.toml and GET setup.py in every folder, 404 where absent, 2-3 times per refresh and on every 10 s poll; cause: detectPythonPackages fetches both names unconditionally (DEF-ICONS-64 change) and overlapping calls each fetch; `src/index.ts`" -> "the file browser sends GET pyproject.toml and GET setup.py in every folder, 404 where absent, 2-3 times per refresh and on every 10 s poll; cause: detectPythonPackages fetches both names unconditionally (DEF-ICONS-64-SECOND-LISTING change) and overlapping calls each fetch; `src/index.ts`"
+- [x] `DEF-ICONS-70-LARGE-FOLDERS` **Large folders open many times slower** - CRITICAL; a 1,000-entry folder opens in 14.4 s with the extension and 1.7 s without it; a 5,000-entry folder blocks the tab for minutes; present in 1.2.6; `src/index.ts` MutationObserver callback
   - evidence: ec5479e: row passes run once per animation frame; 1,000 entries open in 1.47 s, was 14.4 s; 5,000 entries 5.6 s against 5.0 s without the extension; large-folder.spec.ts 2,008 passes before, under 200 after; Galata 64/64; review SHIP in round 5
-  - related: DEF-ICONS-69
+  - related: DEF-ICONS-69-MANIFEST-PROBE
   - repro: create 1,000 files in one folder, open it in the file browser, time until the rows render; repeat with the extension's bundle blocked
   - test-tags: E2E
   - root-cause: 2026-10-16T16:39:06Z @kj JupyterLab delivers about one mutation callback per row (1,005 callbacks in 59 frames); each callback runs markSpecialFilesPass, markRowIcons and markSymlinkBadges over every row, and markRowIcons forces a style recalculation through getComputedStyle, so the work grows as rows squared
   - log: 2026-10-16T16:39:06Z @kj added
   - log: 2026-10-16T17:47:51Z @kj closed
-- [-] `DEF-ICONS-71` **Symlinked manifest edit keeps old glyphs** - MINOR; editing the target of a symlinked pyproject.toml or setup.py while its folder is open keeps the previous package glyphs until navigation or reload; regression of the DEF-ICONS-69 cache key
-  - related: DEF-ICONS-69
+  - log: 2026-10-23T06:32:17Z @kj coded LARGE-FOLDERS
+- [-] `DEF-ICONS-71-SYMLINK-MANIFEST` **Symlinked manifest edit keeps old glyphs** - MINOR; editing the target of a symlinked pyproject.toml or setup.py while its folder is open keeps the previous package glyphs until navigation or reload; regression of the DEF-ICONS-69-MANIFEST-PROBE cache key
+  - related: DEF-ICONS-69-MANIFEST-PROBE
   - repro: link pyproject.toml to a file elsewhere, open the folder, change the declared name in the target, refresh: the glyph stays on the old folder
   - test-tags: MANUAL
   - root-cause: 2026-10-16T16:48:59Z @kj jupyter_server lists a link with os.lstat, so the listing stamp and size of the link do not change when the target is edited, and the cache key name@last_modified@size stays the same
   - log: 2026-10-16T16:48:59Z @kj added
   - log: 2026-10-16T16:49:04Z @kj rejected: rejected: accepted limitation; every fix either puts the target stat on every symlink entry server-side (changes the Modified column) or adds a symlink-only key branch; rare input, recovered by navigating away and back
-- [-] `DEF-ICONS-72` **Unreadable manifest is requested every poll** - MINOR; a listed pyproject.toml or setup.py whose contents GET always fails, for example 403, is requested again about once per 10 s poll and logs one console error each time; a readable manifest in the same folder is requested again with it, without an error
-  - related: DEF-ICONS-69
+  - log: 2026-10-23T06:32:17Z @kj coded SYMLINKED-MANIFEST
+  - log: 2026-10-23T06:32:55Z @kj renamed code "SYMLINKED-MANIFEST" -> "SYMLINK-MANIFEST"
+  - log: 2026-10-23T06:33:30Z @kj amended text "editing the target of a symlinked pyproject.toml or setup.py while its folder is open keeps the previous package glyphs until navigation or reload; regression of the DEF-ICONS-69 cache key" -> "editing the target of a symlinked pyproject.toml or setup.py while its folder is open keeps the previous package glyphs until navigation or reload; regression of the DEF-ICONS-69-MANIFEST-PROBE cache key"
+- [-] `DEF-ICONS-72-UNREADABLE-POLL` **Unreadable manifest is requested every poll** - MINOR; a listed pyproject.toml or setup.py whose contents GET always fails, for example 403, is requested again about once per 10 s poll and logs one console error each time; a readable manifest in the same folder is requested again with it, without an error
+  - related: DEF-ICONS-69-MANIFEST-PROBE
   - repro: chmod 000 pyproject.toml in a package folder, open the folder, watch the network log across two polls
   - test-tags: MANUAL
   - root-cause: 2026-10-16T17:12:41Z @kj a failed read is dropped from the cache so that one transient failure does not hide the package glyph; a failure that never clears is therefore retried on each pass
   - log: 2026-10-16T17:12:41Z @kj added
   - log: 2026-10-16T17:12:41Z @kj rejected: accepted cost of recovering from a transient failure; bounded, the pass cannot trigger itself, no worse than 1.2.6, which requested both names on every refresh
   - log: 2026-10-16T17:26:05Z @kj edited text "a listed pyproject.toml or setup.py whose contents GET always fails, for example 403, is requested again about once per 10 s poll and logs one console error each time" -> "a listed pyproject.toml or setup.py whose contents GET always fails, for example 403, is requested again about once per 10 s poll and logs one console error each time; a readable manifest in the same folder is requested again with it, without an error"
+  - log: 2026-10-23T06:32:17Z @kj coded UNREADABLE-MANIFEST
+  - log: 2026-10-23T06:32:55Z @kj renamed code "UNREADABLE-MANIFEST" -> "UNREADABLE-POLL"
 
 ## Settings and icon groups `CONFIG`
 
 Defects in the settings schema and the group toggles that gate which icons are painted
 
-- [x] `DEF-CONFIG-18` **Icons for extensions no file type claims ignore every settings toggle** - MAJOR; resolveIcon gates the bundled-map path on (!group || settings[group]); groupFor is built from fileTypeConfigs, so a family no entry claims returns no group and the first clause short-circuits: those families painted with every group switched off
+- [x] `DEF-CONFIG-18-UNCLAIMED-TOGGLE` **Icons for extensions no file type claims ignore every settings toggle** - MAJOR; resolveIcon gates the bundled-map path on (!group || settings[group]); groupFor is built from fileTypeConfigs, so a family no entry claims returns no group and the first clause short-circuits: those families painted with every group switched off
   - evidence: gate reads a missing group as every group: settings-groups.spec.ts 'no row carries a painted glyph' with all seven off leaves .log, .jar and .js unpainted and still drawn; full galata run 15 passed
   - repro: Switch every enable* setting off, open a directory holding a .log file: before the fix the row still showed the vscode glyph, covered now by settings-groups.spec.ts 'no row carries a painted glyph'
   - test-tags: E2E
@@ -542,7 +714,9 @@ Defects in the settings schema and the group toggles that gate which icons are p
   - log: 2026-10-14T11:41:35Z @kj closed
   - log: 2026-10-14T11:53:42Z @kj edited repro "Switch every enable* setting off in Settings > VSCode Icons; a .yml or .log row still shows its vscode glyph. Read from the gate at src/index.ts:1479, not yet run" -> "Switch every enable* setting off, open a directory holding a .log file: before the fix the row still showed the vscode glyph, covered now by settings-groups.spec.ts 'no row carries a painted glyph'"
   - log: 2026-10-14T12:56:50Z @kj amended text "resolveIcon gates the bundled-map path on (!group || settings[group]). groupFor is built from fileTypeConfigs, so an extension that no entry claims returns no group and the first clause short-circuits: 50 of the 121 mapped extensions paint with every group switched off." -> "resolveIcon gates the bundled-map path on (!group || settings[group]); groupFor is built from fileTypeConfigs, so a family no entry claims returns no group and the first clause short-circuits: those families painted with every group switched off"
-- [x] `DEF-CONFIG-22` **The name-based overrides ignore every settings toggle** - MAJOR; with all seven groups off, notes.txt, a.pdf, logo.svg, uv.lock and conftest.py still paint this extension's artwork through ::before and JupyterLab's own glyph stays hidden; LICENSE also keeps license-icon
+  - log: 2026-10-23T06:32:17Z @kj coded EXTENSIONS-TYPE
+  - log: 2026-10-23T06:32:51Z @kj renamed code "EXTENSIONS-TYPE" -> "UNCLAIMED-TOGGLE"
+- [x] `DEF-CONFIG-22-NAME-OVERRIDES` **The name-based overrides ignore every settings toggle** - MAJOR; with all seven groups off, notes.txt, a.pdf, logo.svg, uv.lock and conftest.py still paint this extension's artwork through ::before and JupyterLab's own glyph stays hidden; LICENSE also keeps license-icon
   - evidence: setOverride reads the group that owns each attribute, and the seven custom registrations are wrapped in theirs; settings-groups.spec.ts asserts notes.txt, a.pdf, logo.svg, uv.lock, conftest.py, LICENSE, CHANGELOG.md and README.md go bare with all seven off, and one attribute reverted fails it
   - repro: switch every enable* setting off, refresh, open a directory holding a .txt, .pdf, .svg, uv.lock and conftest.py
   - test-tags: E2E
@@ -550,30 +724,35 @@ Defects in the settings schema and the group toggles that gate which icons are p
   - log: 2026-10-14T12:22:03Z @kj added
   - log: 2026-10-14T12:28:21Z @kj closed
   - log: 2026-10-14T15:32:47Z @kj edited evidence "setOverride reads the group that owns each attribute, and the seven custom registrations are wrapped in theirs; settings-groups.spec.ts asserts notes.txt, a.pdf, logo.svg, uv.lock, conftest.py, LICENSE and Makefile go bare with all seven off, and one attribute reverted fails it" -> "setOverride reads the group that owns each attribute, and the seven custom registrations are wrapped in theirs; settings-groups.spec.ts asserts notes.txt, a.pdf, logo.svg, uv.lock, conftest.py, LICENSE, CHANGELOG.md and README.md go bare with all seven off, and one attribute reverted fails it"
-- [x] `DEF-CONFIG-26` **Hand-registered families escaped their settings group** - MAJOR; measured: with enableLanguageIcons off a .sh row still painted file-type-shell and a .bat row painted the unix shell glyph; with enableDocIcons off LICENSE still painted file-type-license; groupFor reads fileTypeConfigs, which had no row for families registered by hand, so the fallback painter treated them as ungoverned
+  - log: 2026-10-23T06:32:17Z @kj coded NAME-BASED
+  - log: 2026-10-23T06:32:51Z @kj renamed code "NAME-BASED" -> "NAME-OVERRIDES"
+- [x] `DEF-CONFIG-26-HAND-REGISTERED` **Hand-registered families escaped their settings group** - MAJOR; measured: with enableLanguageIcons off a .sh row still painted file-type-shell and a .bat row painted the unix shell glyph; with enableDocIcons off LICENSE still painted file-type-license; groupFor reads fileTypeConfigs, which had no row for families registered by hand, so the fallback painter treated them as ungoverned
   - evidence: three declaration-only custom- rows give shell, batch and LICENSE their group; settings-groups.spec.ts asserts deploy.sh and run.bat go bare with the language group off and LICENSE with the doc group off, each with a control in the same listing, and deleting the shell row fails it
   - repro: switch enableLanguageIcons off, refresh, open a directory holding a .sh and a .bat
   - test-tags: E2E
   - root-cause: 2026-10-14T12:56:13Z @kj groupMatchers is built from fileTypeConfigs alone, and a missing group means the ungrouped quorum decides
   - log: 2026-10-14T12:56:13Z @kj added
   - log: 2026-10-14T12:56:24Z @kj closed
-- [x] `DEF-CONFIG-54` **Disabled filename group falls through to another group** - MAJOR; configuration icons disabled still leaves requirements.txt and pyproject.toml with this extension's generic text or TOML icon
+  - log: 2026-10-23T06:32:17Z @kj coded HAND-REGISTERED
+- [x] `DEF-CONFIG-54-FALLTHROUGH` **Disabled filename group falls through to another group** - MAJOR; configuration icons disabled still leaves requirements.txt and pyproject.toml with this extension's generic text or TOML icon
   - evidence: group-ownership.spec.ts passes 4 tests: a disabled config owner hands the row back to the registry and an independent registration keeps requirements.native.txt; the ::before override pass now asks the registry before painting; Galata 59 green
   - repro: disable configuration icons with document and data icons enabled, refresh and open requirements.txt and pyproject.toml
   - test-tags: E2E
   - root-cause: 2026-10-15T12:39:53Z @kj enabled extension registrations can claim filenames owned by a disabled pattern group; registry resolution bypasses that ownership
   - log: 2026-10-15T12:39:53Z @kj added
   - log: 2026-10-15T17:20:28Z @kj closed
+  - log: 2026-10-23T06:32:17Z @kj coded DISABLED-FILENAME
+  - log: 2026-10-23T06:32:51Z @kj renamed code "DISABLED-FILENAME" -> "FALLTHROUGH"
 
 ## Icon colours `COLOUR`
 
 Icon colours this project chooses itself, and their contrast against the panel and the selection band
 
-- [x] `DEF-COLOUR-21` **Three hand-drawn glyphs sit under the 3:1 contrast bar** - MEDIUM; measured: Makefile #c2544f is 1.02:1 on the light selection band #1976d2, .mcp.json #eee is 1.16:1 on the light panel, markdown #8a2ea5 is 2.31:1 on the dark panel; the Makefile glyph disappears on a selected row
+- [x] `DEF-COLOUR-21-HAND-GLYPHS` **Three hand-drawn glyphs sit under the 3:1 contrast bar** - MEDIUM; measured: Makefile #c2544f is 1.02:1 on the light selection band #1976d2, .mcp.json #eee is 1.16:1 on the light panel, markdown #8a2ea5 is 2.31:1 on the dark panel; the Makefile glyph disappears on a selected row
   - evidence: the Makefile sheet takes a white variant on a selected row, and .mcp.json carries class mcp-glyph with the light theme at 16.10:1 flat, 3.69:1 through the dotfile dim, and the dark at 13.88:1, under three unit cases one of which fails if the class is removed
   - repro: select a row holding a Makefile on the light theme; compare with an unselected row
   - test-tags: UNIT
-  - root-cause: 2026-10-14T12:21:51Z @kj each glyph carries one fixed fill with no per-theme or per-selection variant, unlike the database cylinder, which got one in ACC-COLOUR-13
+  - root-cause: 2026-10-23T06:33:30Z @kj each glyph carries one fixed fill with no per-theme or per-selection variant, unlike the database cylinder, which got one in ACC-COLOUR-13-DATABASE-SELECTED
   - log: 2026-10-14T12:21:51Z @kj added
   - log: 2026-10-14T12:31:21Z @kj selected-row half fixed: the Makefile sheet now takes a white variant on a selected row through .makefile-glyph, the remedy ACC-COLOUR-13 used for the cylinder; the unselected artwork is untouched and the .mcp.json and markdown panel fills still need a colour decision
   - log: 2026-10-14T12:35:57Z @kj awaiting the maintainer's word: the fix repaints the Makefile, .mcp.json and markdown glyphs, and his standing rule is that icons already in place are kept
@@ -587,7 +766,10 @@ Icon colours this project chooses itself, and their contrast against the panel a
   - log: 2026-10-14T15:41:00Z @kj the three mcp unit cases are back and mutation-checked: deleting class=mcp-glyph from the artwork fails the binding case. They had been lost twice, the second time to my own over-broad removal of a block that merely mentioned joblib in a comment
   - log: 2026-10-14T15:49:07Z @kj edited evidence "Makefile sheet takes the white .makefile-glyph variant on a selected row, .mcp.json carries class mcp-glyph with the light theme at 10.05:1 and the dark at 13.88:1, both under unit cases that fail if the class is removed; the markdown mark stays at 2.31:1 by the maintainer's decision" -> "the Makefile sheet takes a white variant on a selected row, and .mcp.json carries class mcp-glyph with the light theme at 16.10:1 flat, 3.69:1 through the dotfile dim, and the dark at 13.88:1, under three unit cases one of which fails if the class is removed"
   - log: 2026-10-14T15:49:07Z @kj a selected .mcp.json row on the light theme measures 1.69:1 and no fill can clear 3:1 through the 55 percent dotfile dim - pure black composites to about 2.4:1 - so that state is bounded by the dim rule, which is HEAD's
-- [x] `DEF-COLOUR-27` **A tab freezes this extension's own theme-coloured icons at one theme** - MEDIUM; markTabIcons re-encodes a registered icon into a data-URI background, where document CSS cannot reach it; measured on dark: the shell tile renders #333 on the tab against #eee on the row (1.27:1), and the joblib glyph, which has no fill attribute at all, rasterises black
+  - log: 2026-10-23T06:32:17Z @kj coded THREE-HAND
+  - log: 2026-10-23T06:32:52Z @kj renamed code "THREE-HAND" -> "HAND-GLYPHS"
+  - log: 2026-10-23T06:33:30Z @kj root-cause updated "2026-10-14T12:21:51Z @kj each glyph carries one fixed fill with no per-theme or per-selection variant, unlike the database cylinder, which got one in ACC-COLOUR-13" -> "each glyph carries one fixed fill with no per-theme or per-selection variant, unlike the database cylinder, which got one in ACC-COLOUR-13-DATABASE-SELECTED"
+- [x] `DEF-COLOUR-27-THEME-FREEZE` **A tab freezes this extension's own theme-coloured icons at one theme** - MEDIUM; markTabIcons re-encodes a registered icon into a data-URI background, where document CSS cannot reach it; measured on dark: the shell tile renders #333 on the tab against #eee on the row (1.27:1), and the joblib glyph, which has no fill attribute at all, rasterises black
   - evidence: the shell tile carries #767676 and its glyph white, the joblib ink #e15617, neither taking a theme fill, so a tab's copy matches its row; icon-contrast.spec.ts asserts both on both panels and the white selected-row variant
   - repro: on the dark theme, open a .sh and a .joblib and compare each tab icon with its row
   - test-tags: MANUAL
@@ -596,7 +778,9 @@ Icon colours this project chooses itself, and their contrast against the panel a
   - log: 2026-10-14T13:37:30Z @kj the new outline rule does not reach this one: the shell tile's own white glyph gives a best fill of 13.9:1 on the dark bar, so nothing is marked while the tile disappears; inline fills or a per-region measure remain the options
   - log: 2026-10-14T14:45:42Z @kj closed: fixed on the maintainer's instruction: colours written into the artwork, white variant kept for a selected row
   - log: 2026-10-14T14:59:38Z @kj regressed as DEF-COLOUR-27-1
-- [x] `DEF-COLOUR-27-1` **A tab freezes this extension's own theme-coloured icons at one theme** - MEDIUM; markTabIcons re-encodes a registered icon into a data-URI background, where document CSS cannot reach it; measured on dark: the shell tile renders #333 on the tab against #eee on the row (1.27:1), and the joblib glyph, which has no fill attribute at all, rasterises black
+  - log: 2026-10-23T06:32:17Z @kj coded FREEZES-EXTENSIONS
+  - log: 2026-10-23T06:32:52Z @kj renamed code "FREEZES-EXTENSIONS" -> "THEME-FREEZE"
+- [x] `DEF-COLOUR-27-THEME-FREEZE-1` **A tab freezes this extension's own theme-coloured icons at one theme** - MEDIUM; markTabIcons re-encodes a registered icon into a data-URI background, where document CSS cannot reach it; measured on dark: the shell tile renders #333 on the tab against #eee on the row (1.27:1), and the joblib glyph, which has no fill attribute at all, rasterises black
   - evidence: shell tile #767676 with a white glyph, joblib ink #e15617, neither taking a theme fill, so a tab's copy matches its row; the selected-row variant turns both white, where the drawn colours would read 1.01 and 1.22 against the band
   - test-tags: MANUAL
   - repro: on the dark theme, open a .sh and a .joblib and compare each tab icon with its row
@@ -605,7 +789,9 @@ Icon colours this project chooses itself, and their contrast against the panel a
   - log: 2026-10-14T15:12:34Z @kj closed: closed on the maintainer's answer of 2026-10-14 to a direct question, verbatim 'Bake the colours in' - the reversal at 14:59 was made without sight of it
   - log: 2026-10-14T15:32:38Z @kj regressed as DEF-COLOUR-27-2
   - log: 2026-10-14T16:33:47Z @kj correction: the earlier log on this item saying the instruction was never given is false. Two claude processes ran on one session id; the writer could not see the live conversation, so real maintainer decisions looked unsourced. It has stood down and confirmed this.
-- [x] `DEF-COLOUR-27-2` **A tab freezes this extension's own theme-coloured icons at one theme** - MEDIUM; markTabIcons re-encodes a registered icon into a data-URI background, where document CSS cannot reach it; measured on dark: the shell tile renders #333 on the tab against #eee on the row (1.27:1), and the joblib glyph, which has no fill attribute at all, rasterises black
+  - log: 2026-10-23T06:32:17Z @kj coded FREEZES-EXTENSIONS
+  - log: 2026-10-23T06:32:52Z @kj renamed code "FREEZES-EXTENSIONS" -> "THEME-FREEZE"
+- [x] `DEF-COLOUR-27-THEME-FREEZE-2` **A tab freezes this extension's own theme-coloured icons at one theme** - MEDIUM; markTabIcons re-encodes a registered icon into a data-URI background, where document CSS cannot reach it; measured on dark: the shell tile renders #333 on the tab against #eee on the row (1.27:1), and the joblib glyph, which has no fill attribute at all, rasterises black
   - evidence: shell tile #767676, glyph #fff, joblib ink #e15617, none taking a theme fill, so a tab's data-URI copy matches its row; icon-contrast.spec.ts 'icons a tab paints as a background' asserts every path has a fill, no jp-terminal class remains, both clear 3:1 on each panel, and the selected-row rule turns them white - two of the six fail on the reverted artwork
   - test-tags: MANUAL
   - repro: on the dark theme, open a .sh and a .joblib and compare each tab icon with its row
@@ -614,7 +800,9 @@ Icon colours this project chooses itself, and their contrast against the panel a
   - log: 2026-10-14T15:35:31Z @kj closed: fixed: the shell tile and the joblib ink carry their colours in the artwork again, on the maintainer's choice of 2026-10-14 between baking and the class mechanism; reason: the evidence has to name both artworks, all four colours, the class absence and the mutation result, because the two previous closures were reverted for citing artwork that was not in the tree
   - log: 2026-10-14T15:41:44Z @kj regressed as DEF-COLOUR-27-3
   - log: 2026-10-14T16:33:47Z @kj correction: the earlier log on this item saying the instruction was never given is false. Two claude processes ran on one session id; the writer could not see the live conversation, so real maintainer decisions looked unsourced. It has stood down and confirmed this.
-- [x] `DEF-COLOUR-27-3` **A tab freezes this extension's own theme-coloured icons at one theme** - MEDIUM; markTabIcons re-encodes a registered icon into a data-URI background, where document CSS cannot reach it; measured on dark: the shell tile renders #333 on the tab against #eee on the row (1.27:1), and the joblib glyph, which has no fill attribute at all, rasterises black
+  - log: 2026-10-23T06:32:17Z @kj coded FREEZES-EXTENSIONS
+  - log: 2026-10-23T06:32:52Z @kj renamed code "FREEZES-EXTENSIONS" -> "THEME-FREEZE"
+- [x] `DEF-COLOUR-27-THEME-FREEZE-3` **A tab freezes this extension's own theme-coloured icons at one theme** - MEDIUM; markTabIcons re-encodes a registered icon into a data-URI background, where document CSS cannot reach it; measured on dark: the shell tile renders #333 on the tab against #eee on the row (1.27:1), and the joblib glyph, which has no fill attribute at all, rasterises black
   - evidence: shell tile #767676 with a white glyph and joblib ink #e15617 carry explicit fills, so a tab's data-URI copy matches its row; icon-contrast.spec.ts asserts every path of both carries a fill, no jp-terminal class remains, both clear 3:1 on each panel, and the selected-row rule turns them white
   - test-tags: MANUAL
   - repro: compare src/index.ts against scratchpad/review-frozen/src/index.ts: the shell tile and the joblib ink
@@ -624,7 +812,9 @@ Icon colours this project chooses itself, and their contrast against the panel a
   - log: 2026-10-14T16:33:47Z @kj correction: the earlier log on this item saying the instruction was never given is false. Two claude processes ran on one session id; the writer could not see the live conversation, so real maintainer decisions looked unsourced. It has stood down and confirmed this.
   - log: 2026-10-14T16:33:55Z @kj closed: closed on the maintainer's decision of 2026-10-14, which the writer that reopened this could not see; reason: the evidence names the artwork and the class absence rather than the stylesheet, because the three previous closures of this item were reverted for citing artwork that was not in the tree
   - log: 2026-10-14T16:40:35Z @kj evidence correction: 'no jp-terminal class remains' is no longer true and was the wrong invariant. The shell artwork now carries the baked fill AND lab's theme classes - the fill paints the tab's data URI, the class paints the row's inline svg, and the two surfaces never compete
-- [x] `DEF-COLOUR-32` **A json or yaml tab paints a glyph with no perceivable contrast on the light theme** - MAJOR; the tab painter replaces JupyterLab's editor glyph with vendor artwork drawn for VSCode's dark sidebar; best-pixel contrast at 16px on the light tab: yaml 1.06, json 1.18, sql 1.18, dotenv 1.28, gradle 1.30, reactjs 1.49; on the dark tab: circleci 1.71, c 2.34, markdown 2.46, cpp 2.91
+  - log: 2026-10-23T06:32:17Z @kj coded FREEZES-EXTENSIONS
+  - log: 2026-10-23T06:32:52Z @kj renamed code "FREEZES-EXTENSIONS" -> "THEME-FREEZE"
+- [x] `DEF-COLOUR-32-JSON-YAML` **A json or yaml tab paints a glyph with no perceivable contrast on the light theme** - MAJOR; the tab painter replaces JupyterLab's editor glyph with vendor artwork drawn for VSCode's dark sidebar; best-pixel contrast at 16px on the light tab: yaml 1.06, json 1.18, sql 1.18, dotenv 1.28, gradle 1.30, reactjs 1.49; on the dark tab: circleci 1.71, c 2.34, markdown 2.46, cpp 2.91
   - evidence: the painter measures the artwork against the tab's own background and marks what cannot clear 3:1; the yaml glyph went from 1.20:1 to 19.69:1 best pixel with 16.5 percent of the box at or above 3:1, jar is left unmarked, and forcing the test false fails the galata case
   - repro: On the default light theme open a .json and a .yaml file and look at the tab icons
   - test-tags: MANUAL
@@ -632,35 +822,43 @@ Icon colours this project chooses itself, and their contrast against the panel a
   - log: 2026-10-14T13:28:23Z @kj new in this change set, not pre-existing: HEAD has no markTabIcons, so these tabs carried lab's grey editor glyph; three options, each the maintainer's call - a neutral plate behind every painted tab glyph, abstaining for the measured low-contrast keys so lab's glyph shows, or accepting the vendor palette
   - log: 2026-10-14T13:28:29Z @kj edited text "The tab painter replaces JupyterLab's editor glyph with the bundled vendor artwork, which assumes VSCode's dark sidebar. Measured at 16px against the current tab's white background: file-type-json 1.36:1, file-type-yaml 1.21:1, where lab's own glyph was about 6:1." -> "the tab painter replaces JupyterLab's editor glyph with vendor artwork drawn for VSCode's dark sidebar; best-pixel contrast at 16px on the light tab: yaml 1.06, json 1.18, sql 1.18, dotenv 1.28, gradle 1.30, reactjs 1.49; on the dark tab: circleci 1.71, c 2.34, markdown 2.46, cpp 2.91"; reason: the measured contrast of each affected glyph is the decision input, so the ten values belong on the item
   - log: 2026-10-14T13:37:20Z @kj closed
-- [x] `DEF-COLOUR-34` **The always-draw tab fallback bakes JupyterLab's grey and loses the theme** - MINOR; The fallback paints lab's fileIcon svgstr as a data-URI background. Its jp-icon3 class cannot resolve inside an isolated data URI, so the baked fill wins: 2.56:1 on the dark tab bar where lab would have drawn 8.8:1.
+  - log: 2026-10-23T06:32:17Z @kj coded JSON-YAML
+- [x] `DEF-COLOUR-34-FALLBACK-GREY` **The always-draw tab fallback bakes JupyterLab's grey and loses the theme** - MINOR; The fallback paints lab's fileIcon svgstr as a data-URI background. Its jp-icon3 class cannot resolve inside an isolated data URI, so the baked fill wins: 2.56:1 on the dark tab bar where lab would have drawn 8.8:1.
   - evidence: every tab paint goes through paintTabIcon, which now measures the artwork against the tab and outlines what cannot clear 3:1; lab's fileIcon carries no fill of its own, so the fallback is always outlined - and the branch is unreachable in practice, since every document tab carries an svg
   - repro: On the dark theme open a document whose widget sets no icon and look at the tab
   - test-tags: MANUAL
   - log: 2026-10-14T13:01:48Z @kj added
   - log: 2026-10-14T13:48:38Z @kj closed
   - log: 2026-10-14T14:23:32Z @kj the closure premise was wrong: lab's fileIcon does carry fill #616161, which measures 6.19:1 on a light tab and 2.60:1 on a dark one, so it is outlined on dark only - the conclusion holds, the reason did not
-- [x] `DEF-COLOUR-35` **The txt sheet grew and was clipped instead of shrinking** - MEDIUM; background-size 85% sets the width and leaves the height auto, so the sheet rendered 16.58 x 20.94 in a 19.5 box, 7 percent larger than before and cut off top and bottom, where the maintainer had asked for 15 percent smaller
+  - log: 2026-10-23T06:32:17Z @kj coded ALWAYS-DRAW
+  - log: 2026-10-23T06:32:53Z @kj renamed code "ALWAYS-DRAW" -> "FALLBACK-GREY"
+- [x] `DEF-COLOUR-35-TXT-SHEET` **The txt sheet grew and was clipped instead of shrinking** - MEDIUM; background-size 85% sets the width and leaves the height auto, so the sheet rendered 16.58 x 20.94 in a 19.5 box, 7 percent larger than before and cut off top and bottom, where the maintainer had asked for 15 percent smaller
   - evidence: background-size is auto 85%, which renders 13.12 x 16.58 inside the 19.5 box: 85 percent of what HEAD drew with contain, fully visible, and every override row keeps one width and one label indent
   - repro: compare a .txt row with the .pdf and .db rows beside it
   - test-tags: MANUAL
   - root-cause: 2026-10-14T13:28:22Z @kj the sheet is taller than it is wide (viewBox 3800x4800), so the percentage has to go on the height
   - log: 2026-10-14T13:28:22Z @kj added
   - log: 2026-10-14T13:28:22Z @kj closed
-- [x] `DEF-COLOUR-39` **The new contrast measure outlined every gradient glyph** - MAJOR; needsOutline read only fill=hex, so the seven mapped glyphs that colour themselves through gradient stops - python, rust, r, swift, kotlin, vite, rollup - looked colourless and were outlined on both themes; a .py tab is the most common tab in a JupyterLab
+  - log: 2026-10-23T06:32:17Z @kj coded TXT-SHEET
+- [x] `DEF-COLOUR-39-GRADIENT-OUTLINE` **The new contrast measure outlined every gradient glyph** - MAJOR; needsOutline read only fill=hex, so the seven mapped glyphs that colour themselves through gradient stops - python, rust, r, swift, kotlin, vite, rollup - looked colourless and were outlined on both themes; a .py tab is the most common tab in a JupyterLab
   - evidence: the measure is now src/contrast.ts and reads fill and stop-color; contrast.spec.ts states the decision for python, rust and r on both themes (not outlined) beside yaml and markdown (outlined on the theme each one fails), 20 cases
   - repro: open a .py file and look at the tab icon
   - test-tags: UNIT
   - root-cause: 2026-10-14T14:23:12Z @kj the zero-match branch fails closed for an artwork that states no colour, which is right for a class-coloured svg and wrong for a gradient
   - log: 2026-10-14T14:23:12Z @kj added
   - log: 2026-10-14T14:23:32Z @kj closed
-- [x] `DEF-COLOUR-40` **The outline decision was cached per icon key, so a theme switch undid it** - MAJOR; paintTabIcon returned on the matching key before measuring, so a tab painted on the dark theme kept no outline after a switch to light, where the same artwork measures 1.06:1; it also froze the measurement to the background the tab had at first paint
+  - log: 2026-10-23T06:32:17Z @kj coded CONTRAST-MEASURE
+  - log: 2026-10-23T06:32:51Z @kj renamed code "CONTRAST-MEASURE" -> "GRADIENT-OUTLINE"
+- [x] `DEF-COLOUR-40-OUTLINE-CACHE` **The outline decision was cached per icon key, so a theme switch undid it** - MAJOR; paintTabIcon returned on the matching key before measuring, so a tab painted on the dark theme kept no outline after a switch to light, where the same artwork measures 1.06:1; it also froze the measurement to the background the tab had at first paint
   - evidence: the outline is decided on every pass, above the key guard; tab-icons.spec.ts opens a .yml on dark (not outlined), switches to light, fires a pass and asserts it is outlined - putting the decision back behind the key guard fails it
   - repro: open a .yml on the dark theme, switch to light, open another file to fire a pass
   - test-tags: E2E
   - root-cause: 2026-10-14T14:23:12Z @kj the measure sat below the key guard that exists to skip repainting an unchanged background image
   - log: 2026-10-14T14:23:12Z @kj added
   - log: 2026-10-14T14:23:32Z @kj closed
-- [x] `DEF-COLOUR-41` **The outline marked legible glyphs whose lettering states no fill** - MAJOR; SVG paints an element with no fill attribute black, so js-official, dotenv, zip, svg and less looked like a pale tile alone and were outlined although they render 4.3:1 to 21:1 on their own; cython, scala and maven the same on dark
+  - log: 2026-10-23T06:32:17Z @kj coded OUTLINE-DECISION
+  - log: 2026-10-23T06:32:51Z @kj renamed code "OUTLINE-DECISION" -> "OUTLINE-CACHE"
+- [x] `DEF-COLOUR-41-OUTLINE-LEGIBLE` **The outline marked legible glyphs whose lettering states no fill** - MAJOR; SVG paints an element with no fill attribute black, so js-official, dotenv, zip, svg and less looked like a pale tile alone and were outlined although they render 4.3:1 to 21:1 on their own; cython, scala and maven the same on dark
   - evidence: artworkColours adds black when a painting element states no fill; contrast.spec.ts asserts js-official, dotenv, zip and svg are not outlined on a light tab while yaml still is, and that fill=none and a url() reference do not pull black in
   - repro: open a .js, .env or .zip file and look at the tab icon
   - test-tags: UNIT
@@ -668,7 +866,9 @@ Icon colours this project chooses itself, and their contrast against the panel a
   - log: 2026-10-14T14:38:22Z @kj added
   - log: 2026-10-14T14:38:22Z @kj closed
   - log: 2026-10-14T15:41:00Z @kj the comment this closed on named zip and less as the glyphs the default-black clause rescued; measured, both carry plain fills and were rescued by the stop-color clause. The clause changes js-official, dotenv and svg, and the gradient-only set is eight including license
-- [x] `DEF-COLOUR-43` **Painted rows skipped the contrast measure the tabs get** - MAJOR; markRowIcons wrote vendor artwork straight onto the listing with no measure: file-type-gradle renders 1.33:1, file-type-log 2.21:1 and file-type-class 2.93:1 against the light panel, where the glyph JupyterLab drew before this painter existed was 6.19:1
+  - log: 2026-10-23T06:32:17Z @kj coded OUTLINE-MARKED
+  - log: 2026-10-23T06:32:51Z @kj renamed code "OUTLINE-MARKED" -> "OUTLINE-LEGIBLE"
+- [x] `DEF-COLOUR-43-ROW-CONTRAST` **Painted rows skipped the contrast measure the tabs get** - MAJOR; markRowIcons wrote vendor artwork straight onto the listing with no measure: file-type-gradle renders 1.33:1, file-type-log 2.21:1 and file-type-class 2.93:1 against the light panel, where the glyph JupyterLab drew before this painter existed was 6.19:1
   - evidence: markRowIcons runs the same measure against the listing's background and shares the edge rule with the tab host; measured, build.gradle goes 1.33:1 to 19.17:1 and trace.log 2.21:1 to 16.38:1 with no family marked that was already legible, and file-type-class stays unmarked because its stated colour is 3.15:1
   - repro: on the light theme, open a directory holding build.gradle, a .log and a .class
   - test-tags: E2E
@@ -677,33 +877,40 @@ Icon colours this project chooses itself, and their contrast against the panel a
   - log: 2026-10-14T15:48:52Z @kj closed
   - log: 2026-10-14T16:08:40Z @kj edited evidence "markRowIcons now runs the same measure against the listing's own background and marks what cannot clear 3:1, sharing the edge rule with the tab host; row-stability.spec.ts asserts trace.log is marked and lib.jar is not, and measuring against the wrong background fails it" -> "markRowIcons runs the same measure against the listing's background and shares the edge rule with the tab host; measured, build.gradle goes 1.33:1 to 19.17:1 and trace.log 2.21:1 to 16.38:1 with no family marked that was already legible, and file-type-class stays unmarked because its stated colour is 3.15:1"
   - log: 2026-10-14T16:14:03Z @kj figures restated from the shipped measure rather than a render: .yaml 1.23, build.gradle 1.51 and .log 2.54 are marked; file-type-class states #e76f00 at 3.15 and is left alone although a 20px render measures 2.93
-- [x] `DEF-COLOUR-44` **One of the two joblib paths misses the selected-row recolour** - MAJOR; the mark is drawn in two paths of the same ink; only one carried the class the stylesheet recolours, so selecting the row turned one cog white and left the other at 1.01:1 against the brand band, an invisible silhouette
+  - log: 2026-10-23T06:32:17Z @kj coded PAINTED-SKIPPED
+  - log: 2026-10-23T06:32:51Z @kj renamed code "PAINTED-SKIPPED" -> "ROW-CONTRAST"
+- [x] `DEF-COLOUR-44-JOBLIB-PATHS` **One of the two joblib paths misses the selected-row recolour** - MAJOR; the mark is drawn in two paths of the same ink; only one carried the class the stylesheet recolours, so selecting the row turned one cog white and left the other at 1.01:1 against the brand band, an invisible silhouette
   - root-cause: 2026-10-14T16:03:28Z @kj the recolour was fitted to the class one path already had rather than to every path carrying the ink, so artwork and stylesheet agreed on the colour and disagreed on the coverage
   - evidence: icon-contrast.spec.ts 'gives every path of that ink the class the recolour names' asserts every fill=#e15617 path in joblibSvg carries the class; removing the class from either path fails it, measured 1 failed of 119
   - repro: select a .joblib row in the file browser and look at the lower left cog
   - test-tags: UNIT
   - log: 2026-10-14T16:03:17Z @kj added
   - log: 2026-10-14T16:03:24Z @kj closed: fixed: both paths of the joblib ink now carry the joblib-glyph class; reason: the evidence names the invariant rather than the one path, because the previous assertion matched the stylesheet text and passed while the artwork was wrong
-- [-] `DEF-COLOUR-46` **An inactive tab's background read as opaque black would strip the outline** - MAJOR; parseColour discards alpha, so a transparent background would measure as black and the glyph outline would be removed from every tab that is not current
+  - log: 2026-10-23T06:32:17Z @kj coded JOBLIB-PATHS
+- [-] `DEF-COLOUR-46-INACTIVE-BLACK` **An inactive tab's background read as opaque black would strip the outline** - MAJOR; parseColour discards alpha, so a transparent background would measure as black and the glyph outline would be removed from every tab that is not current
   - repro: open two files on the light theme and read the non-current tab's computed backgroundColor and its data-vscode-tab-outline attribute
   - test-tags: E2E
   - log: 2026-10-14T16:08:21Z @kj added
   - log: 2026-10-14T16:08:27Z @kj rejected: refuted by measurement: an inactive tab is not transparent in this lab; reason: probed live on the light theme: the non-current tab computes rgb(238, 238, 238), the colour the comment already names, and carries the outline; the current tab computes white. The alpha branch is real but cannot fire, and needsOutlineOn returns false when it cannot measure
-- [x] `DEF-COLOUR-48` **A theme switch leaves the outline markers the previous theme decided** - MINOR; the painters are driven by listing and tab mutations, and a theme change produces none: measured, .jp-DirListing-content emitted no mutation records in the 20 seconds after a theme switch, so build.gradle and trace.log keep the previous theme's marker until the listing next changes
+  - log: 2026-10-23T06:32:17Z @kj coded INACTIVE-BACKGROUND
+  - log: 2026-10-23T06:32:54Z @kj renamed code "INACTIVE-BACKGROUND" -> "INACTIVE-BLACK"
+- [x] `DEF-COLOUR-48-THEME-SWITCH` **A theme switch leaves the outline markers the previous theme decided** - MINOR; the painters are driven by listing and tab mutations, and a theme change produces none: measured, .jp-DirListing-content emitted no mutation records in the 20 seconds after a theme switch, so build.gradle and trace.log keep the previous theme's marker until the listing next changes
   - evidence: theme-switch-rows.spec.ts 'a row outline marker follows a theme switch' reads build.gradle's marker on each theme with nothing else touched: true on light, false on dark. Disarming the observe call fails it, measured 1 failed
   - repro: open a directory holding build.gradle on dark, switch to the light theme and look at the row without touching the listing
   - test-tags: MANUAL
   - root-cause: 2026-10-14T16:08:40Z @kj no theme signal is subscribed; the fix is an optional IThemeManager dependency connected to both painters, which also closes the same gap on tabs
   - log: 2026-10-14T16:08:40Z @kj added
   - log: 2026-10-14T16:36:40Z @kj closed: fixed: a MutationObserver on the body's theme attributes re-runs both painters; reason: the subject has to be an artwork whose correct marker differs between the two themes, or the assertion would pass on a stale marker
-- [x] `DEF-COLOUR-56` **Selected MCP glyph fails contrast** - MAJOR; selected .mcp.json has about 1.68:1 contrast on the light theme, below the required 3:1
+  - log: 2026-10-23T06:32:17Z @kj coded THEME-SWITCH
+- [x] `DEF-COLOUR-56-SELECTED-MCP` **Selected MCP glyph fails contrast** - MAJOR; selected .mcp.json has about 1.68:1 contrast on the light theme, below the required 3:1
   - evidence: mcp-contrast.spec.ts and icon-contrast.spec.ts pass: the selected dot row keeps the full selection band and the glyph paints white; Galata 59 green
   - repro: select .mcp.json on the light theme and measure rendered glyph against its selection fill after row opacity
   - test-tags: E2E
   - root-cause: 2026-10-15T12:39:54Z @kj dotfile row opacity composites both the selected background and the dark MCP ink; no selected MCP state overrides them
   - log: 2026-10-15T12:39:54Z @kj added
   - log: 2026-10-15T17:20:28Z @kj closed
-- [x] `DEF-COLOUR-77` **log icon unreadable on a selected row** - MEDIUM; the green log-file icon is hard to read on the blue selection band; the row painter sets the artwork as an inline background-image, which no fill rule reaches; `src/index.ts`
+  - log: 2026-10-23T06:32:17Z @kj coded SELECTED-MCP
+- [x] `DEF-COLOUR-77-LOG-SELECTED` **log icon unreadable on a selected row** - MEDIUM; the green log-file icon is hard to read on the blue selection band; the row painter sets the artwork as an inline background-image, which no fill rule reaches; `src/index.ts`
   - evidence: Galata 'a selected log row paints the white glyph' passes (1 test, 4.3s); with the selector disabled the same test fails on the selected-background assertion; jest 143 green, lint exit 0
   - test-tags: E2E
   - root-cause: 2026-10-18T14:24:19Z @kj .log has no fileTypeConfigs entry, so markRowIcons paints it as an inline background-image data URI; the listing MutationObserver watches childList, subtree and characterData but not attributes, so selecting a row never repaints it; a background-image cannot inherit a CSS fill rule
@@ -714,47 +921,57 @@ Icon colours this project chooses itself, and their contrast against the panel a
   - log: 2026-10-18T14:24:19Z @kj edited text "the green log-file icon is hard to read on the blue selection band; cause under investigation; file browser icon painter" -> "the green log-file icon is hard to read on the blue selection band; the row painter sets the artwork as an inline background-image, which no fill rule reaches; `src/index.ts`"; test-tags added "E2E"
   - log: 2026-10-18T14:24:19Z @kj attempted: default Galata port 8888 - did NOT run, port in use; reran on JUPYTER_TEST_PORT=8901
   - log: 2026-10-18T14:28:52Z @kj closed: fixed: selected-row white variant; Galata regression test passes and fails when the rule is disabled; jest 143 green
+  - log: 2026-10-23T06:32:17Z @kj coded LOG-UNREADABLE
+  - log: 2026-10-23T06:32:53Z @kj renamed code "LOG-UNREADABLE" -> "LOG-SELECTED"
 
 ## Symbolic link badges `LINK`
 
 Browser overlays identifying symbolic links
 
-- [x] `DEF-LINK-51` **Filename spaces confuse link metadata** - MAJOR; trimming browser labels gives ordinary files a symlink badge and hides badges on links whose names have surrounding spaces
+- [x] `DEF-LINK-51-FILENAME-SPACES` **Filename spaces confuse link metadata** - MAJOR; trimming browser labels gives ordinary files a symlink badge and hides badges on links whose names have surrounding spaces
   - evidence: eight real browser metadata/link tests pass, including refresh, delayed responses, surrounding spaces and a trailing-space tab; all three pinned reviewers confirmed the closure
   - repro: create link linked.js and ordinary file linked.js with a trailing space; open the directory and compare badges
   - test-tags: E2E
   - root-cause: 2026-10-15T12:39:53Z @kj metadata identity lookups trim the exact filenames returned by the server
   - log: 2026-10-15T12:39:53Z @kj added
   - log: 2026-10-15T12:53:38Z @kj closed: fixed and confirmed by architect, bug-hunter and ux-designer
-- [x] `DEF-LINK-59` **Link badge clipped and too strong** - MEDIUM; the disc spans 7.5 to 16.5 in a 16 viewBox so its right and bottom edge is cut, and a solid #263447 disc under a white ring reads heavier than the artwork it annotates
+  - log: 2026-10-23T06:32:17Z @kj coded FILENAME-SPACES
+- [x] `DEF-LINK-59-BADGE-CLIPPED` **Link badge clipped and too strong** - MEDIUM; the disc spans 7.5 to 16.5 in a 16 viewBox so its right and bottom edge is cut, and a solid #263447 disc under a white ring reads heavier than the artwork it annotates
   - evidence: the badge is a square drawn at 8.4..15.4 inside its 16-unit canvas at 0.72 fill alpha; symlink-badges.spec.ts passes 5 tests; Galata 59 green
   - repro: open a directory holding a symbolic link and look at the badge at the lower right of the icon, light and dark theme
   - test-tags: E2E
   - root-cause: 2026-10-15T16:28:05Z @kj the disc is drawn at the viewBox corner with its stroke outside the canvas, and the artwork carries no alpha
   - log: 2026-10-15T16:28:05Z @kj added
   - log: 2026-10-15T17:20:28Z @kj closed
-- [x] `DEF-LINK-60` **Link badge flickers on refresh** - MINOR; the badge disappears and comes back while the file browser updates
+  - log: 2026-10-23T06:32:17Z @kj coded LINK-BADGE
+  - log: 2026-10-23T06:32:52Z @kj renamed code "LINK-BADGE" -> "BADGE-CLIPPED"
+- [x] `DEF-LINK-60-BADGE-FLICKER` **Link badge flickers on refresh** - MINOR; the badge disappears and comes back while the file browser updates
   - evidence: no clear-then-repaint remains: the link flag rides the listing the browser already fetches, so a row is badged from its own model; symlink-badges.spec.ts refresh test passes
   - repro: watch a directory holding a symbolic link across a refresh or a file operation
   - test-tags: E2E
   - root-cause: 2026-10-15T16:28:06Z @kj refreshSymlinks cleared the painted listing and repainted it before the server answered
   - log: 2026-10-15T16:28:06Z @kj added
   - log: 2026-10-15T17:20:28Z @kj closed
-- [x] `DEF-LINK-61` **One symlink request per listing mutation** - MAJOR; the browser asks for the link names of a directory on every DOM mutation of the listing, which grows with the number of repaints rather than with the directory
+  - log: 2026-10-23T06:32:17Z @kj coded LINK-BADGE
+  - log: 2026-10-23T06:32:54Z @kj renamed code "LINK-BADGE" -> "BADGE-FLICKER"
+- [x] `DEF-LINK-61-SYMLINK-REQUEST` **One symlink request per listing mutation** - MAJOR; the browser asks for the link names of a directory on every DOM mutation of the listing, which grows with the number of repaints rather than with the directory
   - evidence: the endpoint, its handler and the client fetch are deleted and no reference to vscode-icons/symlinks remains in src/ or ui-tests/; the listing observer calls local passes only; Galata 59 green
   - repro: open a large directory and watch the network panel for repeated calls to vscode-icons/symlinks
   - test-tags: E2E
   - root-cause: 2026-10-15T16:28:06Z @kj the listing MutationObserver callback called refreshSymlinks, which fetches, and the row painters mutate the listing they observe
   - log: 2026-10-15T16:28:06Z @kj added
   - log: 2026-10-15T17:20:28Z @kj closed
-- [x] `DEF-LINK-76` **Hidden link row not dimmed** - MEDIUM; a dot-named symbolic link row, such as .cache, shows at full opacity while every other dotfile row is dimmed to 0.55, so it does not read as hidden
+  - log: 2026-10-23T06:32:17Z @kj coded SYMLINK-REQUEST
+- [x] `DEF-LINK-76-HIDDEN-LINK` **Hidden link row not dimmed** - MEDIUM; a dot-named symbolic link row, such as .cache, shows at full opacity while every other dotfile row is dimmed to 0.55, so it does not read as hidden
   - evidence: style/base.css full-opacity rule removed; symlink-badges.spec.ts fails on the old rule (got 1, expected 0.55); Galata 64/64 on 2026-10-17
-  - overrides: ACC-LINK-50
+  - overrides: ACC-LINK-50-DIMMED-BADGE
   - repro: show hidden files, open a folder holding a dot-named symbolic link, compare its row with a plain dotfile row
   - test-tags: E2E
-  - root-cause: 2026-10-17T09:52:09Z @kj style/base.css raises opacity to 1 on a dotfile row that carries .vscode-symlink-badge, added for ACC-LINK-50 to keep the badge above 3:1
+  - root-cause: 2026-10-23T06:33:30Z @kj style/base.css raises opacity to 1 on a dotfile row that carries .vscode-symlink-badge, added for ACC-LINK-50-DIMMED-BADGE to keep the badge above 3:1
   - log: 2026-10-17T09:52:09Z @kj added
   - log: 2026-10-17T09:52:12Z @kj reported: .cache, hidden folder and symbolic link, shows full colour while it should read as a hidden folder; screenshot /tmp/jupyterlab-paste-clippings/paste-20261017-115019.png
   - log: 2026-10-17T09:57:06Z @kj fixed in working tree: full-opacity rule removed from style/base.css; symlink-badges.spec.ts 'a dot-named link is dimmed like any dotfile' covers a file and a folder link, fails on the old rule (got 1, expected 0.55); Galata 64/64
   - log: 2026-10-17T15:38:28Z @kj closed
+  - log: 2026-10-23T06:32:17Z @kj coded HIDDEN-LINK
+  - log: 2026-10-23T06:33:30Z @kj root-cause updated "2026-10-17T09:52:09Z @kj style/base.css raises opacity to 1 on a dotfile row that carries .vscode-symlink-badge, added for ACC-LINK-50 to keep the badge above 3:1" -> "style/base.css raises opacity to 1 on a dotfile row that carries .vscode-symlink-badge, added for ACC-LINK-50-DIMMED-BADGE to keep the badge above 3:1"
 

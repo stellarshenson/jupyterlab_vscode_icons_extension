@@ -95,6 +95,21 @@ test.describe('file browser icons', () => {
     expect(icons['sample.ts']).toBe(
       'vscode-icons:file-type-typescript-official'
     );
+    // The registry draws these rows itself, so the painter leaves them.
+    const painted = await page.evaluate(() =>
+      [...document.querySelectorAll('.jp-DirListing-item')]
+        .filter(row =>
+          /^sample\.(js|ts)$/.test(
+            row.querySelector('.jp-DirListing-itemText')?.textContent || ''
+          )
+        )
+        .map(row =>
+          row
+            .querySelector('.jp-DirListing-itemIcon')
+            ?.getAttribute('data-vscode-row-icon')
+        )
+    );
+    expect(painted).toEqual([null, null]);
   });
 
   // The extension replaces only JupyterLab's generic glyphs. Python is one of
@@ -395,20 +410,26 @@ test.describe('icon ownership', () => {
     });
   });
 
-  // ACC-TABS-31 / ACC-CLASH-9: an icon another extension registered is
-  // specific and outranks this extension's. The assertion names the icon, not
-  // just the absence of a repaint: `painted === null` alone is true for this
-  // extension's own registrations too, so it could not fail for the rule.
-  test('another extension icon is never replaced', async ({
+  // ACC-CLASH-70: this extension's icon wins over one another extension
+  // registered, so the same file never shows two icons depending on which
+  // extensions are installed. The row's file type stays the other extension's,
+  // so that extension still opens the file. jupyterlab_zip_extension is a test
+  // requirement: it claims .zip with its own icon, and CI installs it.
+  test("this extension's icon wins over another extension's", async ({
     page,
     tmpPath
   }) => {
-    // .zip is claimed by jupyterlab_zip_extension and by nothing in this
-    // project, so the row carries that extension's own icon and this one has
-    // no competing claim of its own to confuse the result. The subject used to
-    // be .bpmn, which no longer tests the rule: the maintainer's instruction,
-    // verbatim "we use ours", makes .bpmn a deliberate exception, proven by
-    // `the bpmn row takes this extension's mark` below.
+    expect(
+      await page.evaluate(() =>
+        (window as any).jupyterapp.hasPlugin('jupyterlab_zip_extension:plugin')
+      ),
+      'the test environment must have jupyterlab_zip_extension installed'
+    ).toBe(true);
+    // The zip extension registers its file type when its lazily loaded chunk
+    // runs; a listing taken before that gives the row a generic type.
+    await page.waitForFunction(
+      () => !!(window as any).jupyterapp.docRegistry.getFileType('zip')
+    );
     await page.contents.uploadContent('x', 'text', `${tmpPath}/flow.zip`);
     await page.filebrowser.openDirectory(tmpPath);
     // Wait for this listing, not any listing: the previous directory's rows
@@ -430,26 +451,27 @@ test.describe('icon ownership', () => {
         ...document.querySelectorAll('.jp-DirListing-itemText')
       ].find(n => n.textContent!.trim() === 'flow.zip');
       const item = label ? label.closest('.jp-DirListing-item') : null;
-      const host = item ? item.querySelector('.jp-DirListing-itemIcon') : null;
+      const host = item
+        ? (item.querySelector('.jp-DirListing-itemIcon') as HTMLElement | null)
+        : null;
       const svg = host ? host.querySelector('svg') : null;
       return {
         found: !!item,
         fileType: item ? item.getAttribute('data-file-type') : 'no-item',
         icon: svg ? svg.getAttribute('data-icon') : 'no-svg',
-        painted: host ? host.getAttribute('data-vscode-row-icon') : 'no-host'
+        svgVisibility: svg ? getComputedStyle(svg).visibility : 'no-svg',
+        painted: host ? host.getAttribute('data-vscode-row-icon') : 'no-host',
+        background: host ? host.style.backgroundImage : 'no-host'
       };
     });
-    expect(row.fileType).not.toBe('directory');
     expect(row.found).toBe(true);
-    // Only this workstation has jupyterlab_zip_extension installed. CI installs
-    // jupyterlab plus this project's wheel, where nothing claims .zip and there
-    // is no competing claim to respect, so the case has nothing to prove there.
-    test.skip(
-      row.fileType !== 'zip',
-      'no third-party zip provider installed in this environment'
-    );
+    expect(row.fileType).toBe('zip');
+    // The zip extension's svg is still the row's own, hidden under this
+    // extension's glyph.
     expect(row.icon).toBe('jupyterlab_zip_extension:zip');
-    expect(row.painted).toBeNull();
+    expect(row.svgVisibility).toBe('hidden');
+    expect(row.painted, JSON.stringify(row)).toMatch(/file-type-zip$/);
+    expect(row.background).toContain('data:image/svg+xml');
   });
 
   // DEF-TABS-23-3: the generic text sheet used to be stamped on every name
@@ -536,11 +558,11 @@ test.describe('icon ownership', () => {
     expect(tab).toBe('registry:vscode-file-type-python');
   });
 
-  // The documented exception to the rule above. jupyterlab_camunda_modeller_
-  // extension registers .bpmn with a rounded-square icon and wins the registry,
-  // so the camunda svg is what the row renders - the mark is painted over it
-  // through the ::before the data-vscode-bpmn attribute drives. The maintainer's
-  // instruction, verbatim: "we use ours".
+  // The rule above with hand-drawn artwork. jupyterlab_camunda_modeller_
+  // extension, a test requirement, registers .bpmn with a rounded-square icon
+  // and wins the registry, so the camunda svg is what the row renders - the
+  // mark is painted over it through the ::before the data-vscode-bpmn
+  // attribute drives. The maintainer's instruction, verbatim: "we use ours".
   test("the bpmn row takes this extension's mark", async ({
     page,
     tmpPath
@@ -578,12 +600,8 @@ test.describe('icon ownership', () => {
     // A background-image, not `none`: the ::before is carrying the mark.
     expect(row.before.startsWith('url('), JSON.stringify(row)).toBe(true);
     expect(row.svgHidden, JSON.stringify(row)).toBe('none');
-    // On this workstation camunda owns the registry entry, and its icon is the
-    // one being overridden. Where it is absent this extension's own
-    // vscode-bpmn type supplies the same mark and there is nothing to hide, so
-    // only the override above is asserted unconditionally.
-    if (row.fileType === 'bpmn') {
-      expect(row.registryIcon).toBe('bpmn:icon');
-    }
+    // Camunda owns the registry entry, and its icon is the one overridden.
+    expect(row.fileType, JSON.stringify(row)).toBe('bpmn');
+    expect(row.registryIcon).toBe('bpmn:icon');
   });
 });

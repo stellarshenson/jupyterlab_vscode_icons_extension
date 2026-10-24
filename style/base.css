@@ -77,3 +77,42 @@ body[data-jp-theme-light='true'] .mcp-glyph {
 .jp-DirListing-item[data-is-dot].jp-mod-selected .mcp-glyph {
   fill: #fff;
 }
+
+/* JupyterLab reserves a 16px icon box plus a 4px margin on every tab, so a
+   tab without an icon (a jupyter-server-proxy page, for example) shows its
+   label indented. An icon-less slot is empty and carries only Lumino's class
+   and the jp-Icon class the shell adds to every main-area title; a slot with a
+   CSS-class icon carries more classes, and the painted slot is excluded
+   because its artwork is a background. The collapseEmptyTabIcons setting
+   turned off puts the attribute on the body. The rule reaches main-area tab
+   bars only, the ones the setting describes. */
+body:not([data-vscode-keep-empty-tab-icon])
+  .lm-DockPanel-tabBar
+  .lm-TabBar-tab
+  .lm-TabBar-tabIcon:is(
+    [class='lm-TabBar-tabIcon'],
+    [class='lm-TabBar-tabIcon jp-Icon']
+  ):empty:not([data-vscode-tab-icon]) {
+  display: none;
+}
+
+/* Tab tooltip after a longer hover (ACC-TABS-63 to 67): label, location and
+   last activity. It ignores the pointer so it never holds the hover itself. */
+.vscode-tab-tooltip {
+  position: fixed;
+  z-index: 10001;
+  max-width: 480px;
+  padding: 4px 8px;
+  background: var(--jp-layout-color0);
+  color: var(--jp-ui-font-color1);
+  border: var(--jp-border-width) solid var(--jp-border-color1);
+  box-shadow: var(--jp-elevation-z4);
+  font-size: var(--jp-ui-font-size1);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
+.vscode-tab-tooltip-line + .vscode-tab-tooltip-line {
+  color: var(--jp-ui-font-color2);
+}

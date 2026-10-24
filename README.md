@@ -29,8 +29,12 @@ This extension brings 1414 beautiful file type icons from the vscode-icons proje
 - Fast in large folders - rows are painted once per screen frame, so a 5,000-file folder opens about as fast as it does without the extension
 - Symbolic link badges - a link to a file or folder carries a small square arrow badge on its row icon
 - Executable file badges - an optional group, off by default, that marks files with the execute bit
-- Document tab icons matching the file browser - an open file carries the same glyph on its tab as on its row, including the files JupyterLab claims (.md, .py, .json, .yaml, .csv, images), and an icon another extension registered is kept rather than replaced
+- Document tab icons matching the file browser - an open file carries the same glyph on its tab as on its row, including the files JupyterLab claims (.md, .py, .json, .yaml, .csv, images)
+- One icon per file whichever extensions are installed - where this extension has an icon for a file, it shows on the row and the tab even when another extension registered that file type with its own icon; the file type is left alone, so the other extension still opens the file
 - Readable on both themes - a tab glyph that cannot be seen against its tab is recoloured to clear 3:1 while keeping its internal colours distinct, and a file-browser glyph gets a thin outline; both are re-decided when the background changes
+- Web page tabs - a tab showing a web page in a frame (a jupyter-server-proxy service, for example) carries a globe: the brand colour for a page the lab or localhost serves, the accent colour for any other site
+- No empty icon space on tabs - a tab without an icon shows its label at the left edge instead of after an empty icon box; a setting turns this off
+- Tab tooltip - keeping the pointer on a tab for 0.8 seconds shows its full name, the file path, page address or terminal working directory, the time of its last activity, and JupyterLab's own details such as Last Saved or Kernel; a right-click, a key press or leaving the tab hides it
 
 ## Requirements
 
@@ -73,6 +77,7 @@ Customize which icon groups to display via JupyterLab Settings:
    - Documentation Icons (Markdown, RST, PDF)
    - Image File Icons (PNG, JPG, SVG)
    - Executable File Icons (play badge on files with the execute bit; off by default)
+4. Collapse Empty Tab Icon Space - remove the empty icon box JupyterLab keeps on a tab without an icon (on by default)
 
 Changes require a page refresh to take effect.
 

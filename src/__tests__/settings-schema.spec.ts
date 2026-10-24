@@ -31,9 +31,14 @@ describe('settings schema', () => {
     expect(properties.enableExecutableIcons.default).toBe(false);
   });
 
-  it('declares exactly the seven documented toggles', () => {
+  it('defaults collapseEmptyTabIcons to true', () => {
+    expect(properties.collapseEmptyTabIcons).toBeDefined();
+    expect(properties.collapseEmptyTabIcons.default).toBe(true);
+  });
+
+  it('declares exactly the seven documented toggles and the tab option', () => {
     expect(Object.keys(properties).sort()).toEqual(
-      [...onByDefault, 'enableExecutableIcons'].sort()
+      [...onByDefault, 'enableExecutableIcons', 'collapseEmptyTabIcons'].sort()
     );
   });
 });

@@ -1,5 +1,5 @@
 {
-  "jupyter.lab.setting-icon": "ui-components:settings",
+  "jupyter.lab.setting-icon": "jupyterlab_vscode_icons_extension:settings",
   "jupyter.lab.setting-icon-label": "VSCode Icons",
   "title": "VSCode Icons Extension",
   "description": "Configure which icon groups to display in the file browser",
@@ -46,6 +46,12 @@
       "title": "Executable File Icons",
       "description": "Show distinctive icon for files with Unix executable permission (+x). Requires server extension.",
       "default": false
+    },
+    "collapseEmptyTabIcons": {
+      "type": "boolean",
+      "title": "Collapse Empty Tab Icon Space",
+      "description": "Remove the empty icon space JupyterLab keeps on a tab that has no icon, so the tab label starts at the left edge. Requires a page refresh.",
+      "default": true
     }
   },
   "additionalProperties": false

@@ -1,8 +1,11 @@
 """Exercise metadata routes against real file contents managers and HTTP auth."""
 import json
 import logging
+import os
+import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 from urllib.parse import urlencode
 
 from jupyter_server.auth.authorizer import Authorizer
@@ -12,6 +15,7 @@ from jupyter_server.services.contents.filemanager import (
     FileContentsManager,
 )
 from jupyter_server.services.contents.manager import ContentsManager
+from ptyprocess import PtyProcess
 from tornado.testing import AsyncHTTPTestCase, gen_test
 from tornado.web import Application, HTTPError
 
@@ -46,9 +50,12 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
         self.root.mkdir()
         self.manager = FileContentsManager(root_dir=str(self.root))
         self.authorizer = RecordingAuthorizer()
+        self.started = []
+        self.terminal_manager = SimpleNamespace(terminals={}, get_terminal=self.started.append)
         app = Application(
             base_url='/test/',
             contents_manager=self.manager,
+            terminal_manager=self.terminal_manager,
             identity_provider=HeaderIdentity(),
             authorizer=self.authorizer,
             allow_unauthenticated_access=True,
@@ -93,6 +100,42 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
             headers=headers,
             follow_redirects=False,
         )
+
+    def terminal_cwd(self, name, authenticate=True):
+        headers = {'Authorization': 'Bearer test'} if authenticate else {}
+        return self.fetch('/test/vscode-icons/terminal-cwd/' + name, headers=headers, follow_redirects=False)
+
+    def add_terminal(self, name, argv):
+        """Start argv on a real pty in the root, as terminado does."""
+        process = PtyProcess.spawn(argv, cwd=str(self.root))
+        self.addCleanup(process.terminate, force=True)
+        self.terminal_manager.terminals[name] = SimpleNamespace(ptyproc=process)
+        return process
+
+    def test_terminal_cwd_reports_the_foreground_process_directory(self):
+        (self.root / 'sub').mkdir()
+        shell = self.add_terminal('1', ['bash', '--norc', '--noprofile', '-i'])
+        # The subshell is the foreground job in sub; the starting shell stays in the root.
+        shell.write(b'(cd sub && exec sleep 30)\n')
+        expected = {'cwd': os.path.realpath(self.root / 'sub')}
+        deadline = time.monotonic() + 10
+        answer = None
+        while answer != expected and time.monotonic() < deadline:
+            response = self.terminal_cwd('1')
+            answer = json.loads(response.body) if response.code == 200 else None
+            time.sleep(0.1)
+        self.assertEqual(answer, expected)
+
+    def test_terminal_cwd_is_404_for_an_unknown_terminal_and_starts_none(self):
+        self.assertEqual(self.terminal_cwd('9').code, 404)
+        self.assertEqual(self.started, [])
+
+    def test_terminal_cwd_requires_authentication_and_terminals_read(self):
+        self.add_terminal('1', ['sleep', '30'])
+        self.assertIn(self.terminal_cwd('1', authenticate=False).code, (302, 403))
+        self.authorizer.allowed = False
+        self.assertEqual(self.terminal_cwd('1').code, 403)
+        self.assertEqual(self.authorizer.calls, [('read', 'terminals')])
 
     def test_manifest_validation_requires_authentication_and_contents_read(self):
         payload = {'kind': 'toml', 'source': '[project]\nname = "sample"\n'}

@@ -11,6 +11,7 @@ import {
   getIconSVG,
   getIconViewBox
 } from '../icons';
+import { customIcons } from '../custom-icons';
 
 describe('getIconForFile', () => {
   it.each([
@@ -67,6 +68,22 @@ describe('generateIconSVG', () => {
     expect(generateIconSVG('file-type-python', 'jp-icon')).toContain(
       'class="jp-icon"'
     );
+  });
+
+  it('returns the same svg string for the same key', () => {
+    expect(generateIconSVG('file-type-python')).toBe(
+      generateIconSVG('file-type-python')
+    );
+    expect(generateIconSVG('file-type-python', 'x')).not.toBe(
+      generateIconSVG('file-type-python')
+    );
+    // Strings compare by value, so a rebuilt string passes toBe; a changed
+    // body shows whether the second call reused the first result.
+    customIcons['cache-probe'] = '<g id="a"/>';
+    const first = generateIconSVG('cache-probe');
+    customIcons['cache-probe'] = '<g id="b"/>';
+    expect(generateIconSVG('cache-probe')).toBe(first);
+    delete customIcons['cache-probe'];
   });
 
   it('uses the local artwork for the derived C and Rust icons', () => {

@@ -49,6 +49,7 @@ type FakeRegistry = {
   getFileType: () => undefined;
   getFileTypeForModel: () => { name: string };
   fileTypes: () => Iterable<{ name: string }>;
+  changed: { connect: () => void };
 };
 
 const fakeApp = (): { app: any; registry: FakeRegistry } => {
@@ -62,12 +63,13 @@ const fakeApp = (): { app: any; registry: FakeRegistry } => {
     getFileTypesForPath: () => [],
     getFileType: () => undefined,
     getFileTypeForModel: () => ({ name: 'text' }),
-    fileTypes: () => []
+    fileTypes: () => [],
+    changed: { connect: () => undefined }
   };
   return {
     app: {
       docRegistry: registry,
-      shell: { add: () => undefined, currentWidget: null },
+      shell: { add: () => undefined, currentWidget: null, widgets: () => [] },
       commands: { addCommand: () => undefined },
       started: Promise.resolve(),
       restored: Promise.resolve()
