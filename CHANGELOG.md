@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.22] - 2026-10-25
+
+### Changed
+
+- No user-facing change: this release rebuilds the 1.2.21 tree so the published packages match the repository at 9fdc58e
+
 ## [1.2.21] - 2026-10-24
 
 ### Added

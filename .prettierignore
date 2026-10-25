@@ -9,4 +9,5 @@ eslint.config.mjs
 docs/acc-crit*.md
 docs/defects*.md
 .claude
+.agents
 tmp
