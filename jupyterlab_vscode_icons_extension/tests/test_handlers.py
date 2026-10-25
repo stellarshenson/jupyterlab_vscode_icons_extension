@@ -55,6 +55,7 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
         app = Application(
             base_url='/test/',
             contents_manager=self.manager,
+            server_root_dir=str(self.root),
             terminal_manager=self.terminal_manager,
             identity_provider=HeaderIdentity(),
             authorizer=self.authorizer,
@@ -105,9 +106,9 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
         headers = {'Authorization': 'Bearer test'} if authenticate else {}
         return self.fetch('/test/vscode-icons/terminal-cwd/' + name, headers=headers, follow_redirects=False)
 
-    def add_terminal(self, name, argv):
-        """Start argv on a real pty in the root, as terminado does."""
-        process = PtyProcess.spawn(argv, cwd=str(self.root))
+    def add_terminal(self, name, argv, cwd=None):
+        """Start argv on a real pty in the root, or in the given directory."""
+        process = PtyProcess.spawn(argv, cwd=str(cwd or self.root))
         self.addCleanup(process.terminate, force=True)
         self.terminal_manager.terminals[name] = SimpleNamespace(ptyproc=process)
         return process
@@ -117,7 +118,7 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
         shell = self.add_terminal('1', ['bash', '--norc', '--noprofile', '-i'])
         # The subshell is the foreground job in sub; the starting shell stays in the root.
         shell.write(b'(cd sub && exec sleep 30)\n')
-        expected = {'cwd': os.path.realpath(self.root / 'sub')}
+        expected = {'cwd': 'sub'}
         deadline = time.monotonic() + 10
         answer = None
         while answer != expected and time.monotonic() < deadline:
@@ -125,6 +126,14 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
             answer = json.loads(response.body) if response.code == 200 else None
             time.sleep(0.1)
         self.assertEqual(answer, expected)
+
+    def test_terminal_cwd_is_empty_for_a_foreground_process_outside_the_root(self):
+        outside = TemporaryDirectory()
+        self.addCleanup(outside.cleanup)
+        self.add_terminal('1', ['sleep', '30'], cwd=outside.name)
+        response = self.terminal_cwd('1')
+        self.assertEqual(response.code, 200)
+        self.assertEqual(json.loads(response.body), {'cwd': ''})
 
     def test_terminal_cwd_is_404_for_an_unknown_terminal_and_starts_none(self):
         self.assertEqual(self.terminal_cwd('9').code, 404)

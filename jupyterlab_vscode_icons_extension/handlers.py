@@ -172,6 +172,14 @@ class TerminalCwdHandler(APIHandler):
             cwd = os.readlink(f'/proc/{foreground}/cwd')
         except (AttributeError, OSError):
             raise tornado.web.HTTPError(404, 'No working directory for this terminal')
+        # The browser never learns the server root, so the path is relativised
+        # here; outside the root it is dropped rather than sent absolute.
+        root = self.settings.get('server_root_dir')
+        root = os.path.realpath(root) if root else ''
+        if not root or cwd == root or not _within_root(cwd, root):
+            cwd = ''
+        else:
+            cwd = os.path.relpath(cwd, root)
         self.set_header('Content-Type', 'application/json')
         self.finish(json.dumps({'cwd': cwd}))
 

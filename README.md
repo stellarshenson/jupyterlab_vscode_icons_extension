@@ -34,7 +34,7 @@ This extension brings 1414 beautiful file type icons from the vscode-icons proje
 - Readable on both themes - a tab glyph that cannot be seen against its tab is recoloured to clear 3:1 while keeping its internal colours distinct, and a file-browser glyph gets a thin outline; both are re-decided when the background changes
 - Web page tabs - a tab showing a web page in a frame (a jupyter-server-proxy service, for example) carries a globe: the brand colour for a page the lab or localhost serves, the accent colour for any other site
 - No empty icon space on tabs - a tab without an icon shows its label at the left edge instead of after an empty icon box; a setting turns this off
-- Tab tooltip - keeping the pointer on a tab for 0.8 seconds shows its full name, the file path, page address or terminal working directory, the time of its last activity, and JupyterLab's own details such as Last Saved or Kernel; a right-click, a key press or leaving the tab hides it
+- Tab tooltip - keeping the pointer on a tab for 0.8 seconds shows its full name, the file path, page address or terminal working directory, shown relative to the workspace root and left out when the terminal sits outside it, the time of its last activity, and JupyterLab's own details such as Last Saved or Kernel; a right-click, a key press or leaving the tab hides it
 
 ## Requirements
 

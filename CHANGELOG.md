@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.23] - 2026-10-25
+
+### Changed
+
+- The tab tooltip shows a terminal's working directory relative to the workspace root, and leaves the line out when that directory is outside the root, so no absolute filesystem path appears in a tooltip
+
 ## [1.2.22] - 2026-10-25
 
 ### Changed

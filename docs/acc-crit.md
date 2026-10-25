@@ -678,6 +678,13 @@ Icons on the dock panel tabs of open documents, matching the file browser
   - mechanism: 2026-10-23T23:33:12Z @kj resolveIcon memoizes by name in resolvedByName, cleared on docRegistry.changed and in the settings changed handler; ownIconNames is one cached set; bundled svg and the outline decision are built once per key
   - log: 2026-10-23T23:33:12Z @kj added
   - log: 2026-10-23T23:34:31Z @kj closed
+- [x] `ACC-TABS-73-TOOLTIP-PATH` **Tooltip paths stay inside the workspace** - MEDIUM; A file path or terminal directory under the workspace root shows relative to that root. A path outside the root drops the path line, so no absolute filesystem path reaches a tooltip. A web page address stays absolute because it is a URL, not a path.
+  - evidence: make test passed: jest 13/13 suites 189/189 tests, pytest 26 passed + 23 subtests including new outside-root empty-cwd case; jlpm run lint:check exit 0 with 2 pre-existing warnings; handler returns root-relative cwd and empty outside or at the root
+  - test: hover a terminal tab whose working directory is outside the workspace root; the path line is absent
+  - test-tags: UNIT, FUNCTIONAL
+  - mechanism: 2026-10-25T07:57:51Z @kj locationOf returns widget.context.path already relative; the terminal cwd from /proc/<pid>/cwd is absolute, so it is made relative to the server root and returns empty when outside, and the tooltip skips an empty location
+  - log: 2026-10-25T07:57:51Z @kj added
+  - log: 2026-10-25T07:59:44Z @kj closed
 
 ## Symbolic link badges `LINK`
 
