@@ -104,7 +104,7 @@ jobs:
     - name: Install the extension
       run: |
         set -eux
-        python -m pip install "jupyterlab>=4.0.0,<5" jupyterlab_vscode_icons_extension*.whl
+        python -m pip install "jupyterlab>=4.0.0,<5" jupyter-server-proxy jupyterlab_vscode_icons_extension*.whl
         # Extensions that claim file types with their own icons; the tests
         # check that this extension's icon wins over theirs.
         python -m pip install jupyterlab_zip_extension jupyterlab_terraform_file_type_extension jupyterlab_camunda_modeller_extension

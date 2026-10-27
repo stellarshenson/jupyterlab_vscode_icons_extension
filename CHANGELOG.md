@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.24] - 2026-10-27
+
+### Added
+
+- A tab showing a web page in a frame shows the favicon the page's server serves; the globe stays when no favicon loads. Another site or a localhost port shows its `/favicon.ico`; a page proxied through jupyter-server-proxy shows the icon it declares, or the `favicon.ico` under its own `/proxy/...` address, and never the lab's Jupyter icon
+- A page that declares its icon as a `data:image` address shows that icon; a fully transparent one, which pages use to say they have no icon, keeps the globe
+
+### Fixed
+
+- The terminal tooltip test asserts the workspace-relative directory that 1.2.23 introduced, so the full browser test suite passes again
+- The CI test jobs install jupyter-server-proxy, which the proxied-page tests need
+
 ## [1.2.23] - 2026-10-25
 
 ### Changed

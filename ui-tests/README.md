@@ -36,10 +36,10 @@ cd ./ui-tests
 jlpm install
 jlpm playwright install
 cd ..
-python -m pip install jupyterlab_zip_extension jupyterlab_terraform_file_type_extension jupyterlab_camunda_modeller_extension
+python -m pip install jupyterlab_zip_extension jupyterlab_terraform_file_type_extension jupyterlab_camunda_modeller_extension jupyter-server-proxy
 ```
 
-> The last line installs the other extensions the icon ownership tests check against.
+> The last line installs the other extensions the icon ownership tests check against, and jupyter-server-proxy, which the favicon tests load pages through.
 
 3. Execute the [Playwright](https://playwright.dev/docs/intro) tests:
 

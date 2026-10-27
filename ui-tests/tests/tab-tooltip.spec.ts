@@ -37,11 +37,14 @@ const readTooltip = async (
 };
 
 // Open a terminal and return its tab label once it is connected; the tab
-// reads '...' until then.
-const openTerminal = async (page: any): Promise<string> => {
-  await page.evaluate(async () => {
-    await (window as any).jupyterapp.commands.execute('terminal:create-new');
-  });
+// reads '...' until then. cwd is relative to the server root, as the launcher
+// passes it; without it the shell starts in the server's own directory.
+const openTerminal = async (page: any, cwd?: string): Promise<string> => {
+  await page.evaluate(async (cwd?: string) => {
+    await (window as any).jupyterapp.commands.execute('terminal:create-new', {
+      cwd
+    });
+  }, cwd);
   return (
     await page.waitForFunction(() => {
       const widget = (window as any).jupyterapp.shell.currentWidget;
@@ -113,32 +116,37 @@ test.describe('tab tooltip', () => {
     expect(lines[1]).toBe(url);
   });
 
+  // ACC-TABS-73: the directory shows relative to the server root, and outside
+  // the root the line is left out.
   test('shows the working directory of a terminal and follows cd, nested shells too', async ({
-    page
+    page,
+    tmpPath
   }) => {
-    const label = await openTerminal(page);
+    await page.contents.createDirectory(`${tmpPath}/outer/inner`);
+    const label = await openTerminal(page, tmpPath);
+    const secondLine = () =>
+      expect.poll(async () => (await readTooltip(page, label)).lines[1], {
+        timeout: 15000
+      });
 
     const before = await readTooltip(page, label);
     expect(before.lines[0]).toBe(label);
-    expect(before.lines[1]).toMatch(/^\//);
+    expect(before.lines[1]).toBe(tmpPath);
 
     await page.locator('.jp-Terminal').click();
-    await page.keyboard.type('cd /tmp\n');
-    await expect
-      .poll(async () => (await readTooltip(page, label)).lines[1], {
-        timeout: 15000
-      })
-      .toBe('/tmp');
+    await page.keyboard.type('cd outer\n');
+    await secondLine().toBe(`${tmpPath}/outer`);
 
     // DEF-TABS-82: a cd in a nested shell is seen, not only the outer one.
     await page.locator('.jp-Terminal').click();
     await page.keyboard.type('bash --norc\n');
+    await page.keyboard.type('cd inner\n');
+    await secondLine().toBe(`${tmpPath}/outer/inner`);
+
+    // Outside the root the directory line goes and the activity line moves up.
+    await page.locator('.jp-Terminal').click();
     await page.keyboard.type('cd /usr\n');
-    await expect
-      .poll(async () => (await readTooltip(page, label)).lines[1], {
-        timeout: 15000
-      })
-      .toBe('/usr');
+    await secondLine().toMatch(/^Last activity: /);
   });
 
   test('a terminal directory that answers after the pointer left shows no tooltip', async ({

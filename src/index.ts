@@ -16,7 +16,7 @@ import { generateIconSVG, getIconForFile, getIconSVG } from './icons';
 import { parsePyprojectToml, parseSetupPy } from './parsers';
 import { applyJupytext1191Hotfix } from './hotfixes';
 import { mirrorIconForTypes } from './tab-mirror';
-import { pageKindForUrl } from './page-kind';
+import { faviconSources, pageKindForUrl } from './page-kind';
 // Loaded eagerly on purpose: activate() starts recording tab activity at
 // once, so a tab opened during start-up has its first activity time.
 // eslint-disable-next-line jupyter/prefer-lazy-imports
@@ -53,6 +53,88 @@ const pageIcons = {
     svgstr: globeSvg('var(--jp-accent-color1, #388e3c)')
   })
 };
+
+// DEF-TABS-90: a declared data: icon whose every pixel is transparent, such as
+// the 1x1 GIF a page declares to say it has no favicon, counts as no icon. A
+// read that fails keeps the icon. The image is read scaled into 32x32, about
+// twice the tab's 13px box: a natural-size read blocks the main thread for
+// seconds on a large icon, and past Chromium's canvas size limit it reads all
+// pixels as transparent without throwing. A detail too small to survive the
+// downscale is invisible in the tab too.
+const blank = (image: HTMLImageElement): boolean => {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 32;
+    const context = canvas.getContext('2d')!;
+    context.drawImage(image, 0, 0, 32, 32);
+    return context
+      .getImageData(0, 0, 32, 32)
+      .data.every((value, i) => i % 4 !== 3 || value === 0);
+  } catch {
+    return false;
+  }
+};
+
+// The icon a web page's server serves replaces the globe once it has loaded.
+// It is drawn by an inline <image>, which the browser fetches; the painter's
+// data-URI background cannot load an external resource. The 14-unit viewBox
+// maps 1:1 onto the 14px mainAreaTab svg, so the image fits the same 13px box
+// as a painted tab icon, by its longest side, and as raster artwork with its
+// own colours it is never recoloured. The address is escaped for XML, because
+// a data: URI keeps raw quotes and angle brackets that would end the href
+// attribute; LabIcon then URI-decodes its svgstr, hence the % escaped after
+// the XML step. Each address is tried once, success or failure, because tabs
+// of the same server, and a reopened tab, reuse the first answer; only an
+// image that decodes counts, so a 404 or an HTML page served for every path
+// keeps the globe.
+const favicons = new Map<string, Promise<LabIcon | null>>();
+const loadFavicon = (href: string): Promise<LabIcon | null> => {
+  let icon = favicons.get(href);
+  if (!icon) {
+    const image = new Image();
+    image.src = href;
+    const escaped = href
+      .replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)
+      .replace(/%/g, '%25');
+    icon = image.decode().then(
+      () =>
+        image.naturalWidth > 0 && !(href.startsWith('data:') && blank(image))
+          ? new LabIcon({
+              name: `jupyterlab_vscode_icons_extension:favicon:${href}`,
+              svgstr: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14"><image x="0.5" y="0.5" width="13" height="13" href="${escaped}"/></svg>`
+            })
+          : null,
+      () => null
+    );
+    favicons.set(href, icon);
+  }
+  return icon;
+};
+
+// The icon a same-origin frame's document declares, read once it has loaded,
+// when its address starts with `scope` or is a data:image URI, which names no
+// server and so cannot be the lab's own icon.
+const declaredIcon = (
+  frame: HTMLIFrameElement,
+  scope: string
+): Promise<string | null> =>
+  new Promise(resolve => {
+    const read = (): string | null => {
+      const href =
+        frame.contentDocument?.querySelector<HTMLLinkElement>(
+          'link[rel~="icon"]'
+        )?.href;
+      return href && (href.startsWith(scope) || /^data:image\//i.test(href))
+        ? href
+        : null;
+    };
+    const doc = frame.contentDocument;
+    if (doc?.readyState === 'complete' && doc.URL !== 'about:blank') {
+      resolve(read());
+    } else {
+      frame.addEventListener('load', () => resolve(read()), { once: true });
+    }
+  });
 
 // Icon groups for settings
 interface IIconSettings {
@@ -2089,6 +2171,34 @@ const plugin: JupyterFrontEndPlugin<void> = {
           const kind = pageKindForUrl(frame.src, window.location.origin);
           if (kind) {
             widget.title.icon = mirrorView(pageIcons[kind]);
+            void showFavicon(widget, frame, pageIcons[kind].name);
+          }
+        }
+      };
+
+      // The globe stays until the page's own icon has loaded and is then
+      // swapped in place, so the slot never empties and the label never moves
+      // (DEF-TABS-80). A declared icon wins over the server's favicon.ico. The
+      // shell rebinds title.icon on add, so the globe is matched by name.
+      const showFavicon = async (
+        widget: Widget,
+        frame: HTMLIFrameElement,
+        globe: string
+      ): Promise<void> => {
+        const { declared, root } = faviconSources(
+          frame.src,
+          window.location.origin
+        );
+        for (const href of [
+          declared ? await declaredIcon(frame, declared) : null,
+          root
+        ]) {
+          const icon = href ? await loadFavicon(href) : null;
+          if (icon) {
+            if ((widget.title.icon as LabIcon | undefined)?.name === globe) {
+              widget.title.icon = mirrorView(icon);
+            }
+            return;
           }
         }
       };

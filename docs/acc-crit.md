@@ -685,6 +685,16 @@ Icons on the dock panel tabs of open documents, matching the file browser
   - mechanism: 2026-10-25T07:57:51Z @kj locationOf returns widget.context.path already relative; the terminal cwd from /proc/<pid>/cwd is absolute, so it is made relative to the server root and returns empty when outside, and the tooltip skips an empty location
   - log: 2026-10-25T07:57:51Z @kj added
   - log: 2026-10-25T07:59:44Z @kj closed
+- [x] `ACC-TABS-74-FAVICON` **Web page tab shows the site favicon** - MEDIUM; A web page tab shows the icon its server serves, and the globe when none loads. No declaration is needed: the server's /favicon.ico counts, under /proxy/[absolute/][<host>:]<port>/ for a proxied page. A same-origin page's declared icon wins when served by its own server or carried as a non-blank data:image
+  - evidence: tab-page-icons.spec.ts favicon block: cross-origin and /proxy/<port>/favicon.ico swap the globe in place at labelOffset 18; 404 and HTML-for-every-path keep the globe; the lab's /favicon.ico never reaches a proxied tab; page-kind.spec.ts faviconSources rows; full Galata 107/107, jest 203, pytest 26; review SHIP after 5 rounds (tmp/workflows/favicon-review)
+  - test: open a remote page whose server serves /favicon.ico and one that serves none; the first tab shows the favicon, the second the globe
+  - test-tags: UNIT, FUNCTIONAL
+  - mechanism: 2026-10-26T21:26:28Z @kj an image load of <server root>/favicon.ico decides; a cross-origin frame hides its document, so a declared icon is read only from a same-origin frame; the lab origin's own /favicon.ico is never used for a proxied page
+  - log: 2026-10-26T21:26:28Z @kj added
+  - log: 2026-10-26T22:21:53Z @kj amended text "A web page tab shows the icon the page's server serves, and the globe only when none loads. The page need not declare one: the server's /favicon.ico counts, at the /proxy/<port>/ prefix for a proxied page. A same-origin page's declared link rel=icon wins over /favicon.ico" -> "A web page tab shows the icon the page's server serves, and the globe only when none loads. The page need not declare one: the server's /favicon.ico counts, at the /proxy/<port>/ prefix for a proxied page. A same-origin page's declared icon wins when served under the page's own server"
+  - log: 2026-10-26T22:21:53Z @kj declared icon scoped to the page's own server: a dead proxied backend's Jupyter error page declares the lab favicon
+  - log: 2026-10-27T18:26:35Z @kj amended text "A web page tab shows the icon the page's server serves, and the globe only when none loads. The page need not declare one: the server's /favicon.ico counts, at the /proxy/<port>/ prefix for a proxied page. A same-origin page's declared icon wins when served under the page's own server" -> "A web page tab shows the icon its server serves, and the globe when none loads. No declaration is needed: the server's /favicon.ico counts, under /proxy/[absolute/][<host>:]<port>/ for a proxied page. A same-origin page's declared icon wins when served by its own server or carried as a non-blank data:image"
+  - log: 2026-10-27T18:26:38Z @kj closed
 
 ## Symbolic link badges `LINK`
 

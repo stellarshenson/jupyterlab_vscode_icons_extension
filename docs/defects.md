@@ -180,6 +180,14 @@ Jest, the Playwright ui-tests and their output
   - root-cause: 2026-10-23T23:33:12Z @kj jest testRegex matches any src/ path and modulePathIgnorePatterns did not list tmp/; .prettierignore did not list tmp/
   - log: 2026-10-23T23:33:12Z @kj added
   - log: 2026-10-23T23:34:31Z @kj closed
+- [x] `DEF-TEST-87-TOOLTIP-ABSPATH` **Terminal tooltip Galata test expects an absolute path** - MEDIUM; tab-tooltip.spec.ts:116 asserts the terminal directory line starts with /; since 1.2.23 the line is relative to the server root and absent at the root, so the test fails and the full Galata suite is 99/100
+  - evidence: tab-tooltip.spec.ts terminal test now opens in the server root and asserts root-relative paths, nested-shell cd and no line outside the root; alone 2/2, file 10/10 twice; fails under absolute-cwd, shell-pid and outside-root mutations; full Galata 100/100 (logs/galata-full-favicon-def87.log)
+  - test-tags: FUNCTIONAL
+  - repro: cd ui-tests && jlpm playwright test tests/tab-tooltip.spec.ts:116
+  - root-cause: 2026-10-26T22:21:43Z @kj 978bb93 made TerminalCwdHandler answer root-relative paths and left the Galata test unchanged; its verifier skipped Galata because the brief claimed make publish runs it, and make publish runs only jest and pytest
+  - log: 2026-10-26T22:21:43Z @kj added
+  - log: 2026-10-26T22:21:56Z @kj edited test-tags added "FUNCTIONAL"
+  - log: 2026-10-27T09:53:35Z @kj closed
 
 ## Lint and static analysis `LINT`
 
@@ -390,6 +398,30 @@ Icons on the dock panel tabs of open documents
   - log: 2026-10-23T22:52:21Z @kj closed
   - log: 2026-10-23T22:56:56Z @kj edited text "a file open in another extension's viewer, renamed to a name with no icon here (notes.md to notes.qqq), gets the generic file glyph on its tab instead of the viewer's own icon; regression of the DEF-TABS-84 fix" -> "a file open in another extension's viewer, renamed to a name with no icon here (notes.md to notes.qqq), gets the generic file glyph on its tab instead of the viewer's own icon; regression of the DEF-TABS-84-FOREIGN-MIRROR fix"
   - log: 2026-10-23T22:56:56Z @kj root-cause updated "2026-10-23T22:25:41Z @kj the DEF-TABS-84 mirror records the foreign icon as original; after the rename target is the unclaimed fileIcon and alreadyMirrored is true, so the mirror arm runs again and the restore arm, which needs a null target, never runs" -> "the DEF-TABS-84-FOREIGN-MIRROR mirror records the foreign icon as original; after the rename target is the unclaimed fileIcon and alreadyMirrored is true, so the mirror arm runs again and the restore arm, which needs a null target, never runs"
+- [-] `DEF-TABS-88-DARK-FAVICON` **Dark favicon hard to see on the dark theme** - MINOR; On JupyterLab Dark a dark favicon on a transparent background nearly disappears into the tab, where the globe it replaced was visible; the tab label still names the page
+  - related: ACC-TABS-74-FAVICON
+  - repro: open a page whose /favicon.ico is black on transparent with JupyterLab Dark active; the tab icon is barely visible
+  - test-tags: FUNCTIONAL
+  - root-cause: 2026-10-27T10:36:56Z @kj favicons skip paintTabIcon's contrast treatment, because raster art must not be recoloured, and no other fallback applies to them
+  - log: 2026-10-27T10:36:56Z @kj added
+  - log: 2026-10-27T11:54:27Z @kj rejected: owner ruling 2026-10-27: Chrome and Firefox draw favicons unmodified on dark tab strips; a cross-origin favicon's pixels cannot be read, so every treatment recolours some favicons (the drop-shadow lightened translucent ones); the tab label still names the page
+- [x] `DEF-TABS-89-DATA-ICON` **Declared data: URI icon ignored** - MINOR; A proxied or lab page whose link rel=icon is a data: URI keeps the globe, unless its server also serves favicon.ico under its prefix
+  - evidence: declaredIcon accepts /^data:image\//i; loadFavicon escapes & < > " ' as XML references before %25; Galata: data:image/png shown, raw-svg and attribute-breakout hrefs inject nothing, data:text/html keeps the globe; an unescaped quote ran an injected handler under mutation; review round 4 SHIP; full Galata 107/107
+  - related: ACC-TABS-74-FAVICON
+  - repro: open a /proxy/<port>/ page that declares a data:image/png icon and serves no favicon.ico; the tab keeps the globe
+  - test-tags: UNIT, FUNCTIONAL
+  - root-cause: 2026-10-27T10:37:03Z @kj declaredIcon accepts only an address under the page's own server prefix, and a data: URI names no server; loadFavicon escapes only & and %, and a data: URI keeps raw quote and angle-bracket characters
+  - log: 2026-10-27T10:37:03Z @kj added
+  - log: 2026-10-27T18:26:40Z @kj closed
+- [x] `DEF-TABS-90-BLANK-ICON` **Transparent declared icon blanks the tab icon** - MINOR; A page that declares a fully transparent data:image icon, such as the 1x1 GIF pages use to say they have no favicon, shows an empty icon slot instead of the globe
+  - evidence: blank() reads a declared data: image at 32x32 and treats all-zero alpha as no icon; Galata: transparent 1x1 GIF keeps the globe, one opaque pixel and a 20000x20000 SVG are shown, each failing under its mutation; review round 5 SHIP; full Galata 107/107
+  - related: DEF-TABS-89-DATA-ICON
+  - repro: open a /proxy/<port>/ page declaring data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7; the tab icon slot is empty
+  - test-tags: FUNCTIONAL
+  - root-cause: 2026-10-27T12:59:10Z @kj loadFavicon counts any image that decodes with naturalWidth above zero, and a transparent 1x1 GIF decodes with width 1; the DEF-TABS-89-DATA-ICON fix made declared data:image icons reach loadFavicon
+  - log: 2026-10-27T12:59:06Z @kj added
+  - log: 2026-10-27T12:59:10Z @kj root-cause updated "2026-10-27T12:59:06Z @kj loadFavicon counts any image that decodes with naturalWidth above zero, and a transparent 1x1 GIF decodes with width 1; the DEF-TABS-89 fix made declared data:image icons reach loadFavicon" -> "loadFavicon counts any image that decodes with naturalWidth above zero, and a transparent 1x1 GIF decodes with width 1; the DEF-TABS-89-DATA-ICON fix made declared data:image icons reach loadFavicon"
+  - log: 2026-10-27T18:26:46Z @kj closed
 
 ## Icon coverage `ICONS`
 
