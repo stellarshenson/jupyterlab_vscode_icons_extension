@@ -113,6 +113,7 @@ const BLANK_GIF =
 interface IReply {
   status?: number;
   contentType: string;
+  headers?: Record<string, string>;
   body: string | Buffer;
 }
 const png = (base64: string): IReply => ({
@@ -131,6 +132,7 @@ const NOT_FOUND: IReply = {
 
 // A web server on a loopback port, so no test leaves this machine. It answers
 // each path from `replies`, else with `fallback`, and records it in `seen`.
+// A path is read without its query, which a cross-origin reload adds.
 // page.route cannot stand in for it: Playwright aborts every routed request
 // whose address ends in /favicon.ico.
 const servers: Server[] = [];
@@ -140,11 +142,12 @@ const startServer = async (
 ): Promise<{ port: number; seen: string[] }> => {
   const seen: string[] = [];
   const server = createServer(async (request, response) => {
-    const path = request.url ?? '';
+    const path = (request.url ?? '').split('?')[0];
     seen.push(path);
     const reply = (await replies[path]) ?? fallback;
     response.writeHead(reply.status ?? 200, {
-      'Content-Type': reply.contentType
+      'Content-Type': reply.contentType,
+      ...reply.headers
     });
     response.end(reply.body);
   });
@@ -512,6 +515,329 @@ test.describe('web page tab favicons', () => {
       ).toBeUndefined();
     });
   }
+});
+
+const tabNamed = (page: any, label: string): any =>
+  page.locator('.lm-DockPanel-tabBar .lm-TabBar-tab', {
+    has: page.locator('.lm-TabBar-tabLabel', { hasText: label })
+  });
+
+// The labels of the items the tab's right-click menu shows; a hidden item is
+// not listed.
+const tabMenu = async (page: any, tab: any): Promise<string[]> => {
+  await tab.click({ button: 'right' });
+  const items = page.locator('.lm-Menu .lm-Menu-item:visible');
+  await expect(items.first()).toBeVisible();
+  const labels = await items.locator('.lm-Menu-itemLabel').allTextContents();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.lm-Menu')).toHaveCount(0);
+  return labels;
+};
+
+const reloadPage = async (page: any, label: string): Promise<void> => {
+  await tabNamed(page, label).click({ button: 'right' });
+  await page
+    .locator('.lm-Menu .lm-Menu-item:visible', { hasText: 'Reload Page' })
+    .click();
+};
+
+// The address the frame shows now, read by Playwright, so a cross-origin
+// frame can be read too.
+const frameUrl = async (page: any, label: string): Promise<string> => {
+  const id = `page-${label.replace(/\W/g, '-')}`;
+  const frame = await page.locator(`#${id} iframe`).elementHandle();
+  return (await frame.contentFrame()).url();
+};
+
+const frameOf = (page: any, label: string): any =>
+  page.frameLocator(`#page-${label.replace(/\W/g, '-')} iframe`);
+
+const count = (seen: string[], path: string): number =>
+  seen.filter(p => p === path).length;
+
+const LINKED: IReply = {
+  contentType: 'text/html',
+  body: '<!doctype html><html><body><a href="b.html">next</a></body></html>'
+};
+
+// ACC-TABS-75..79: Reload Page on the right-click menu of a web page tab.
+test.describe('web page tab reload', () => {
+  // The lab this suite starts sends a Content-Security-Policy of
+  // default-src 'self' with no frame-src, which blocks every frame from another
+  // origin, so the cross-origin page of ACC-TABS-78 could not load.
+  test.use({ bypassCSP: true });
+
+  // Unrouted for the same reason as the favicon tests: a routed page aborts
+  // the favicon request test 79 needs.
+  test.beforeEach(async ({ page }) => {
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
+  test.afterEach(() => {
+    for (const server of servers.splice(0)) {
+      server.closeAllConnections();
+      server.close();
+    }
+  });
+
+  test('reloads the page in the frame and not the lab', async ({ page }) => {
+    const { port, seen } = await startServer({ '/': html() });
+    await addPage(page, 'Reload menu', `/proxy/${port}/`);
+    await expect(frameOf(page, 'Reload menu').locator('body')).toHaveText(
+      'page'
+    );
+    expect(count(seen, '/')).toBe(1);
+    await page.evaluate(() => ((window as any).reloadMarker = 'kept'));
+
+    await reloadPage(page, 'Reload menu');
+
+    await expect.poll(() => count(seen, '/')).toBe(2);
+    await expect(frameOf(page, 'Reload menu').locator('body')).toHaveText(
+      'page'
+    );
+    // Room for a lab reload the command might set off after the frame's.
+    await page.waitForTimeout(1000);
+    expect(await page.evaluate(() => (window as any).reloadMarker)).toBe(
+      'kept'
+    );
+  });
+
+  test('lists Reload Page only on web page tabs', async ({ page }) => {
+    const { port } = await startServer({ '/': html() });
+    await addPage(page, 'Reload scope', `/proxy/${port}/`);
+    // A terminal tab is labelled only once its session is up, so the other
+    // tabs are found by the widget id the shell puts on the tab.
+    const open = (command: string, args: any): Promise<string> =>
+      page.evaluate(
+        async ([id, options]: [string, any]) =>
+          (await (window as any).jupyterapp.commands.execute(id, options)).id,
+        [command, args]
+      );
+    const notebook = await open('notebook:create-new', {
+      kernelName: 'python3'
+    });
+    const terminal = await open('terminal:create-new', {});
+
+    expect(await tabMenu(page, tabNamed(page, 'Reload scope'))).toContain(
+      'Reload Page'
+    );
+    for (const id of [notebook, terminal]) {
+      const items = await tabMenu(
+        page,
+        page.locator(`.lm-DockPanel-tabBar .lm-TabBar-tab[data-id="${id}"]`)
+      );
+      expect(items).toContain('Close Tab');
+      expect(items).not.toContain('Reload Page');
+    }
+  });
+
+  test('reloads the page a same-origin frame shows now', async ({ page }) => {
+    const { port, seen } = await startServer({
+      '/a.html': LINKED,
+      '/b.html': html()
+    });
+    const origin = await page.evaluate(() => location.origin);
+    await addPage(page, 'Reload current', `/proxy/${port}/a.html`);
+    await frameOf(page, 'Reload current').locator('a').click();
+    await expect(frameOf(page, 'Reload current').locator('body')).toHaveText(
+      'page'
+    );
+    expect(count(seen, '/b.html')).toBe(1);
+
+    await reloadPage(page, 'Reload current');
+
+    await expect.poll(() => count(seen, '/b.html')).toBe(2);
+    await expect(frameOf(page, 'Reload current').locator('body')).toHaveText(
+      'page'
+    );
+    expect(count(seen, '/a.html')).toBe(1);
+    expect(await frameUrl(page, 'Reload current')).toBe(
+      `${origin}/proxy/${port}/b.html`
+    );
+  });
+
+  // The lab runs on localhost, so 127.0.0.1 is another origin.
+  test('reloads the opened address of a cross-origin frame', async ({
+    page
+  }) => {
+    const { port, seen } = await startServer({
+      '/a.html': LINKED,
+      '/b.html': html()
+    });
+    await addPage(page, 'Reload opened', `http://127.0.0.1:${port}/a.html#top`);
+    await frameOf(page, 'Reload opened').locator('a').click();
+    await expect(frameOf(page, 'Reload opened').locator('body')).toHaveText(
+      'page'
+    );
+    expect(count(seen, '/a.html')).toBe(1);
+
+    await reloadPage(page, 'Reload opened');
+
+    await expect.poll(() => count(seen, '/a.html')).toBe(2);
+    await expect(frameOf(page, 'Reload opened').locator('a')).toHaveText(
+      'next'
+    );
+    expect(await frameUrl(page, 'Reload opened')).toMatch(
+      new RegExp(
+        `^http://127\\.0\\.0\\.1:${port}/a\\.html\\?_jlreload=\\d+#top$`
+      )
+    );
+    expect(count(seen, '/b.html')).toBe(1);
+
+    // The frame shows the opened address with its #fragment now.
+    await reloadPage(page, 'Reload opened');
+
+    await expect.poll(() => count(seen, '/a.html')).toBe(3);
+  });
+
+  // DEF-TABS-92: a page the browser may keep for an hour is fetched again.
+  test('reloads a cross-origin page past its cached copy', async ({ page }) => {
+    const body = (text: string): IReply => ({
+      contentType: 'text/html',
+      headers: { 'Cache-Control': 'max-age=3600' },
+      body: `<!doctype html><html><body>${text}</body></html>`
+    });
+    const replies = { '/cached.html': body('v1') };
+    const { port, seen } = await startServer(replies);
+    await addPage(
+      page,
+      'Reload cached',
+      `http://127.0.0.1:${port}/cached.html`
+    );
+    await expect(frameOf(page, 'Reload cached').locator('body')).toHaveText(
+      'v1'
+    );
+    replies['/cached.html'] = body('v2');
+
+    await reloadPage(page, 'Reload cached');
+
+    await expect.poll(() => count(seen, '/cached.html')).toBe(2);
+    await expect(frameOf(page, 'Reload cached').locator('body')).toHaveText(
+      'v2'
+    );
+  });
+
+  // DEF-TABS-91: a page asks before it leaves only after the user acted in
+  // it, so the test types into it first.
+  test('shows the leave prompt of a cross-origin frame', async ({ page }) => {
+    const { port, seen } = await startServer({
+      '/form.html': {
+        contentType: 'text/html',
+        body:
+          '<!doctype html><html><body><input><script>' +
+          "addEventListener('beforeunload', e => {" +
+          " e.preventDefault(); e.returnValue = ''; });" +
+          '</script></body></html>'
+      }
+    });
+    await addPage(page, 'Reload prompt', `http://127.0.0.1:${port}/form.html`);
+    const input = frameOf(page, 'Reload prompt').locator('input');
+    await input.click();
+    await input.pressSequentially('draft');
+    expect(count(seen, '/form.html')).toBe(1);
+    const dialogs: string[] = [];
+    page.on('dialog', (dialog: any) => {
+      dialogs.push(dialog.type());
+      void dialog.accept();
+    });
+    const entries = await page.evaluate(() => history.length);
+
+    await reloadPage(page, 'Reload prompt');
+
+    await expect.poll(() => dialogs).toEqual(['beforeunload']);
+    await expect.poll(() => count(seen, '/form.html')).toBe(2);
+    expect(dialogs).toEqual(['beforeunload']);
+    // The reload adds no session history entry once the new page has loaded.
+    await expect(input).toHaveValue('');
+    expect(await page.evaluate(() => history.length)).toBe(entries);
+
+    // An opened address with a #fragment shows the prompt as well.
+    await addPage(page, 'Reload top', `http://127.0.0.1:${port}/form.html#top`);
+    const top = frameOf(page, 'Reload top').locator('input');
+    await top.click();
+    await top.pressSequentially('draft');
+
+    await reloadPage(page, 'Reload top');
+
+    await expect.poll(() => dialogs).toEqual(['beforeunload', 'beforeunload']);
+    await expect(top).toHaveValue('');
+  });
+
+  test('keeps the tab position, label and icon', async ({ page }) => {
+    const { port, seen } = await startServer({
+      '/': html(),
+      '/favicon.ico': png(RED)
+    });
+    const origin = await page.evaluate(() => location.origin);
+    await addPage(page, 'Reload keeps', `/proxy/${port}/`);
+    await expect
+      .poll(async () => (await readTab(page, 'Reload keeps')).favicon)
+      .toBe(`${origin}/proxy/${port}/favicon.ico`);
+    // A tab after it, so a tab that moved to the end would show.
+    await addPage(page, 'Reload neighbour', 'https://example.invalid/');
+    await expect
+      .poll(async () => (await readTab(page, 'Reload neighbour')).found)
+      .toBe(true);
+
+    // The tab is sampled on every animation frame through the reload, so an
+    // empty slot or a globe that shows for one frame is caught as well.
+    const before = await page.evaluate(() => {
+      const w = window as any;
+      w.reloadTabState = () => {
+        const tabs = [
+          ...document.querySelectorAll<HTMLElement>(
+            '#jp-main-dock-panel .lm-TabBar-tab'
+          )
+        ];
+        const tab = tabs.find(
+          t =>
+            t.querySelector('.lm-TabBar-tabLabel')?.textContent?.trim() ===
+            'Reload keeps'
+        );
+        const host = tab?.querySelector('.lm-TabBar-tabIcon');
+        return JSON.stringify({
+          tabs: tabs.length,
+          index: tab ? [...tab.parentElement!.children].indexOf(tab) : -1,
+          icon: host
+            ?.querySelector('svg[data-icon]')
+            ?.getAttribute('data-icon'),
+          favicon: host?.querySelector('svg image')?.getAttribute('href')
+        });
+      };
+      w.reloadSamples = new Set<string>();
+      w.reloadSampling = true;
+      const sample = (): void => {
+        w.reloadSamples.add(w.reloadTabState());
+        if (w.reloadSampling) {
+          requestAnimationFrame(sample);
+        }
+      };
+      sample();
+      return w.reloadTabState();
+    });
+
+    await reloadPage(page, 'Reload keeps');
+
+    await expect.poll(() => count(seen, '/')).toBe(2);
+    await expect(frameOf(page, 'Reload keeps').locator('body')).toHaveText(
+      'page'
+    );
+    // Room for anything the reload set off to reach the tab.
+    await page.waitForTimeout(1000);
+    const samples = await page.evaluate(() => {
+      const w = window as any;
+      w.reloadSampling = false;
+      return [...w.reloadSamples];
+    });
+    expect(JSON.parse(before)).toEqual({
+      tabs: expect.any(Number),
+      index: expect.any(Number),
+      icon: `jupyterlab_vscode_icons_extension:favicon:${origin}/proxy/${port}/favicon.ico`,
+      favicon: `${origin}/proxy/${port}/favicon.ico`
+    });
+    expect(JSON.parse(before).index).toBeGreaterThanOrEqual(0);
+    expect(samples).toEqual([before]);
+  });
 });
 
 test.describe('Settings Editor', () => {

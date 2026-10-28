@@ -71,6 +71,7 @@ const fakeApp = (): { app: any; registry: FakeRegistry } => {
       docRegistry: registry,
       shell: { add: () => undefined, currentWidget: null, widgets: () => [] },
       commands: { addCommand: () => undefined },
+      contextMenu: { addItem: () => undefined },
       started: Promise.resolve(),
       restored: Promise.resolve()
     },

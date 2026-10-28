@@ -422,6 +422,24 @@ Icons on the dock panel tabs of open documents
   - log: 2026-10-27T12:59:06Z @kj added
   - log: 2026-10-27T12:59:10Z @kj root-cause updated "2026-10-27T12:59:06Z @kj loadFavicon counts any image that decodes with naturalWidth above zero, and a transparent 1x1 GIF decodes with width 1; the DEF-TABS-89 fix made declared data:image icons reach loadFavicon" -> "loadFavicon counts any image that decodes with naturalWidth above zero, and a transparent 1x1 GIF decodes with width 1; the DEF-TABS-89-DATA-ICON fix made declared data:image icons reach loadFavicon"
   - log: 2026-10-27T18:26:46Z @kj closed
+- [x] `DEF-TABS-91-LEAVE-PROMPT` **Cross-origin reload skips the leave prompt** - MAJOR; Reload Page on a page from another origin removes and re-inserts the frame, so the page's beforeunload prompt never shows and unsaved input is lost; a same-origin reload shows the prompt
+  - evidence: cross-origin reload uses contentWindow.location.replace; Galata 'shows the leave prompt of a cross-origin frame' sees a beforeunload dialog with and without #fragment and an unchanged history.length; logs/reload-final-galata.log 114/114
+  - related: ACC-TABS-78-RELOAD-OPENED - the cross-origin reload this keeps safe
+  - repro: cross-origin page with a beforeunload handler, type into its input, choose Reload Page: no dialog, input empty
+  - test-tags: FUNCTIONAL
+  - root-cause: 2026-10-28T09:50:37Z @kj frame.replaceWith(frame) discards the frame's page without beforeunload; review round 1 chose it for every cross-origin reload, though only an address with a #fragment needs it
+  - log: 2026-10-28T09:50:37Z @kj added
+  - log: 2026-10-28T09:50:42Z @kj found by review round 2 (ux-designer); owner chose to keep the prompt over accepting the skip
+  - log: 2026-10-28T11:32:55Z @kj closed: fixed and verified; review round 3 and 4 SHIP
+- [x] `DEF-TABS-92-RELOAD-CACHE` **Cross-origin reload shows the cached copy** - MAJOR; Reload Page on a page from another origin sends no request and shows the browser's cached copy when the server lets the browser keep the page, e.g. python -m http.server, node http-server max-age=3600, GitHub Pages max-age=600
+  - evidence: cross-origin reload adds _jlreload=<time> before any #fragment; Galata 'reloads a cross-origin page past its cached copy' (max-age=3600) sees a second request and v2, fails without the parameter; logs/reload-final-galata.log 114/114
+  - related: ACC-TABS-78-RELOAD-OPENED - the cross-origin reload that must reach the server
+  - repro: cross-origin page served with Cache-Control max-age=3600, change its body, choose Reload Page: no request reaches the server, frame shows the old body
+  - test-tags: FUNCTIONAL
+  - root-cause: 2026-10-28T10:56:57Z @kj the lab can start only an ordinary navigation in a cross-origin frame, and an ordinary navigation to the same address reuses a fresh cache entry; location.reload, which revalidates, is not reachable across origins
+  - log: 2026-10-28T10:56:57Z @kj added
+  - log: 2026-10-28T10:56:57Z @kj deferred by review round 3 (ux-designer MAJOR, bug-hunter MINOR); owner chose a cache-busting query parameter over accepting the limit
+  - log: 2026-10-28T11:32:55Z @kj closed: fixed and verified; review round 4 SHIP
 
 ## Icon coverage `ICONS`
 

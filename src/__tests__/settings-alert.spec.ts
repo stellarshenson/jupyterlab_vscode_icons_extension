@@ -59,6 +59,7 @@ const harness = async (): Promise<{
       widgets: () => []
     },
     commands: { addCommand: () => undefined },
+    contextMenu: { addItem: () => undefined },
     started: Promise.resolve(),
     restored: Promise.resolve()
   };

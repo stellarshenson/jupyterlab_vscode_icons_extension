@@ -695,6 +695,42 @@ Icons on the dock panel tabs of open documents, matching the file browser
   - log: 2026-10-26T22:21:53Z @kj declared icon scoped to the page's own server: a dead proxied backend's Jupyter error page declares the lab favicon
   - log: 2026-10-27T18:26:35Z @kj amended text "A web page tab shows the icon the page's server serves, and the globe only when none loads. The page need not declare one: the server's /favicon.ico counts, at the /proxy/<port>/ prefix for a proxied page. A same-origin page's declared icon wins when served under the page's own server" -> "A web page tab shows the icon its server serves, and the globe when none loads. No declaration is needed: the server's /favicon.ico counts, under /proxy/[absolute/][<host>:]<port>/ for a proxied page. A same-origin page's declared icon wins when served by its own server or carried as a non-blank data:image"
   - log: 2026-10-27T18:26:38Z @kj closed
+- [x] `ACC-TABS-75-RELOAD-MENU` **Web page tab menu reloads the page** - HIGH; Right-clicking a web page tab shows Reload Page; choosing it reloads the page in that tab's frame. The lab page itself does not reload
+  - evidence: Galata 'reloads the page in the frame and not the lab': server sees the page again, lab window marker survives; fails without the menu item or with a lab reload; logs/reload-final-galata.log 114/114
+  - mechanism: 2026-10-28T11:32:54Z @kj markFramePage records each web page tab widget in a WeakSet; a context menu command on the main dock tab selector finds the right-clicked widget by data-id and is visible only for recorded widgets
+  - test: open a /proxy/<port>/ page, set a marker in the frame and one on the lab window, choose Reload Page; frame marker gone, window marker kept
+  - test-tags: FUNCTIONAL
+  - log: 2026-10-27T19:23:29Z @kj added
+  - log: 2026-10-28T11:32:54Z @kj closed: verified in the final gates
+- [x] `ACC-TABS-76-RELOAD-SCOPE` **Reload Page only on web page tabs** - MEDIUM; Reload Page shows only on web page tabs, the tabs that carry the globe or a site favicon. A notebook, file, terminal, console or launcher tab has no Reload Page entry
+  - evidence: Galata 'lists Reload Page only on web page tabs': notebook and terminal tab menus have no Reload Page; verifier probe also editor, HTML viewer, console, launcher; fails when always visible or only disabled; logs/reload-final-galata.log 114/114
+  - related: ACC-TABS-59-LOCALPAGE, ACC-TABS-60-REMOTEPAGE, ACC-TABS-74-FAVICON - the tabs that count as web page tabs
+  - test: right-click a notebook tab and a terminal tab; neither menu lists Reload Page
+  - test-tags: FUNCTIONAL
+  - log: 2026-10-27T19:23:29Z @kj added
+  - log: 2026-10-28T11:32:54Z @kj closed: verified in the final gates
+- [x] `ACC-TABS-77-RELOAD-CURRENT` **Edge: page changed inside the frame** - MEDIUM; A page from the lab's own origin that the user changed by a link inside the frame reloads the page it shows now, not the address the tab opened with
+  - evidence: Galata 'reloads the page a same-origin frame shows now': after a link from a.html to b.html, Reload Page requests b.html again and the frame stays on it; logs/reload-final-galata.log 114/114
+  - test: open /proxy/<port>/a.html, follow a link to b.html in the frame, choose Reload Page; the frame shows b.html, reloaded
+  - test-tags: FUNCTIONAL
+  - log: 2026-10-27T19:23:29Z @kj added
+  - log: 2026-10-28T11:32:54Z @kj closed: verified in the final gates
+- [x] `ACC-TABS-78-RELOAD-OPENED` **Edge: page from another site** - MEDIUM; A page from another origin reloads the address the tab opened with from its server, also after a link inside the frame and when the browser holds a cached copy. The reload adds one query parameter to that address, because the browser hides the frame's current address and offers no other way past its cache
+  - evidence: Galata 'reloads the opened address of a cross-origin frame' (a.html#top, two reloads) and 'reloads a cross-origin page past its cached copy' (max-age=3600, v1 to v2); review SHIP round 4; logs/reload-final-galata.log 114/114
+  - mechanism: 2026-10-28T11:32:54Z @kj location.reload() throws on a cross-origin frame; the catch calls contentWindow.location.replace with frame.src plus _jlreload=<time> before any #fragment, which keeps the leave prompt, adds no history entry and misses the cache
+  - test: open a loopback page on another port whose server sends Cache-Control max-age=3600, follow a link in the frame, choose Reload Page; the server sees the opened address again and the frame shows it
+  - test-tags: FUNCTIONAL
+  - log: 2026-10-27T19:23:29Z @kj added
+  - log: 2026-10-28T10:57:02Z @kj amended text "A page from another origin reloads the address the tab opened with, also after the user followed a link inside the frame; the browser hides that frame's current address from the lab" -> "A page from another origin reloads the address the tab opened with from its server, also after a link inside the frame and when the browser holds a cached copy. The reload adds one query parameter to that address, because the browser hides the frame's current address and offers no other way past its cache"; reason: owner chose a cache-busting parameter for DEF-TABS-92-RELOAD-CACHE; the text names the parameter and why
+  - log: 2026-10-28T10:57:02Z @kj edited test "open a loopback page on another port, follow a link in the frame, choose Reload Page; the frame shows the opened address" -> "open a loopback page on another port whose server sends Cache-Control max-age=3600, follow a link in the frame, choose Reload Page; the server sees the opened address again and the frame shows it"
+  - log: 2026-10-28T10:57:02Z @kj amended for DEF-TABS-92-RELOAD-CACHE: owner decision 2026-10-28, cache-busting query parameter
+  - log: 2026-10-28T11:32:54Z @kj closed: verified in the final gates
+- [x] `ACC-TABS-79-RELOAD-KEEPS` **Reload keeps the tab as it was** - LOW; After Reload Page the tab keeps its position, label and icon; no tab opens or closes
+  - evidence: Galata 'keeps the tab position, label and icon': every sampled frame through the reload keeps tab count, index, label and favicon; fails when the slot empties or the tab is re-added; logs/reload-final-galata.log 114/114
+  - test: reload a tab showing a favicon; tab index, label, data-icon and tab count unchanged
+  - test-tags: FUNCTIONAL
+  - log: 2026-10-27T19:23:29Z @kj added
+  - log: 2026-10-28T11:32:55Z @kj closed: verified in the final gates
 
 ## Symbolic link badges `LINK`
 

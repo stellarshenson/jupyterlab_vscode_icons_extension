@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.25] - 2026-10-28
+
+### Added
+
+- Reload Page in the right-click menu of a web page tab reloads the page in that tab's frame and never the lab; the entry shows only on web page tabs, and the tab keeps its place, label and icon
+- A page from the lab's own origin reloads the page it shows now, also after a link inside the frame; a page from another site reloads the address the tab opened with, with an added `_jlreload` query parameter so the browser's cached copy is not shown, and its leave prompt still appears
+
 ## [1.2.24] - 2026-10-27
 
 ### Added

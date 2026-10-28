@@ -712,6 +712,57 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     installTabTooltips(app);
 
+    // ACC-TABS-75..79: Reload Page on the menu of a web page tab. A web page
+    // tab is a widget markFramePage gave the globe; it is remembered by widget,
+    // so it stays one after the favicon swap, a rename or a move to another
+    // pane, while its title.icon no longer tells it apart.
+    const framePages = new WeakSet<Widget>();
+    const clickedFramePage = (): Widget | undefined => {
+      const id = app.contextMenuHitTest(
+        node => node.classList.contains('lm-TabBar-tab') && !!node.dataset.id
+      )?.dataset.id;
+      for (const widget of app.shell.widgets('main')) {
+        if (widget.id === id) {
+          return framePages.has(widget) ? widget : undefined;
+        }
+      }
+      return undefined;
+    };
+    app.commands.addCommand('jupyterlab_vscode_icons_extension:reload-page', {
+      label: 'Reload Page',
+      describedBy: { args: { type: 'object', properties: {} } },
+      isVisible: () => !!clickedFramePage(),
+      execute: () => {
+        const frame = clickedFramePage()?.node.querySelector('iframe');
+        if (!frame) {
+          return;
+        }
+        try {
+          // The page the frame shows now, also after a link inside it.
+          frame.contentWindow!.location.reload();
+        } catch {
+          // A page from another origin refuses access to its location, so the
+          // frame loads the address the tab opened with. Replacing its location
+          // runs the page's leave prompt and adds no session history entry. The
+          // browser would show its cached copy of that address, so the reload
+          // adds a query parameter, which the page receives, that differs on
+          // every reload.
+          frame.contentWindow?.location.replace(
+            frame.src.replace(
+              /^[^#]*/,
+              address =>
+                `${address}${address.includes('?') ? '&' : '?'}_jlreload=${Date.now()}`
+            )
+          );
+        }
+      }
+    });
+    app.contextMenu.addItem({
+      command: 'jupyterlab_vscode_icons_extension:reload-page',
+      selector: '#jp-main-dock-panel .lm-DockPanel-tabBar .lm-TabBar-tab',
+      rank: 0
+    });
+
     // Function to inject CSS that overrides Jupytext icons
     const injectIconOverrideCSS = () => {
       // Get icons: Claude (VSCode), Office (VSCode)
@@ -2171,6 +2222,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           const kind = pageKindForUrl(frame.src, window.location.origin);
           if (kind) {
             widget.title.icon = mirrorView(pageIcons[kind]);
+            framePages.add(widget);
             void showFavicon(widget, frame, pageIcons[kind].name);
           }
         }

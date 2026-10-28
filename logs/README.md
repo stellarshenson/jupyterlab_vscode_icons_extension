@@ -12,3 +12,6 @@ Build and release output, kept out of git except for this file.
 - `uitests-install-<time>.log` - `jlpm install` and `jlpm playwright install chromium` in `ui-tests/`
 - `probe-<name>-<time>.log` - a throwaway Galata spec that records what the running lab does, deleted after the run
 - `goal-*.log` - build, test, and review records for the active project completion goal
+- `reload-impl-<gate>.log`, `reload-mutation-<name>.log`, `reload-mutations-<n>.log` - Reload Page implementation: build, lint, `make test`, Galata spec and mutation runs
+- `reload-review-r<n>-<gate>.log` - Reload Page adversarial review round n: applied-plan gates, mutant and graphify runs
+- `def-tabs-<n>-<gate>.log` - defect DEF-TABS-<n> fix and its verifier: build, lint, `make test`, Galata spec and mutation runs
