@@ -182,3 +182,6 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 155. **Task - Require Python 3.12** (v1.2.33): raised the minimum Python to 3.12 on the owner's decision<br>
     **Result**: `requires-python` in `pyproject.toml` moved to `>=3.12`, and the classifiers for Python 3.10 and 3.11 are removed. Runtime floors already excluded older versions on some extensions, where pip then installed a release from before the scoped npm rename with no error. The dependency floors stay. `uv pip compile --python-version 3.12` resolves every runtime requirement, and CI runs Python 3.13.
+
+156. **Task - Discovery block** (v1.2.34): added `jupyterlab.discovery` to `package.json` as the template v4.6.5 renders it<br>
+    **Result**: The second audit of the extension fleet found this server extension without the block. The block names this package as the server side of the labextension, so JupyterLab can name it when the server side is missing. The rest of `package.json` is unchanged, and `yarn.lock` moves `@iconify-json/vscode-icons` from 1.2.94 to 1.2.95. `jlpm install --immutable`, `jlpm build:lib`, `jlpm run lint:check` and `template_sync.py --check` pass.

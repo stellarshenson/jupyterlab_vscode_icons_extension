@@ -1794,11 +1794,11 @@ __metadata:
   linkType: hard
 
 "@iconify-json/vscode-icons@npm:^1.2.33":
-  version: 1.2.94
-  resolution: "@iconify-json/vscode-icons@npm:1.2.94"
+  version: 1.2.95
+  resolution: "@iconify-json/vscode-icons@npm:1.2.95"
   dependencies:
     "@iconify/types": "*"
-  checksum: d3b5be98c0e0eec93c75967421e5e393e3b2208ac613718bac87cea1bed762a678654b193ce338eb64fa3a7a800b35ef7321c389be691a8b86775e793f413611
+  checksum: f53f5b4e85d2a27978dfb65b006634957cdc105f841a395ae1d25cd71d6238115add30cb4a96c716df90aa4074a00ab67f8e685578d22af1ce32f15df64d8693
   languageName: node
   linkType: hard
 

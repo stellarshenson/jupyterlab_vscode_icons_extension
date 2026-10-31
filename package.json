@@ -105,6 +105,16 @@
         "access": "public"
     },
     "jupyterlab": {
+        "discovery": {
+            "server": {
+                "managers": [
+                    "pip"
+                ],
+                "base": {
+                    "name": "jupyterlab_vscode_icons_extension"
+                }
+            }
+        },
         "extension": true,
         "outputDir": "jupyterlab_vscode_icons_extension/labextension",
         "schemaDir": "schema"
