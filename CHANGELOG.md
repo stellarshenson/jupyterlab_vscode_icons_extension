@@ -1,5 +1,7 @@
 # Changelog
 
+<!-- <START NEW CHANGELOG ENTRY> -->
+
 ## [1.2.30] - 2026-10-31
 
 ### Changed
@@ -10,6 +12,8 @@
 ### Fixed
 
 - Take the scoped @stellarshenson/jupyterlab-vscode-icons-extension npm name
+
+<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## [1.2.25] - 2026-10-28
 
