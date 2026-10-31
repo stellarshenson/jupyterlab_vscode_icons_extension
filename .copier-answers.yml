@@ -6,12 +6,12 @@ author_email: konrad.jelen@gmail.com
 author_name: Stellars Henson
 has_ai_rules: false
 has_binder: false
-has_settings: false
-kind: frontend
+has_settings: true
+kind: frontend-and-server
 labextension_name: '@stellarshenson/jupyterlab-vscode-icons-extension'
 project_short_description: Jupyterlab extension with a shameless rip-off of the vscode-icons
     into our beloved environment
 python_name: jupyterlab_vscode_icons_extension
-repository: ''
+repository: https://github.com/stellarshenson/jupyterlab_vscode_icons_extension
 test: true
 

@@ -36,7 +36,7 @@ The following workspace rules are STRICTLY ENFORCED for this project:
 - `src/` - TypeScript source code
 - `style/` - CSS styling and icon assets
 - `lib/` - Compiled JavaScript output
-- `jupyterlab_vscode_icons_extension/` - Python package and labextension
+- `jupyterlab_vscode_icons_extension/` - Python package and the built frontend
 - `ui-tests/` - Playwright integration tests
 
 **Development Commands**:
@@ -50,7 +50,7 @@ The following workspace rules are STRICTLY ENFORCED for this project:
 **Package Naming**:
 
 - Python package: `jupyterlab_vscode_icons_extension`
-- NPM package: `jupyterlab_vscode_icons_extension`
+- NPM package: `@stellarshenson/jupyterlab-vscode-icons-extension`
 - Extension ID: `jupyterlab_vscode_icons_extension`
 
 ## Journal Rules (Project-Specific)

@@ -1,6 +1,6 @@
 {
     "name": "@stellarshenson/jupyterlab-vscode-icons-extension",
-    "version": "1.2.30",
+    "version": "1.2.31",
     "description": "Jupyterlab extension with a shameless rip-off of the vscode-icons into our beloved environment",
     "keywords": [
         "jupyter",
@@ -23,7 +23,8 @@
     "files": [
         "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf}",
         "style/**/*.{css,js,eot,gif,html,jpg,json,png,svg,woff2,ttf}",
-        "src/**/*.{ts,tsx}"
+        "src/**/*.{ts,tsx}",
+        "schema/*.json"
     ],
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
@@ -78,6 +79,7 @@
         "eslint-plugin-prettier": "^5.5.0",
         "globals": "^15.15.0",
         "jest": "^29.7.0",
+        "mkdirp": "^1.0.3",
         "npm-run-all2": "^7.0.1",
         "prettier": "^3.9.0",
         "rimraf": "^5.0.10",

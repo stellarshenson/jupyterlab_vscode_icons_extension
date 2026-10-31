@@ -21,5 +21,6 @@
     "target": "ES2018",
     "types": ["jest"]
   },
+  // template-sync: keep - composite needs every source matched, and src/ has subfolders
   "include": ["src/**/*"]
 }

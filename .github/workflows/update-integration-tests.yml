@@ -11,6 +11,7 @@ permissions:
 jobs:
   update-snapshots:
     runs-on: ubuntu-latest
+    # template-sync: keep
     # The author_association gate is load-bearing: issue_comment runs from the
     # default branch with a contents: write token, and this job checks out and
     # executes the pull request's own build script. Without it any GitHub user
@@ -23,7 +24,7 @@ jobs:
           || github.event.comment.author_association == 'COLLABORATOR')
 
     steps:
-      - uses: jupyterlab/maintainer-tools/.github/actions/update-snapshots-checkout@v1
+      - uses: jupyterlab/maintainer-tools/.github/actions/update-snapshots-checkout@v1 # template-sync: keep
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -40,6 +41,7 @@ jobs:
           set -eux
           jlpm
           python -m pip install .
+          # template-sync: keep
           # Test requirements: the Galata ownership tests need other extensions' file types
           python -m pip install jupyterlab_zip_extension jupyterlab_terraform_file_type_extension jupyterlab_camunda_modeller_extension
 
