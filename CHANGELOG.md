@@ -2,6 +2,13 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.2.32] - 2026-10-31
+
+### Changed
+
+- Add the changelog markers the release check reads
+- Apply the template files and packages the upgrade left out
+
 ## [1.2.30] - 2026-10-31
 
 ### Changed
