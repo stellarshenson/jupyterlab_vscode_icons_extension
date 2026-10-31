@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.30] - 2026-10-31
+
+### Changed
+
+- Ignore the reserved example.invalid address in the link check
+- Upgrade to extension template v4.6.5 and Makefile 1.46
+
+### Fixed
+
+- Take the scoped @stellarshenson/jupyterlab-vscode-icons-extension npm name
+
 ## [1.2.25] - 2026-10-28
 
 ### Added
