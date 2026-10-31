@@ -11,7 +11,7 @@ import { expect, galata, test } from '@jupyterlab/galata';
  * read back out of the schema.
  */
 
-const PLUGIN = 'jupyterlab_vscode_icons_extension:plugin';
+const PLUGIN = '@stellarshenson/jupyterlab-vscode-icons-extension:plugin';
 
 const ALL_OFF = {
   enableLanguageIcons: false,

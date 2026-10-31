@@ -12,6 +12,7 @@ import {
   getIconViewBox
 } from '../icons';
 import { customIcons } from '../custom-icons';
+import iconsData from '@iconify-json/vscode-icons/icons.json';
 
 describe('getIconForFile', () => {
   it.each([
@@ -101,12 +102,20 @@ describe('generateIconSVG', () => {
 });
 
 describe('getIconViewBox', () => {
-  // 38 entries in the bundled set are not 32x32. A body written in a
-  // 254.5x225 space draws nothing inside a 32x32 window: measured at 16px,
-  // file-type-go rendered 0 ink pixels in the assumed box and 104 in its own.
+  // A body written in a 254.5x225 space draws nothing inside a 32x32 window:
+  // measured at 16px, such an icon rendered 0 ink pixels in the assumed box and
+  // 104 in its own. Which entries declare a box moves with the icon set (38 in
+  // 1.2.33, 1 in 1.2.94), so these tests declare their own.
+  beforeAll(() => {
+    Object.assign(iconsData.icons, {
+      'test-box-wide': { body: '', width: 254.5, height: 225 },
+      'test-box-square': { body: '', width: 200, height: 200 }
+    });
+  });
+
   it('reads the box an icon declares', () => {
-    expect(getIconViewBox('file-type-go')).toBe('0 0 254.5 225');
-    expect(getIconViewBox('file-type-docusaurus')).toBe('0 0 200 200');
+    expect(getIconViewBox('test-box-wide')).toBe('0 0 254.5 225');
+    expect(getIconViewBox('test-box-square')).toBe('0 0 200 200');
   });
 
   it('falls back to the collection default', () => {
@@ -119,7 +128,7 @@ describe('getIconViewBox', () => {
   });
 
   it('is what generateIconSVG puts on the element', () => {
-    expect(generateIconSVG('file-type-go')).toContain(
+    expect(generateIconSVG('test-box-wide')).toContain(
       'viewBox="0 0 254.5 225"'
     );
     expect(generateIconSVG('file-type-python')).toContain(

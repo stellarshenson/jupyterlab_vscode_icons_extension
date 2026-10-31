@@ -12,7 +12,7 @@ except ImportError:
 def _jupyter_labextension_paths():
     return [{
         "src": "labextension",
-        "dest": "jupyterlab_vscode_icons_extension"
+        "dest": "@stellarshenson/jupyterlab-vscode-icons-extension"
     }]
 
 

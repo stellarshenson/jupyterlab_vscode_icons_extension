@@ -351,7 +351,7 @@ test.describe('document tab icons', () => {
         '@jupyterlab/apputils-extension:settings'
       );
       await settings.set(
-        'jupyterlab_vscode_icons_extension:plugin',
+        '@stellarshenson/jupyterlab-vscode-icons-extension:plugin',
         'enableConfigIcons',
         false
       );
@@ -686,7 +686,7 @@ test.describe('group toggles reach the tab', () => {
   test.use({
     mockSettings: {
       ...galata.DEFAULT_SETTINGS,
-      'jupyterlab_vscode_icons_extension:plugin': {
+      '@stellarshenson/jupyterlab-vscode-icons-extension:plugin': {
         enableLanguageIcons: false
       }
     }

@@ -24,11 +24,11 @@ const repoLabextension = join(
 );
 if (!process.env.JUPYTER_PATH && existsSync(repoLabextension)) {
   const shim = mkdtempSync(join(tmpdir(), 'vscode-icons-jpath-'));
-  const links = join(shim, 'labextensions');
+  const links = join(shim, 'labextensions', '@stellarshenson');
   mkdirSync(links, { recursive: true });
   symlinkSync(
     repoLabextension,
-    join(links, 'jupyterlab_vscode_icons_extension')
+    join(links, 'jupyterlab-vscode-icons-extension')
   );
   process.env.JUPYTER_PATH = shim;
 }

@@ -268,9 +268,9 @@ export function generateIconSVG(iconName: string, className = ''): string {
 /**
  * The drawing box an icon's body is written in.
  *
- * Most of the set is 32x32, the collection default, but 38 entries carry their
- * own width and height - file-type-go is 254.5x225 - and a body written in that
- * space draws nothing inside a 32x32 window. Every bundled svg this extension
+ * Most of the set is 32x32, the collection default, but an entry can carry its
+ * own width and height - file-type-light-replit is 1156x1156 - and a body written
+ * in that space draws nothing inside a 32x32 window. Every bundled svg this extension
  * builds reads its box from the record rather than assuming the default; the
  * five custom bodies declare the 32x32 box in src/custom-icons.ts.
  *

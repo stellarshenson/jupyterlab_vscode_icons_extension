@@ -22,7 +22,7 @@ import { faviconSources, pageKindForUrl } from './page-kind';
 // eslint-disable-next-line jupyter/prefer-lazy-imports
 import { installTabTooltips } from './tab-tooltip';
 
-const PLUGIN_ID = 'jupyterlab_vscode_icons_extension:plugin';
+const PLUGIN_ID = '@stellarshenson/jupyterlab-vscode-icons-extension:plugin';
 
 // The square's edge spans 8.0..15.8 once its 0.8 stroke is counted, inside the
 // 16 viewBox, so no edge leaves the canvas the way the earlier 8..16 circle
@@ -2420,6 +2420,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
                 return;
               }
               if (entry) {
+                // An icon set over an earlier mirror, such as a file editor
+                // tab's, is what a lapsed mirror gives back (DEF-TABS-85).
+                if (!alreadyMirrored) {
+                  entry.original = tabWidget.title.icon;
+                }
                 entry.applied = view;
               } else {
                 mirroredTitles.set(tabWidget, {

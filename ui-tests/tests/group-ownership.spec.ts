@@ -1,6 +1,6 @@
 import { expect, galata, test } from '@jupyterlab/galata';
 
-const PLUGIN = 'jupyterlab_vscode_icons_extension:plugin';
+const PLUGIN = '@stellarshenson/jupyterlab-vscode-icons-extension:plugin';
 const row = (page: any, name: string) =>
   page.locator('.jp-DirListing-item').filter({
     has: page.getByText(name, { exact: true })

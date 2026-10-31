@@ -162,7 +162,7 @@ classifiers = [
 ]
 
 [tool.hatch.build.targets.wheel.shared-data]
-"jupyterlab_vscode_icons_extension/labextension" = "share/jupyter/labextensions/jupyterlab_vscode_icons_extension"
+"jupyterlab_vscode_icons_extension/labextension" = "share/jupyter/labextensions/@stellarshenson/jupyterlab-vscode-icons-extension"
 `;
       const result = parsePyprojectToml(content);
       expect(result.has('jupyterlab_vscode_icons_extension')).toBe(true);

@@ -12,7 +12,7 @@ import type { AddressInfo } from 'net';
  * The globe gives way to the icon the page's server serves once it loads.
  */
 
-const PLUGIN = 'jupyterlab_vscode_icons_extension:plugin';
+const PLUGIN = '@stellarshenson/jupyterlab-vscode-icons-extension:plugin';
 
 const addPage = (page: any, label: string, src: string | null): Promise<void> =>
   page.evaluate(

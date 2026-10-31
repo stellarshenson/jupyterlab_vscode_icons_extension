@@ -421,7 +421,9 @@ test.describe('icon ownership', () => {
   }) => {
     expect(
       await page.evaluate(() =>
-        (window as any).jupyterapp.hasPlugin('jupyterlab_zip_extension:plugin')
+        (window as any).jupyterapp.hasPlugin(
+          '@stellarshenson/jupyterlab-zip-extension:plugin'
+        )
       ),
       'the test environment must have jupyterlab_zip_extension installed'
     ).toBe(true);

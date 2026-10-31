@@ -11,7 +11,9 @@ const row = (page: any, name: string) =>
 
 test.use({
   mockSettings: {
-    'jupyterlab_vscode_icons_extension:plugin': { enableExecutableIcons: true }
+    '@stellarshenson/jupyterlab-vscode-icons-extension:plugin': {
+      enableExecutableIcons: true
+    }
   }
 });
 

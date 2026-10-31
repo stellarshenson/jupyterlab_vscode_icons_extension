@@ -8,7 +8,7 @@ has_ai_rules: false
 has_binder: false
 has_settings: false
 kind: frontend
-labextension_name: jupyterlab_vscode_icons_extension
+labextension_name: '@stellarshenson/jupyterlab-vscode-icons-extension'
 project_short_description: Jupyterlab extension with a shameless rip-off of the vscode-icons
     into our beloved environment
 python_name: jupyterlab_vscode_icons_extension

@@ -47,8 +47,8 @@ artifacts = ["jupyterlab_vscode_icons_extension/labextension"]
 exclude = [".github", "binder"]
 
 [tool.hatch.build.targets.wheel.shared-data]
-"jupyterlab_vscode_icons_extension/labextension" = "share/jupyter/labextensions/jupyterlab_vscode_icons_extension"
-"install.json" = "share/jupyter/labextensions/jupyterlab_vscode_icons_extension/install.json"
+"jupyterlab_vscode_icons_extension/labextension" = "share/jupyter/labextensions/@stellarshenson/jupyterlab-vscode-icons-extension"
+"install.json" = "share/jupyter/labextensions/@stellarshenson/jupyterlab-vscode-icons-extension/install.json"
 "jupyter-config/server-config" = "etc/jupyter/jupyter_server_config.d"
 
 [tool.hatch.build.hooks.version]

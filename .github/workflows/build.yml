@@ -32,7 +32,7 @@ jobs:
         python -m pip install .[test]
 
         jupyter labextension list
-        jupyter labextension list 2>&1 | grep -ie "jupyterlab_vscode_icons_extension.*OK"
+        jupyter labextension list 2>&1 | grep -ie "@stellarshenson/jupyterlab-vscode-icons-extension.*OK"
         python -m jupyterlab.browser_check
 
     - name: Run unit tests
@@ -80,7 +80,7 @@ jobs:
         jupyter server extension list
         jupyter server extension list 2>&1 | grep -ie "jupyterlab_vscode_icons_extension.*OK"
         jupyter labextension list
-        jupyter labextension list 2>&1 | grep -ie "jupyterlab_vscode_icons_extension.*OK"
+        jupyter labextension list 2>&1 | grep -ie "@stellarshenson/jupyterlab-vscode-icons-extension.*OK"
         python -m jupyterlab.browser_check --no-browser-test
 
   integration-tests:

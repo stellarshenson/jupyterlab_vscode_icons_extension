@@ -297,7 +297,8 @@ test.describe('DEF-TABS-79: document tab matches its file browser row', () => {
     tmpPath
   }) => {
     await uploadFixtures(page, tmpPath);
-    await page.filebrowser.open(`${tmpPath}/README.md`);
+    // A double click opens a .md in the editor unless defaultViewers says otherwise.
+    await page.filebrowser.open(`${tmpPath}/README.md`, 'Markdown Preview');
     await waitForState(
       page,
       'README.md',

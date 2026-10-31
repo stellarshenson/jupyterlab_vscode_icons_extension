@@ -1,7 +1,7 @@
 # JupyterLab VSCode Icons Extension
 
 [![GitHub Actions](https://github.com/stellarshenson/jupyterlab_vscode_icons_extension/actions/workflows/build.yml/badge.svg)](https://github.com/stellarshenson/jupyterlab_vscode_icons_extension/actions/workflows/build.yml)
-[![npm version](https://img.shields.io/npm/v/jupyterlab_vscode_icons_extension.svg)](https://www.npmjs.com/package/jupyterlab_vscode_icons_extension)
+[![npm version](https://img.shields.io/npm/v/@stellarshenson/jupyterlab-vscode-icons-extension.svg)](https://www.npmjs.com/package/@stellarshenson/jupyterlab-vscode-icons-extension)
 [![PyPI version](https://img.shields.io/pypi/v/jupyterlab-vscode-icons-extension.svg)](https://pypi.org/project/jupyterlab-vscode-icons-extension/)
 [![Total PyPI downloads](https://static.pepy.tech/badge/jupyterlab-vscode-icons-extension)](https://pepy.tech/project/jupyterlab-vscode-icons-extension)
 [![JupyterLab 4](https://img.shields.io/badge/JupyterLab-4-orange.svg)](https://jupyterlab.readthedocs.io/en/stable/)
