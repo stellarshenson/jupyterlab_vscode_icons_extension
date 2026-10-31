@@ -38,7 +38,7 @@ This extension brings 1414 beautiful file type icons from the vscode-icons proje
 
 ## Requirements
 
-- JupyterLab 4.0+
+- JupyterLab 4.6+
 - A sense of humor about intellectual property (kidding - it's MIT licensed)
 - Appreciation for pretty icons
 

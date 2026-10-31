@@ -20,9 +20,11 @@ jobs:
 
     - name: Base Setup
       uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
+      with:
+        python_version: '3.13'
 
     - name: Install dependencies
-      run: python -m pip install -U "jupyterlab>=4.0.0,<5"
+      run: python -m pip install -U "jupyterlab>=4.6,<5"
 
     - name: Build the extension
       run: |
@@ -61,7 +63,7 @@ jobs:
     - name: Install Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12'
+        python-version: '3.13'
         architecture: 'x64'
     - uses: actions/download-artifact@v4
       with:
@@ -73,7 +75,7 @@ jobs:
         sudo rm -rf $(which node)
         sudo rm -rf $(which node)
 
-        pip install "jupyterlab>=4.0.0,<5" jupyterlab_vscode_icons_extension*.whl
+        pip install "jupyterlab>=4.6,<5" jupyterlab_vscode_icons_extension*.whl
 
         jupyter server extension list
         jupyter server extension list 2>&1 | grep -ie "jupyterlab_vscode_icons_extension.*OK"
@@ -95,6 +97,8 @@ jobs:
 
     - name: Base Setup
       uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
+      with:
+        python_version: '3.13'
 
     - name: Download extension package
       uses: actions/download-artifact@v4
@@ -104,7 +108,7 @@ jobs:
     - name: Install the extension
       run: |
         set -eux
-        python -m pip install "jupyterlab>=4.0.0,<5" jupyter-server-proxy jupyterlab_vscode_icons_extension*.whl
+        python -m pip install "jupyterlab>=4.6,<5" jupyter-server-proxy jupyterlab_vscode_icons_extension*.whl
         # Extensions that claim file types with their own icons; the tests
         # check that this extension's icon wins over theirs.
         python -m pip install jupyterlab_zip_extension jupyterlab_terraform_file_type_extension jupyterlab_camunda_modeller_extension
@@ -150,6 +154,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
+        with:
+          python_version: '3.13'
       - uses: jupyterlab/maintainer-tools/.github/actions/check-links@v1
         with:
           ignore_links: "https://www.npmjs.com/package/.* https://pepy.tech/.* https://static.pepy.tech/.*"

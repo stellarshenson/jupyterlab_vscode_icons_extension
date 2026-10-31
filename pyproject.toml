@@ -27,13 +27,13 @@ dynamic = ["version", "description", "authors", "urls", "keywords"]
 
 [project.optional-dependencies]
 test = [
-    "pytest>=9,<10",
-    "jupyter-server>=2,<3",
+    "pytest>=9.2,<10",
+    "jupyter-server>=2.21,<3",
 ]
 dev = [
     "jupyterlab_vscode_icons_extension[test]",
-    "jupyterlab>=4",
-    "jupyter-builder>=1.2.0",
+    "jupyterlab>=4.6,<5",
+    "jupyter-builder>=1.2.0,<2",
 ]
 
 [tool.hatch.version]

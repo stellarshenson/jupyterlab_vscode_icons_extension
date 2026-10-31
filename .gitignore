@@ -139,3 +139,7 @@ uv.lock
 package-lock.json
 graphify-out/
 src/graphify-out/
+
+# Run output
+logs/
+tmp/

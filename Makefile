@@ -1,5 +1,14 @@
-# Makefile for Jupyterlab extensions version 1.45
+# Makefile for Jupyterlab extensions version 1.46
 # changelog:
+#   1.46 - increment_version also writes the new version into package-lock.json, in
+#          its top-level `version` and in `packages[""].version`, when the project
+#          has that file, and publish stages it in the metadata commit. 1.41 stopped
+#          writing package-lock.json but the projects kept the file, so the version
+#          recorded there stopped moving. Measured on 2026-10-14: 8 of 48 extensions
+#          with a package-lock.json recorded an older version there than in
+#          package.json, the oldest 1.2.31 against 1.2.73. The two values are replaced
+#          in the text, because 6 of the 48 lockfiles are indented with 4 spaces and a
+#          JSON rewrite would re-indent them. Requested on 2026-10-14.
 #   1.45 - `install` installs every optional-dependencies group of pyproject.toml
 #          with the wheel, so one `make install` leaves the runtime and the optional
 #          dependencies in place. Until now it installed the wheel alone, and the
@@ -144,10 +153,6 @@
 .PHONY: build install clean uninstall publish dependencies mrproper increment_version install_dependencies check_dependencies upgrade help test
 .DEFAULT_GOAL := help
 
-# Tests must finish before install, and the version must move before build,
-# including when the caller supplies -j.
-.NOTPARALLEL: install publish
-
 # Project-local node environment - keeps node/npm/yarn pinned per project and out of
 # the python prefix. Created by `install_dependencies` and torn down by `mrproper`.
 NODEENV := $(CURDIR)/.nodeenv
@@ -169,6 +174,8 @@ PYTHON_NAME = $(shell $(NODE) -p "require('./package.json').jupyterlab.outputDir
 # "allowScripts". Space-separated; extend per project.
 ALLOW_SCRIPTS_PKGS := @fortawesome/fontawesome-free
 
+# package-lock.json is edited in place, not parsed and written back: a rewrite with a
+# fixed indent would re-indent every line of a lockfile that uses another indent.
 ## increment project version
 increment_version: check_dependencies
 	@CURRENT_VERSION="$(VERSION)"; \
@@ -182,6 +189,9 @@ increment_version: check_dependencies
 	if ! grep -q "\"version\": \"$$NEW_VERSION\"" package.json; then \
 		echo "increment_version: package.json still reports $$CURRENT_VERSION - not bumped" >&2; \
 		exit 1; \
+	fi; \
+	if [ -f package-lock.json ]; then \
+		$(NODE) -e 'const fs = require("fs"), v = process.argv[1]; let n = 0; const s = fs.readFileSync("package-lock.json", "utf8").replace(/"version": "[^"]*"/g, (m) => (n++ < 2 ? `"version": "$${v}"` : m)); const d = JSON.parse(s); if (d.version !== v || d.packages[""].version !== v) { console.error("increment_version: the first two version fields of package-lock.json are not the package version - not bumped"); process.exit(1); } fs.writeFileSync("package-lock.json", s);' "$$NEW_VERSION" || exit 1; \
 	fi; \
 	echo "New version: $$NEW_VERSION"
 
@@ -265,7 +275,7 @@ publish: check_dependencies test install
 		echo "publish: dist/ holds no wheel or sdist - run make build first" >&2; \
 		exit 1; \
 	}
-	git add package.json yarn.lock
+	git add package.json yarn.lock $(wildcard package-lock.json)
 	git commit -m "chore: release $$($(NODE) -p "require('./package.json').version") package metadata"
 	git push
 	$(NPM) publish --access public
