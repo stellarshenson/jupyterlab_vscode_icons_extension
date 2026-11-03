@@ -2,6 +2,12 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.2.36] - 2026-11-03
+
+### Changed
+
+- The Reload Page menu item and the accessible labels of the symbolic link and executable badges go through JupyterLab's translator, so a language pack can translate them; without one they show the same English text as before
+
 ## [1.2.35] - 2026-11-03
 
 ### Fixed

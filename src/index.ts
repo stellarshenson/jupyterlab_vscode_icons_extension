@@ -6,6 +6,7 @@ import { URLExt } from '@jupyterlab/coreutils';
 import { Contents, ServerConnection } from '@jupyterlab/services';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { FileBrowserModel, IDefaultFileBrowser } from '@jupyterlab/filebrowser';
+import { ITranslator, nullTranslator } from '@jupyterlab/translation';
 import { fileIcon, LabIcon, markdownIcon } from '@jupyterlab/ui-components';
 import type { Widget } from '@lumino/widgets';
 
@@ -702,13 +703,17 @@ const plugin: JupyterFrontEndPlugin<void> = {
   description:
     'Jupyterlab extension with a shameless rip-off of the vscode-icons into our beloved environment',
   autoStart: true,
-  optional: [ISettingRegistry, IDefaultFileBrowser],
+  optional: [ISettingRegistry, IDefaultFileBrowser, ITranslator],
   activate: (
     app: JupyterFrontEnd,
     settingRegistry: ISettingRegistry | null,
-    defaultFileBrowser: IDefaultFileBrowser | null
+    defaultFileBrowser: IDefaultFileBrowser | null,
+    translator: ITranslator | null
   ) => {
     const { docRegistry } = app;
+    const trans = (translator ?? nullTranslator).load(
+      'jupyterlab_vscode_icons_extension'
+    );
 
     installTabTooltips(app);
 
@@ -729,7 +734,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       return undefined;
     };
     app.commands.addCommand('jupyterlab_vscode_icons_extension:reload-page', {
-      label: 'Reload Page',
+      label: trans.__('Reload Page'),
       describedBy: { args: { type: 'object', properties: {} } },
       isVisible: () => !!clickedFramePage(),
       execute: () => {
@@ -1528,7 +1533,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
                 const badge = document.createElement('span');
                 badge.className = 'vscode-symlink-badge';
                 badge.setAttribute('role', 'img');
-                badge.setAttribute('aria-label', 'Symbolic link');
+                badge.setAttribute('aria-label', trans.__('Symbolic link'));
                 host.appendChild(badge);
               }
             } else {
@@ -1729,7 +1734,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
               const badge = document.createElement('img');
               badge.className = 'vscode-exec-badge';
               badge.src = playGlyphDataUri;
-              badge.alt = 'Executable';
+              badge.alt = trans.__('Executable');
               iconContainer.appendChild(badge);
             }
           } else if (existingBadge) {

@@ -128,8 +128,8 @@ describe('activate without the optional services', () => {
     expect(cpp!.extensions).toContain('.ino');
   });
 
-  it('declares both services optional, which is what makes null legal', () => {
-    expect(plugin.optional).toHaveLength(2);
+  it('declares every service optional, which is what makes null legal', () => {
+    expect(plugin.optional).toHaveLength(3);
     expect(plugin.requires ?? []).toHaveLength(0);
   });
 });
