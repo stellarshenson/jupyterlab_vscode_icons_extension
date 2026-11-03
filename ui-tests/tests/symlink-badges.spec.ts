@@ -70,12 +70,12 @@ test('file and folder links retain their icons with visible badges', async ({
     await expect(regular.locator('.vscode-symlink-badge')).toHaveCount(0);
   }
   await expect(page.locator('.vscode-symlink-badge')).toHaveCount(2);
-  await page.screenshot({ path: 'test-results/symlinks-light.png' });
+  await page.screenshot({ path: test.info().outputPath('symlinks-light.png') });
   await page.theme.setTheme('JupyterLab Dark');
   await expect(
     row(page, 'linked.js').locator('.vscode-symlink-badge')
   ).toBeVisible();
-  await page.screenshot({ path: 'test-results/symlinks-dark.png' });
+  await page.screenshot({ path: test.info().outputPath('symlinks-dark.png') });
 });
 
 test('refresh removes the badge when a link becomes a regular file', async ({

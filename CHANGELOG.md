@@ -2,6 +2,13 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.2.35] - 2026-11-03
+
+### Fixed
+
+- The terminal tab tooltip shows the terminal's working directory again on a lab whose root is under the home folder; the server read the root in the `~/...` form JupyterLab stores it in and treated every directory as outside the root
+- The Galata suite runs its test server with the root under its home, as on a real lab, and no longer fails on a screenshot written into the project, on page fetches by other installed extensions, on a tab title read before the lab wrote it, or on test folders deleted while the lab listed the root
+
 ## [1.2.34] - 2026-10-31
 
 ### Changed

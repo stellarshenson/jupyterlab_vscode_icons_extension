@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
+from unittest.mock import patch
 from urllib.parse import urlencode
 
 from jupyter_server.auth.authorizer import Authorizer
@@ -126,6 +127,16 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
             answer = json.loads(response.body) if response.code == 200 else None
             time.sleep(0.1)
         self.assertEqual(answer, expected)
+
+    def test_terminal_cwd_resolves_a_root_stored_under_home(self):
+        # jupyter_server stores a root under $HOME in the ~ form.
+        self._app.settings['server_root_dir'] = '~/root'
+        (self.root / 'sub').mkdir()
+        self.add_terminal('1', ['sleep', '30'], cwd=self.root / 'sub')
+        with patch.dict(os.environ, HOME=str(self.root.parent)):
+            response = self.terminal_cwd('1')
+        self.assertEqual(response.code, 200)
+        self.assertEqual(json.loads(response.body), {'cwd': 'sub'})
 
     def test_terminal_cwd_is_empty_for_a_foreground_process_outside_the_root(self):
         outside = TemporaryDirectory()

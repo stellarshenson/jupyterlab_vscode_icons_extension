@@ -67,6 +67,9 @@ test.describe('tab tooltip', () => {
     await page.filebrowser.openDirectory(tmpPath);
     await page.filebrowser.open(`${tmpPath}/${LONG}`);
     await expect(tabOf(page, LONG)).toBeVisible();
+    // The lab writes the caption only after it has listed the checkpoints, and
+    // the tests read it from the title and the tooltip (DEF-TEST-95).
+    await expect(tabOf(page, LONG)).toHaveAttribute('title', /^Name: /);
   });
 
   test('shows the full label, the path and the last activity after 800 ms', async ({

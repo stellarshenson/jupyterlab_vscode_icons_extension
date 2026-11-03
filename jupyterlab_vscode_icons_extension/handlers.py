@@ -175,7 +175,7 @@ class TerminalCwdHandler(APIHandler):
         # The browser never learns the server root, so the path is relativised
         # here; outside the root it is dropped rather than sent absolute.
         root = self.settings.get('server_root_dir')
-        root = os.path.realpath(root) if root else ''
+        root = os.path.realpath(os.path.expanduser(root)) if root else ''
         if not root or cwd == root or not _within_root(cwd, root):
             cwd = ''
         else:

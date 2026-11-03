@@ -188,6 +188,38 @@ Jest, the Playwright ui-tests and their output
   - log: 2026-10-26T22:21:43Z @kj added
   - log: 2026-10-26T22:21:56Z @kj edited test-tags added "FUNCTIONAL"
   - log: 2026-10-27T09:53:35Z @kj closed
+- [x] `DEF-TEST-94-SHOT-READONLY` **Symlink spec writes a screenshot into the project** - MEDIUM; symlink-badges.spec.ts:44 fails every run in the bubblewrap runner with `EROFS: read-only file system, open 'test-results/symlinks-light.png'`; the dark theme half never runs; cause: screenshot path relative to ui-tests, and the runner mounts the project read-only; `ui-tests/tests/symlink-badges.spec.ts`
+  - evidence: symlink-badges.spec.ts:44 writes screenshots under test.info().outputPath; 5 of 5 runner runs green, 0 EROFS; reviewed tree Galata 114/114 (logs/tooltip-final-galata.log)
+  - root-cause: 2026-11-03T09:29:02Z @kj page.screenshot path `test-results/symlinks-light.png` is relative to ui-tests and ignores --output; the runner mounts the project read-only, so the write fails with EROFS
+  - repro: galata-bwrap.sh runner, npx playwright test tests/symlink-badges.spec.ts
+  - test-tags: FUNCTIONAL
+  - log: 2026-11-02T22:26:28Z @kj added
+  - log: 2026-11-03T09:35:35Z @kj closed
+- [x] `DEF-TEST-95-TITLE-RACE` **Tooltip title test fails sometimes** - MEDIUM; tab-tooltip.spec.ts:250 failed in the full run at line 260: Expected "", Received the tab caption; passed 4 of 4 alone; cause: the test read the title before the lab wrote the caption; fix: beforeEach waits for the caption; `ui-tests/tests/tab-tooltip.spec.ts`
+  - evidence: tab-tooltip.spec.ts beforeEach waits for the lab caption; 10 of 10 green under a load that failed the old spec 4 of 10; reviewed tree Galata 114/114 (logs/tooltip-final-galata.log)
+  - root-cause: 2026-11-03T09:29:02Z @kj the tests read the tab title before docmanager setCaption wrote it; setCaption waits for listCheckpoints, up to 2848 ms after the tab is visible under load; the product restores the newest caption correctly
+  - repro: full Galata suite in the runner under load; alone it passes
+  - test-tags: FUNCTIONAL
+  - log: 2026-11-02T22:26:28Z @kj added
+  - log: 2026-11-03T09:35:35Z @kj closed
+  - log: 2026-11-03T09:38:45Z @kj amended text "tab-tooltip.spec.ts:250 failed in the full run at line 260: Expected "", Received the tab caption; passed 4 of 4 alone; cause under investigation; `ui-tests/tests/tab-tooltip.spec.ts`" -> "tab-tooltip.spec.ts:250 failed in the full run at line 260: Expected "", Received the tab caption; passed 4 of 4 alone; cause: the test read the title before the lab wrote the caption; fix: beforeEach waits for the caption; `ui-tests/tests/tab-tooltip.spec.ts`"
+- [x] `DEF-TEST-97-PAINT-TIMEOUT` **Painted row box test times out in the full suite** - MEDIUM; file-browser-icons.spec.ts:163 "a painted row has a box the background can fill" hit `Test timeout of 90000ms exceeded.` in the second full run, position 6 of 114, load average 32 to 41; passed alone 2 of 2 in about 10 s; cause and fix: those of DEF-TEST-98-DIR-MISSING; `ui-tests/tests/file-browser-icons.spec.ts`
+  - evidence: cause and change shared with DEF-TEST-98-DIR-MISSING; file-browser-icons.spec.ts:163 passed in 3 full runs since, Galata 114/114 each, last on the reviewed tree (logs/tooltip-final-galata.log)
+  - related: DEF-TEST-98-DIR-MISSING
+  - root-cause: 2026-11-03T09:29:03Z @kj same cause as DEF-TEST-98-DIR-MISSING: the root listing of the test body's home click answered 404, the `Directory not found` dialog covered the folder row, and Galata's dblclick retried until the 90 s test timeout; the paint code was never reached
+  - repro: full Galata suite in the runner under load (logs/suite-green-full-galata.log)
+  - test-tags: FUNCTIONAL
+  - log: 2026-11-03T04:35:11Z @kj added
+  - log: 2026-11-03T09:35:35Z @kj closed
+  - log: 2026-11-03T09:38:45Z @kj amended text "file-browser-icons.spec.ts:163 "a painted row has a box the background can fill" hit `Test timeout of 90000ms exceeded.` in the second full run, position 6 of 114, load average 32 to 41; passed alone 2 of 2 in about 10 s; cause under investigation; `ui-tests/tests/file-browser-icons.spec.ts`" -> "file-browser-icons.spec.ts:163 "a painted row has a box the background can fill" hit `Test timeout of 90000ms exceeded.` in the second full run, position 6 of 114, load average 32 to 41; passed alone 2 of 2 in about 10 s; cause and fix: those of DEF-TEST-98-DIR-MISSING; `ui-tests/tests/file-browser-icons.spec.ts`"
+- [x] `DEF-TEST-98-DIR-MISSING` **Lab shows Directory not found during a favicon test** - MEDIUM; tab-page-icons.spec.ts:472 timed out in Galata utils.ts:200 before the test body, and the page showed the dialog `Directory not found: ""`; a root listing answered 404; cause: jupyter_server 2.21.1 listing race with Galata teardown deleting test folders; fix: serverFiles on; `ui-tests/playwright.config.js`
+  - evidence: serverFiles on in ui-tests/playwright.config.js: root listing 404s 11 of 917 before, 0 of 906 after; Galata 114/114 in 3 full runs since, last on the reviewed tree (logs/tooltip-final-galata.log)
+  - root-cause: 2026-11-03T09:29:02Z @kj jupyter_server 2.21.1 AsyncFileContentsManager._dir_model answers 404 for the whole listing when an entry is deleted between the listing and its get (allow_hidden True); Galata teardown in the other worker deleted test folders in the shared root, 2 ms before the 404
+  - repro: full Galata suite in the runner under load (logs/suite-green-full-galata.log)
+  - test-tags: FUNCTIONAL
+  - log: 2026-11-03T04:35:17Z @kj added
+  - log: 2026-11-03T09:35:35Z @kj closed
+  - log: 2026-11-03T09:38:45Z @kj amended text "tab-page-icons.spec.ts:472 timed out in Galata utils.ts:200 before the test body, and the page showed the dialog `Directory not found: ""`; second full run, position 89 of 114; passed alone 2 of 2; a listing answered 404; cause under investigation; `ui-tests/tests/tab-page-icons.spec.ts`" -> "tab-page-icons.spec.ts:472 timed out in Galata utils.ts:200 before the test body, and the page showed the dialog `Directory not found: ""`; a root listing answered 404; cause: jupyter_server 2.21.1 listing race with Galata teardown deleting test folders; fix: serverFiles on; `ui-tests/playwright.config.js`"
 
 ## Lint and static analysis `LINT`
 
@@ -440,6 +472,27 @@ Icons on the dock panel tabs of open documents
   - log: 2026-10-28T10:56:57Z @kj added
   - log: 2026-10-28T10:56:57Z @kj deferred by review round 3 (ux-designer MAJOR, bug-hunter MINOR); owner chose a cache-busting query parameter over accepting the limit
   - log: 2026-10-28T11:32:55Z @kj closed: fixed and verified; review round 4 SHIP
+- [x] `DEF-TABS-93-TERMCWD-ROOT` **Terminal tooltip drops the working directory** - MAJOR; terminal tab tooltip shows no working directory line when the lab root is under home; cause: `server_root_dir` holds `~/workspace`, `os.path.realpath` does not expand `~`, so every directory counts as outside the root; fix: expand `~` before the check; `jupyterlab_vscode_icons_extension/handlers.py:177`
+  - evidence: test_terminal_cwd_resolves_a_root_stored_under_home and tab-tooltip.spec.ts:124 with the Galata root under HOME fail without the fix and pass with it; reviewed tree: pytest 27, Galata 114/114 (logs/tooltip-final-galata.log); review SHIP in round 2
+  - related: ACC-TABS-69-TIP-TERMCWD
+  - related: ACC-TABS-73-TOOLTIP-PATH
+  - repro: lab root /home/lab/workspace, terminal in a subfolder, hover its tab 0.8 s: no directory line; GET vscode-icons/terminal-cwd/<name> answers {"cwd": ""}
+  - test-tags: UNIT, FUNCTIONAL
+  - root-cause: 2026-11-02T21:33:54Z @kj jupyter_server serverapp.py:409-411 rewrites a root under $HOME to `~/...` in `server_root_dir`; handlers.py:177-179 passes that to os.path.realpath, which keeps `~` literal, so _within_root is False. test_handlers.py:58 sets an absolute root and Galata uses a /tmp root, so no test saw it
+  - log: 2026-11-02T21:33:54Z @kj added
+  - log: 2026-11-02T21:33:54Z @kj reported: "why is the cwd not displayed in the tab tooltip?"
+  - log: 2026-11-02T21:33:54Z @kj reproduced on live lab, installed 1.2.34: 11 of 11 terminals answer {"cwd": ""}; path check False with `~/workspace`, True with it expanded; behaviour dates from 1.2.23 (ACC-TABS-73-TOOLTIP-PATH)
+  - log: 2026-11-03T09:29:10Z @kj related ACC-TABS-73-TOOLTIP-PATH removed, line read "ACC-TABS-73-TOOLTIP-PATH; ACC-TABS-73-TOOLTIP-PATH" - removed a duplicate related line
+  - log: 2026-11-03T09:35:35Z @kj closed
+  - log: 2026-11-03T09:38:45Z @kj edited evidence "test_terminal_cwd_resolves_a_root_stored_under_home and tab-tooltip.spec.ts:121 with the Galata root under HOME fail without the fix and pass with it; reviewed tree: pytest 27, Galata 114/114 (logs/tooltip-final-galata.log); review SHIP in round 2" -> "test_terminal_cwd_resolves_a_root_stored_under_home and tab-tooltip.spec.ts:124 with the Galata root under HOME fail without the fix and pass with it; reviewed tree: pytest 27, Galata 114/114 (logs/tooltip-final-galata.log); review SHIP in round 2"; reason: the spec test moved to line 124
+- [x] `DEF-TABS-96-FRAME-TWICE` **Web page tab requests its page twice** - MAJOR; tab-page-icons.spec.ts:583 and :634 fail every run, :766 sometimes: server sees 2 or more GET of a page where the test expects 1, before any Reload Page; cause: a title fetch by jupyterlab_bookmarks_manager_extension, the frame loads once; fix: the tests count frame loads only; `ui-tests/tests/tab-page-icons.spec.ts`
+  - evidence: reload tests count frame loads only, leaving out fetches (sec-fetch-dest empty); 5 of 5 runner runs green, Reload Page mutants fail them; reviewed tree Galata 114/114 (logs/tooltip-final-galata.log)
+  - root-cause: 2026-11-03T09:29:02Z @kj jupyterlab_bookmarks_manager_extension 0.7.91 readServiceName fetches the proxied page (sec-fetch-dest empty) to read its title; the frame itself loads once; the tests counted every GET, so a title fetch, or one from another test's lab page, raised the count
+  - repro: galata-bwrap.sh runner, npx playwright test tests/tab-page-icons.spec.ts -g "web page tab reload": line 589 Expected 1, Received 2
+  - test-tags: FUNCTIONAL
+  - log: 2026-11-02T22:26:35Z @kj added
+  - log: 2026-11-03T09:35:35Z @kj closed
+  - log: 2026-11-03T09:38:45Z @kj amended text "tab-page-icons.spec.ts:583 and :634 fail every run, :766 sometimes: server sees 2 or more GET of a page where the test expects 1, before any Reload Page; a page with side effects would run them twice; cause under investigation; `ui-tests/tests/tab-page-icons.spec.ts`" -> "tab-page-icons.spec.ts:583 and :634 fail every run, :766 sometimes: server sees 2 or more GET of a page where the test expects 1, before any Reload Page; cause: a title fetch by jupyterlab_bookmarks_manager_extension, the frame loads once; fix: the tests count frame loads only; `ui-tests/tests/tab-page-icons.spec.ts`"
 
 ## Icon coverage `ICONS`
 

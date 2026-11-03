@@ -143,7 +143,12 @@ const startServer = async (
   const seen: string[] = [];
   const server = createServer(async (request, response) => {
     const path = (request.url ?? '').split('?')[0];
-    seen.push(path);
+    // A fetch loads no page: where the bookmarks manager extension is
+    // installed, every open lab page reads the title of each proxied page
+    // (DEF-TABS-96).
+    if (request.headers['sec-fetch-dest'] !== 'empty') {
+      seen.push(path);
+    }
     const reply = (await replies[path]) ?? fallback;
     response.writeHead(reply.status ?? 200, {
       'Content-Type': reply.contentType,
@@ -600,6 +605,8 @@ test.describe('web page tab reload', () => {
     expect(await page.evaluate(() => (window as any).reloadMarker)).toBe(
       'kept'
     );
+    // One command, one reload: the poll above stops at the first 2 it sees.
+    expect(count(seen, '/')).toBe(2);
   });
 
   test('lists Reload Page only on web page tabs', async ({ page }) => {

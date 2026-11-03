@@ -4,7 +4,7 @@
 const baseConfig = require('@jupyterlab/galata/lib/playwright-config');
 const { existsSync, mkdirSync, mkdtempSync, symlinkSync } = require('fs');
 const { tmpdir } = require('os');
-const { join } = require('path');
+const { dirname, join } = require('path');
 
 // Galata and the test workers share a temporary filesystem for real links.
 process.env.JUPYTERLAB_GALATA_ROOT_DIR ||= mkdtempSync(
@@ -66,11 +66,23 @@ module.exports = {
   // runs while passing every time on its own. Two workers keep the run near a
   // minute and the server unsaturated.
   workers: 2,
-  use: { ...baseConfig.use, baseURL: BASE_URL },
+  // Galata deletes each test's folder in the server root when the test ends.
+  // jupyter_server 2.21 answers a root listing with 404 when an entry is
+  // deleted while it is listed, and the lab shows 'Directory not found' over
+  // the other worker's page (DEF-TEST-98). serverFiles 'on' keeps the folders;
+  // each run makes a new root above, so they never reach the next run. A preset
+  // JUPYTERLAB_GALATA_ROOT_DIR or a test retry still deletes folders mid-run.
+  // shortcut: Galata's openDirectory matches a folder name by prefix, so a test
+  // whose folder name starts another kept test's folder name fails; rename it.
+  use: { ...baseConfig.use, baseURL: BASE_URL, serverFiles: 'on' },
   webServer: {
     command: 'jlpm start',
     url: `${BASE_URL}/lab`,
     timeout: 120 * 1000,
-    reuseExistingServer: false
+    reuseExistingServer: false,
+    // jupyter_server stores a root under HOME as ~/..., as on a real lab
+    // (DEF-TABS-93). The server then reads no Jupyter config or Python user
+    // packages from the developer's home.
+    env: { HOME: dirname(process.env.JUPYTERLAB_GALATA_ROOT_DIR) }
   }
 };
