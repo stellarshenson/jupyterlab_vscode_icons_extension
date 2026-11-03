@@ -2798,7 +2798,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyterlab/translation@npm:^4.6.5":
+"@jupyterlab/translation@npm:^4.6.0, @jupyterlab/translation@npm:^4.6.5":
   version: 4.6.5
   resolution: "@jupyterlab/translation@npm:4.6.5"
   dependencies:
@@ -3560,6 +3560,7 @@ __metadata:
     "@jupyterlab/services": ^7.6.0
     "@jupyterlab/settingregistry": ^4.6.0
     "@jupyterlab/testutils": ^4.6.0
+    "@jupyterlab/translation": ^4.6.0
     "@jupyterlab/ui-components": ^4.6.0
     "@types/jest": ^29.5.0
     "@types/json-schema": ^7.0.11
