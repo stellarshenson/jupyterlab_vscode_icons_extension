@@ -2,6 +2,13 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.2.37] - 2026-11-10
+
+### Fixed
+
+- The Makefile row and the `.mk` rows show the same icon; another installed extension claimed the Makefile name with a broader file type and was first in the registry, so the file browser painted its icon on Makefile and this extension's icon on the `.mk` rows
+- The integration test jobs install that extension, so the new row-equality test fails when the fix is removed
+
 ## [1.2.36] - 2026-11-03
 
 ### Changed

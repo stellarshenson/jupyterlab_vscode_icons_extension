@@ -606,4 +606,74 @@ test.describe('icon ownership', () => {
     expect(row.fileType, JSON.stringify(row)).toBe('bpmn');
     expect(row.registryIcon).toBe('bpmn:icon');
   });
+
+  // ACC-ICONS-80 / DEF-ICONS-99: jupyterlab_makefile_file_type_extension
+  // registers a makefile type whose pattern also claims `Makefile`, and the
+  // registry's first-pattern-match rule gives that row the foreign icon while
+  // `.mk` still resolves to this extension's. Both rows must show the one icon
+  // this extension registers - painted over a foreign icon where the registry
+  // chose one, registry-rendered where it did not.
+  test('Makefile and .mk rows carry the same icon', async ({
+    page,
+    tmpPath
+  }) => {
+    await page.contents.uploadContent('x', 'text', `${tmpPath}/Makefile`);
+    await page.contents.uploadContent('x', 'text', `${tmpPath}/audio8.mk`);
+    await page.filebrowser.openDirectory(tmpPath);
+    // The row pass runs from a requestAnimationFrame after the listing
+    // mutates; the .mk row ends painted here, or registry-rendered with this
+    // extension's icon on a lab without the competing type. Either state is
+    // final for this test.
+    await page.waitForFunction(
+      () => {
+        const label = [
+          ...document.querySelectorAll('.jp-DirListing-itemText')
+        ].find(n => n.textContent!.trim() === 'audio8.mk');
+        const item = label ? label.closest('.jp-DirListing-item') : null;
+        const host = item
+          ? item.querySelector('.jp-DirListing-itemIcon')
+          : null;
+        const svg = host ? host.querySelector('svg') : null;
+        return (
+          (host &&
+            host.getAttribute('data-vscode-row-icon') ===
+              'registry:vscode-makefile') ||
+          (svg && svg.getAttribute('data-icon') === 'makefile-icon')
+        );
+      },
+      undefined,
+      { timeout: 30000 }
+    );
+    await settleIcons(page);
+    const rows = await page.evaluate(() => {
+      const read = (wanted: string) => {
+        const label = [
+          ...document.querySelectorAll('.jp-DirListing-itemText')
+        ].find(n => n.textContent!.trim() === wanted);
+        const item = label ? label.closest('.jp-DirListing-item') : null;
+        const host = item
+          ? (item.querySelector(
+              '.jp-DirListing-itemIcon'
+            ) as HTMLElement | null)
+          : null;
+        const svg = host ? host.querySelector('svg') : null;
+        return {
+          painted: host ? host.getAttribute('data-vscode-row-icon') : 'no-host',
+          background: host ? host.style.backgroundImage : 'no-host',
+          svgIcon: svg ? svg.getAttribute('data-icon') : 'no-svg',
+          svgVisibility: svg ? getComputedStyle(svg).visibility : 'no-svg'
+        };
+      };
+      return { makefile: read('Makefile'), mk: read('audio8.mk') };
+    });
+    const own = (state: {
+      painted: string | null;
+      svgIcon: string | null;
+    }): boolean =>
+      state.painted === 'registry:vscode-makefile' ||
+      state.svgIcon === 'makefile-icon';
+    expect(own(rows.makefile), JSON.stringify(rows)).toBe(true);
+    expect(own(rows.mk), JSON.stringify(rows)).toBe(true);
+    expect(rows.mk, JSON.stringify(rows)).toEqual(rows.makefile);
+  });
 });

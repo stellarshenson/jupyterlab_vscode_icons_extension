@@ -42,28 +42,32 @@ jest.mock('@jupyterlab/ui-components', () => ({
 
 import plugin from '../index';
 
+type FakeFileType = Record<string, unknown> & { name: string };
+
 type FakeRegistry = {
-  types: Array<{ name: string }>;
-  addFileType: (fileType: { name: string }) => { dispose: () => void };
-  getFileTypesForPath: () => Array<{ name: string }>;
+  types: FakeFileType[];
+  addFileType: (fileType: FakeFileType) => { dispose: () => void };
+  getFileTypesForPath: (path: string) => FakeFileType[];
   getFileType: () => undefined;
   getFileTypeForModel: () => { name: string };
-  fileTypes: () => Iterable<{ name: string }>;
+  fileTypes: () => Iterable<FakeFileType>;
   changed: { connect: () => void };
 };
 
-const fakeApp = (): { app: any; registry: FakeRegistry } => {
-  const types: Array<{ name: string }> = [];
+const fakeApp = (
+  options: { getFileTypesForPath?: FakeRegistry['getFileTypesForPath'] } = {}
+): { app: any; registry: FakeRegistry } => {
+  const types: FakeFileType[] = [];
   const registry: FakeRegistry = {
     types,
     addFileType: fileType => {
       types.push(fileType);
       return { dispose: () => undefined };
     },
-    getFileTypesForPath: () => [],
+    getFileTypesForPath: options.getFileTypesForPath ?? (() => []),
     getFileType: () => undefined,
     getFileTypeForModel: () => ({ name: 'text' }),
-    fileTypes: () => [],
+    fileTypes: () => types,
     changed: { connect: () => undefined }
   };
   return {
@@ -131,5 +135,49 @@ describe('activate without the optional services', () => {
   it('declares every service optional, which is what makes null legal', () => {
     expect(plugin.optional).toHaveLength(3);
     expect(plugin.requires ?? []).toHaveLength(0);
+  });
+
+  // DEF-ICONS-99: jupyterlab_makefile_file_type_extension registers a makefile
+  // type whose pattern also claims `Makefile` and sits earlier in the registry,
+  // so getFileTypesForPath returns that foreign type alone. The row painter has
+  // to scan the registry for this extension's own claim and paint its icon
+  // over the foreign glyph the row rendered.
+  it('paints the own makefile icon when a foreign type wins the pattern', async () => {
+    const foreign: FakeFileType = {
+      name: 'makefile',
+      pattern:
+        '^(Makefile|makefile|GNUmakefile|makefile\\..*|.*\\.(mk|mak|make|makefile))$',
+      extensions: ['.mk', '.mak', '.make', '.makefile'],
+      icon: {
+        name: 'makefile:icon',
+        svgstr: '<svg xmlns="http://www.w3.org/2000/svg"></svg>'
+      }
+    };
+    document.body.innerHTML = `
+      <div class="jp-DirListing-content">
+        <div class="jp-DirListing-item" data-file-type="makefile">
+          <div class="jp-DirListing-itemIcon"><svg data-icon="makefile:icon"></svg></div>
+          <span class="jp-DirListing-itemText">Makefile</span>
+        </div>
+      </div>`;
+    try {
+      const { app } = fakeApp({
+        getFileTypesForPath: path => (path === 'Makefile' ? [foreign] : [])
+      });
+      jest.useFakeTimers();
+      plugin.activate!(app, null, null);
+      // The row pass is installed from the started promise, 500 ms later.
+      await Promise.resolve();
+      jest.advanceTimersByTime(500);
+      // installIconOverrideCSS registers the restored callback.
+      await Promise.resolve();
+      const host = document.querySelector('.jp-DirListing-itemIcon')!;
+      expect(host.getAttribute('data-vscode-row-icon')).toBe(
+        'registry:vscode-makefile'
+      );
+    } finally {
+      jest.useRealTimers();
+      document.body.innerHTML = '';
+    }
   });
 });

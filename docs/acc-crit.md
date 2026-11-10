@@ -94,6 +94,15 @@ Which file gets which vscode-icons glyph in the file browser
   - log: 2026-10-17T15:53:00Z @kj edited text "C, C header, C++, C++ header, Objective-C++, Rust, CUDA and Java render the same hexagon family, with a larger ++ for C++, the Rust gear, the NVIDIA eye and the Java cup." -> "C, C header, C++, C++ header, Objective-C++, Rust, CUDA and Java render the same hexagon family, with a larger ++ for C++, the Rust gear, the NVIDIA eye and the white letter J."
   - log: 2026-10-23T06:32:17Z @kj coded HEXAGON-C
   - log: 2026-10-23T06:32:49Z @kj renamed code "HEXAGON-C" -> "HEXAGON"
+- [x] `ACC-ICONS-80-MK-ICON` **.mk files show the Makefile icon** - LOW; a .mk file shows the same icon in the file browser as Makefile
+  - evidence: jest 206/206 and pytest 27 green; targeted Galata file-browser-icons.spec.ts 13 passed with the new 'Makefile and .mk rows carry the same icon' test; full Galata 115/115; deleting the fallback makes the test fail (logs/mk-icon-fix-1-mutation-galata.log)
+  - mechanism: 2026-11-09T19:51:36Z @kj fixed by the own-type fallback in registryIconFor: when the registry returns only a foreign type, it scans docRegistry.fileTypes() for the first own type whose pattern claims the basename and paints that own icon (ACC-CLASH-70-OURS-WIN)
+  - related: DEF-ICONS-99-MK-ICON
+  - test: open the project folder in the file browser; assert the Makefile row and the audio8.mk row carry the same icon element
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-09T07:59:12Z @kj added
+  - log: 2026-11-09T19:51:27Z @kj closed
+  - log: 2026-11-09T19:51:36Z @kj mechanism updated "2026-11-09T19:51:27Z @kj fixed by the own-type fallback in registryIconFor: when the registry returns only a foreign type, it scans docRegistry.fileTypes() for the first own type whose pattern claims the basename and paints that own icon (ACC-CLASH-70)" -> "fixed by the own-type fallback in registryIconFor: when the registry returns only a foreign type, it scans docRegistry.fileTypes() for the first own type whose pattern claims the basename and paints that own icon (ACC-CLASH-70-OURS-WIN)"
 
 ## Settings and icon groups `CONFIG`
 

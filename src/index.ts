@@ -17,6 +17,7 @@ import { generateIconSVG, getIconForFile, getIconSVG } from './icons';
 import { parsePyprojectToml, parseSetupPy } from './parsers';
 import { applyJupytext1191Hotfix } from './hotfixes';
 import { mirrorIconForTypes } from './tab-mirror';
+import { ownTypeForName } from './own-file-type';
 import { faviconSources, pageKindForUrl } from './page-kind';
 // Loaded eagerly on purpose: activate() starts recording tab activity at
 // once, so a tab opened during start-up has its first activity time.
@@ -1970,7 +1971,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
         foreign: boolean
       ): { key: string; svgstr: string; owner: string } | null => {
         try {
-          const types = disabledExplicitOwner(path)
+          const disabled = disabledExplicitOwner(path);
+          const types = disabled
             ? [independentFileType(path)]
             : docRegistry.getFileTypesForPath(path);
           for (const type of types) {
@@ -1986,6 +1988,28 @@ const plugin: JupyterFrontEndPlugin<void> = {
             ) {
               return {
                 key: `registry:${type.name}`,
+                svgstr: icon.svgstr,
+                owner: icon.name || ''
+              };
+            }
+          }
+          // `getFileTypesForPath` keeps only the first pattern match, so a
+          // foreign type registered earlier hides this extension's claim on
+          // the same name - `Makefile` while the makefile file type extension
+          // is installed (DEF-ICONS-99). Ranking the own claim here gives the
+          // Makefile and .mk rows the one icon this extension registers. A
+          // disabled group is skipped: its type can still be registered until
+          // the promised reload.
+          if (!foreign && !disabled) {
+            const own = ownTypeForName(
+              path.split('/').pop() || '',
+              [...docRegistry.fileTypes()],
+              isOwnType
+            );
+            const icon = own?.icon as any;
+            if (own && icon?.svgstr) {
+              return {
+                key: `registry:${own.name}`,
                 svgstr: icon.svgstr,
                 owner: icon.name || ''
               };

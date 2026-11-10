@@ -803,6 +803,14 @@ Which file gets which glyph in the file browser and on tabs
   - log: 2026-10-16T17:26:05Z @kj edited text "a listed pyproject.toml or setup.py whose contents GET always fails, for example 403, is requested again about once per 10 s poll and logs one console error each time" -> "a listed pyproject.toml or setup.py whose contents GET always fails, for example 403, is requested again about once per 10 s poll and logs one console error each time; a readable manifest in the same folder is requested again with it, without an error"
   - log: 2026-10-23T06:32:17Z @kj coded UNREADABLE-MANIFEST
   - log: 2026-10-23T06:32:55Z @kj renamed code "UNREADABLE-MANIFEST" -> "UNREADABLE-POLL"
+- [x] `DEF-ICONS-99-MK-ICON` **.mk files show a different icon than Makefile** - MINOR; .mk files show a different icon than Makefile although src/index.ts:2896 maps .mk to the same vscode-makefile file type and icon; cause under investigation - probe the rendered icon in the lab first; `src/index.ts`
+  - evidence: full gates green: jest 206, pytest 27, Galata 115/115; deleting the fallback makes the regression test fail with the defect state; verifier PASS round 2 (VERIFY-2.md); adversarial round 1 SHIP
+  - root-cause: 2026-11-09T19:51:27Z @kj Competing jupyterlab_makefile_file_type_extension registers a makefile type whose pattern claims .mk and sits first in the registry; _getFileTypesForPath returns only the first pattern match, so Makefile kept makefile:icon while .mk rows got vscode-makefile; fixed by the own-type fallback
+  - repro: open the project folder in the file browser; the Makefile row shows the red makefile icon, audio8.mk and the other .mk rows show a pale icon
+  - test-tags: MANUAL
+  - log: 2026-11-09T07:57:48Z @kj added
+  - log: 2026-11-09T07:57:54Z @kj reported: ".mk files have different icon than makefile"; screenshot /tmp/paste-files/paste-20261109-083556.png shows Makefile red, six .mk pale
+  - log: 2026-11-09T19:51:27Z @kj closed
 
 ## Settings and icon groups `CONFIG`
 
