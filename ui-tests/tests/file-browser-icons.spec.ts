@@ -677,3 +677,84 @@ test.describe('icon ownership', () => {
     expect(rows.mk, JSON.stringify(rows)).toEqual(rows.makefile);
   });
 });
+
+// ACC-ICONS-80 / DEF-ICONS-100: the owner adopted the Makefile icon from
+// jupyterlab_makefile_file_type_extension, whose tight viewBox is
+// 23 11 82 106. This extension's padded 19 7 90 114 copy let the row
+// contrast outline's drop-shadow ink fill the 1-2px gear cutouts, which the
+// owner saw as gray. The theme is set before the subject rows are uploaded
+// and the folder opened, so their first paint measures against the dark
+// listing background. The panel background is pinned to the owner's measured
+// dark one: JupyterLab Dark's own panel is #212121, where #c2544f clears the
+// 3:1 bar and no outline is due; the measured #333840 is 2.63:1, which is the
+// background the defect was recorded on.
+test('the makefile rows keep the tight box and take no outline', async ({
+  page,
+  tmpPath
+}) => {
+  await page.theme.setDarkTheme();
+  await page.waitForFunction(
+    () => document.body.getAttribute('data-jp-theme-light') === 'false',
+    undefined,
+    { timeout: 30000 }
+  );
+  await page.addStyleTag({
+    content:
+      '.jp-DirListing-content { background-color: rgb(51, 56, 64) !important; }'
+  });
+  await page.contents.uploadContent('x', 'text', `${tmpPath}/Makefile`);
+  await page.contents.uploadContent('x', 'text', `${tmpPath}/audio8.mk`);
+  await page.filebrowser.openDirectory(tmpPath);
+  await page.waitForFunction(
+    () => {
+      const painted = (wanted: string): boolean => {
+        const label = [
+          ...document.querySelectorAll('.jp-DirListing-itemText')
+        ].find(n => n.textContent!.trim() === wanted);
+        const item = label ? label.closest('.jp-DirListing-item') : null;
+        const host = item
+          ? item.querySelector('.jp-DirListing-itemIcon')
+          : null;
+        return (
+          host !== null &&
+          host.getAttribute('data-vscode-row-icon') ===
+            'registry:vscode-makefile'
+        );
+      };
+      return painted('Makefile') && painted('audio8.mk');
+    },
+    undefined,
+    { timeout: 30000 }
+  );
+  await settleIcons(page);
+  const rows = await page.evaluate(() => {
+    const read = (wanted: string) => {
+      const label = [
+        ...document.querySelectorAll('.jp-DirListing-itemText')
+      ].find(n => n.textContent!.trim() === wanted);
+      const item = label ? label.closest('.jp-DirListing-item') : null;
+      const host = item
+        ? (item.querySelector('.jp-DirListing-itemIcon') as HTMLElement | null)
+        : null;
+      return {
+        painted: host ? host.getAttribute('data-vscode-row-icon') : 'no-host',
+        background: host ? host.style.backgroundImage : 'no-host',
+        outline: host ? host.hasAttribute('data-vscode-row-outline') : null
+      };
+    };
+    return { makefile: read('Makefile'), mk: read('audio8.mk') };
+  });
+  const artwork = decodeURIComponent(rows.makefile.background);
+  expect(rows.makefile.painted, JSON.stringify(rows)).toBe(
+    'registry:vscode-makefile'
+  );
+  expect(rows.mk.painted, JSON.stringify(rows)).toBe(
+    'registry:vscode-makefile'
+  );
+  expect(rows.makefile.background, JSON.stringify(rows)).toBe(
+    rows.mk.background
+  );
+  expect(artwork).toContain('viewBox="23 11 82 106"');
+  expect(rows.makefile.outline, JSON.stringify(rows)).toBe(false);
+  expect(rows.mk.outline, JSON.stringify(rows)).toBe(false);
+});

@@ -2,6 +2,12 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.2.38] - 2026-11-10
+
+### Fixed
+
+- The Makefile and `.mk` rows show the makefile icon with its gear cutouts transparent rather than filled gray; the glyph takes the makefile file type extension's tight box and the row no longer draws the contrast outline over it, whose ink filled the 1-2px cutouts
+
 ## [1.2.37] - 2026-11-10
 
 ### Fixed

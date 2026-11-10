@@ -95,14 +95,17 @@ Which file gets which vscode-icons glyph in the file browser
   - log: 2026-10-23T06:32:17Z @kj coded HEXAGON-C
   - log: 2026-10-23T06:32:49Z @kj renamed code "HEXAGON-C" -> "HEXAGON"
 - [x] `ACC-ICONS-80-MK-ICON` **.mk files show the Makefile icon** - LOW; a .mk file shows the same icon in the file browser as Makefile
-  - evidence: jest 206/206 and pytest 27 green; targeted Galata file-browser-icons.spec.ts 13 passed with the new 'Makefile and .mk rows carry the same icon' test; full Galata 115/115; deleting the fallback makes the test fail (logs/mk-icon-fix-1-mutation-galata.log)
-  - mechanism: 2026-11-09T19:51:36Z @kj fixed by the own-type fallback in registryIconFor: when the registry returns only a foreign type, it scans docRegistry.fileTypes() for the first own type whose pattern claims the basename and paints that own icon (ACC-CLASH-70-OURS-WIN)
+  - evidence: both rows carry registry:vscode-makefile with the adopted tight box 23 11 82 106 and no row outline; the Galata makefile test and the jest viewBox assertion fail when either half is reverted; jest 207/207, pytest 27, Galata 116/116
+  - mechanism: 2026-11-10T22:48:51Z @kj the own-type fallback keeps this extension icon first for Makefile and .mk (ACC-CLASH-70-OURS-WIN); the makefile glyph carries the adopted tight box 23 11 82 106 and is exempt from the row contrast outline, so its gear cutouts stay transparent
   - related: DEF-ICONS-99-MK-ICON
+  - related: DEF-ICONS-100-MAKEFILE-SVG
   - test: open the project folder in the file browser; assert the Makefile row and the audio8.mk row carry the same icon element
   - test-tags: UNIT, FUNCTIONAL
   - log: 2026-11-09T07:59:12Z @kj added
   - log: 2026-11-09T19:51:27Z @kj closed
   - log: 2026-11-09T19:51:36Z @kj mechanism updated "2026-11-09T19:51:27Z @kj fixed by the own-type fallback in registryIconFor: when the registry returns only a foreign type, it scans docRegistry.fileTypes() for the first own type whose pattern claims the basename and paints that own icon (ACC-CLASH-70)" -> "fixed by the own-type fallback in registryIconFor: when the registry returns only a foreign type, it scans docRegistry.fileTypes() for the first own type whose pattern claims the basename and paints that own icon (ACC-CLASH-70-OURS-WIN)"
+  - log: 2026-11-10T22:48:51Z @kj edited evidence "jest 206/206 and pytest 27 green; targeted Galata file-browser-icons.spec.ts 13 passed with the new 'Makefile and .mk rows carry the same icon' test; full Galata 115/115; deleting the fallback makes the test fail (logs/mk-icon-fix-1-mutation-galata.log)" -> "both rows carry registry:vscode-makefile with the adopted tight box 23 11 82 106 and no row outline; the Galata makefile test and the jest viewBox assertion fail when either half is reverted; jest 207/207, pytest 27, Galata 116/116"
+  - log: 2026-11-10T22:48:51Z @kj mechanism updated "2026-11-09T19:51:36Z @kj fixed by the own-type fallback in registryIconFor: when the registry returns only a foreign type, it scans docRegistry.fileTypes() for the first own type whose pattern claims the basename and paints that own icon (ACC-CLASH-70-OURS-WIN)" -> "the own-type fallback keeps this extension icon first for Makefile and .mk (ACC-CLASH-70-OURS-WIN); the makefile glyph carries the adopted tight box 23 11 82 106 and is exempt from the row contrast outline, so its gear cutouts stay transparent"
 
 ## Settings and icon groups `CONFIG`
 

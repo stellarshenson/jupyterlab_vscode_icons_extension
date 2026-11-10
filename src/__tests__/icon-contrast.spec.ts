@@ -343,6 +343,14 @@ describe('makefile sheet contrast', () => {
     const at = source.indexOf('const makefileSvg =');
     expect(source.slice(at, at + 4000)).toContain('class="makefile-glyph"');
   });
+
+  it('carries the tight box the owner adopted', () => {
+    // DEF-ICONS-100: the makefile file type extension draws this sheet in
+    // viewBox 23 11 82 106, and the owner adopted that icon. The padded
+    // 19 7 90 114 copy made the row outline ink fill the gear cutouts.
+    const at = source.indexOf('const makefileSvg =');
+    expect(source.slice(at, at + 4000)).toContain('viewBox="23 11 82 106"');
+  });
 });
 
 describe('selected-row recolour reaches every ink path', () => {
