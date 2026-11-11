@@ -2,6 +2,12 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.2.39] - 2026-11-11
+
+### Added
+
+- The `.stl`, `.ply`, `.3mf`, `.step`, `.stp`, `.obj` and `.glb` files the advanced image viewer opens show one shared 3D cube icon in the file browser, and their tabs show it too; the cube recolours on a selected row so every face stays readable on the selection band
+
 ## [1.2.38] - 2026-11-10
 
 ### Fixed

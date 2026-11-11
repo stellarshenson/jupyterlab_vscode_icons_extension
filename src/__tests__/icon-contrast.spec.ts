@@ -15,6 +15,7 @@
  */
 
 import { CONTRAST_BAR } from '../contrast';
+import { customIcons } from '../custom-icons';
 
 const source: string = require('fs').readFileSync(
   require('path').join(__dirname, '..', 'index.ts'),
@@ -62,6 +63,36 @@ const dbRecolour = (): { from: string; to: string } => {
     throw new Error('the selected-row recolour of dbSvg is gone');
   }
   return { from: match[1].toLowerCase(), to: match[2].toLowerCase() };
+};
+
+/** Every face fill of the custom mesh cube, in drawing order. */
+const meshFills = (): string[] => {
+  const body = customIcons['file-type-mesh'];
+  if (!body) {
+    throw new Error("customIcons['file-type-mesh'] is gone");
+  }
+  const fills = body.match(/fill="(#[0-9a-fA-F]{6})"/g);
+  if (!fills || fills.length === 0) {
+    throw new Error('the mesh cube has no fills');
+  }
+  return fills.map(fill => fill.slice(6, -1).toLowerCase());
+};
+
+/** The recolours the selected-row mesh variant applies, read from the call. */
+const meshRecolours = (): { from: string; to: string }[] => {
+  const at = source.indexOf('const meshSelectedDataUri =');
+  if (at < 0) {
+    throw new Error('the selected-row recolour of the mesh cube is gone');
+  }
+  const end = source.indexOf('`;', at);
+  const body = source.slice(at, end < 0 ? at + 2000 : end);
+  const pattern = /\.replace\(\/(#[0-9a-fA-F]{6})\/g,\s*'(#[0-9a-fA-F]{6})'\)/g;
+  const pairs: { from: string; to: string }[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(body)) !== null) {
+    pairs.push({ from: match[1].toLowerCase(), to: match[2].toLowerCase() });
+  }
+  return pairs;
 };
 
 const srgbToLinear = (channel: number): number => {
@@ -132,6 +163,9 @@ const MAKEFILE_SELECTED = ruleFill(
 );
 // The bar is the product's own constant, not a value to re-type here.
 const BAR = CONTRAST_BAR;
+// The mesh cube's three faces and the recolour a selected row applies.
+const MESH_FILLS = meshFills();
+const MESH_RECOLOURS = meshRecolours();
 
 describe('contrast helper', () => {
   // Anchors the helper itself: black on white is the known extreme, so a broken
@@ -166,6 +200,37 @@ describe('database icon contrast', () => {
     // recoloured and that call is not, the replace silently does nothing and
     // the selected row goes back to failing the bar.
     expect(RECOLOUR.from).toBe(DB_BLUE);
+  });
+});
+
+describe('mesh cube contrast', () => {
+  // ACC-ICONS-81-MESH-ICON: three faces of one artwork, none clearing 3:1 on
+  // the dark selection band, and no single mix toward one pole clearing both
+  // bands. Each face therefore takes its own measured shade.
+  it('recolours every face of the cube that ships', () => {
+    expect(MESH_FILLS.length).toBe(3);
+    expect(MESH_RECOLOURS.map(pair => pair.from)).toEqual(MESH_FILLS);
+  });
+
+  it.each([
+    ['light selection band', BRAND_LIGHT],
+    ['dark selection band', BRAND_DARK]
+  ])('clears the bar with every face on the %s', (_label, band) => {
+    MESH_RECOLOURS.forEach(pair =>
+      expect(contrast(pair.to, band)).toBeGreaterThanOrEqual(BAR)
+    );
+  });
+
+  it('is why the variant exists: every face fails on the dark band', () => {
+    MESH_FILLS.forEach(fill =>
+      expect(contrast(fill, BRAND_DARK)).toBeLessThan(BAR)
+    );
+  });
+
+  it('binds the rule that swaps in the variant to the mesh row', () => {
+    expect(source).toMatch(
+      /\.jp-DirListing-item\.jp-mod-selected\s+\.jp-DirListing-itemIcon\[data-vscode-row-icon='file-type-mesh'\][\s\S]*?url\('\$\{meshSelectedDataUri\}'\) !important;/
+    );
   });
 });
 

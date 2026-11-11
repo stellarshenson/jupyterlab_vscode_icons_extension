@@ -147,6 +147,15 @@ export const extensionToIcon: IIconMapping = {
   webp: 'file-type-image',
   bmp: 'file-type-image',
 
+  // 3D models - one shared cube (ACC-ICONS-81)
+  stl: 'file-type-mesh',
+  ply: 'file-type-mesh',
+  '3mf': 'file-type-mesh',
+  step: 'file-type-mesh',
+  stp: 'file-type-mesh',
+  obj: 'file-type-mesh',
+  glb: 'file-type-mesh',
+
   // Archives
   zip: 'file-type-zip',
   tar: 'file-type-zip',

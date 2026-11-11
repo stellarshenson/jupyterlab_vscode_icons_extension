@@ -29,7 +29,21 @@ describe('getIconForFile', () => {
     ['main.cs', 'file-type-csharp2'],
     ['kernel.cu', 'file-type-cuda-hexagon'],
     ['Main.java', 'file-type-java-hexagon'],
-    ['main.rs', 'file-type-rust-hexagon']
+    ['main.rs', 'file-type-rust-hexagon'],
+    ['part.stl', 'file-type-mesh'],
+    ['part.ply', 'file-type-mesh'],
+    ['part.3mf', 'file-type-mesh'],
+    ['part.step', 'file-type-mesh'],
+    ['part.stp', 'file-type-mesh'],
+    ['part.obj', 'file-type-mesh'],
+    ['part.glb', 'file-type-mesh'],
+    ['PART.STL', 'file-type-mesh'],
+    ['PART.PLY', 'file-type-mesh'],
+    ['PART.3MF', 'file-type-mesh'],
+    ['PART.STEP', 'file-type-mesh'],
+    ['PART.STP', 'file-type-mesh'],
+    ['PART.OBJ', 'file-type-mesh'],
+    ['PART.GLB', 'file-type-mesh']
   ])('maps %s to %s', (filename, expected) => {
     expect(getIconForFile(filename)).toBe(expected);
   });
@@ -97,6 +111,15 @@ describe('generateIconSVG', () => {
     ]) {
       expect(getIconSVG(name)).not.toBe(getIconSVG('default-file'));
       expect(getIconViewBox(name)).toBe('0 0 32 32');
+    }
+  });
+
+  it('draws the shared 3D mesh cube with three faces in its own box', () => {
+    expect(getIconSVG('file-type-mesh')).not.toBe(getIconSVG('default-file'));
+    const svg = generateIconSVG('file-type-mesh');
+    expect(svg).toContain('viewBox="0 0 32 32"');
+    for (const fill of ['#9adcf5', '#4a9fd4', '#2e79a8']) {
+      expect(svg).toContain(`fill="${fill}"`);
     }
   });
 });

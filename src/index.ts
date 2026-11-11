@@ -895,6 +895,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const logSelectedDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(
         generateIconSVG('file-type-log').replace(/#00bd02/g, '#fff')
       )}`;
+      // Selected-row variant for the mesh cube (ACC-ICONS-81-MESH-ICON). Every
+      // face of the shipped artwork measures under 3:1 on the dark selection
+      // band (#2196f3), so a selected row swaps in this recolour. One shared
+      // mix toward a pole cannot clear both bands, so the three faces are
+      // mapped separately, in drawing order, to shades that each clear the bar
+      // on both (#ffffff 3.12/4.60, #202020 5.21/3.54, #000000 6.72/4.56).
+      const meshSelectedDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(
+        generateIconSVG('file-type-mesh')
+          .replace(/#9adcf5/g, '#ffffff')
+          .replace(/#4a9fd4/g, '#202020')
+          .replace(/#2e79a8/g, '#000000')
+      )}`;
       const uvSvg =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 330"><rect height="100%" width="100%" rx="66" fill="#26102f"/><path fill="#d256dc" d="M 65,65 h92 v130 h16 v-130 h92 v200 h-16 v-20 h-8 a20,20 0 0 1 -20,20 h-136 a20,20 0 0 1 -20,-20 z"/></svg>';
       const uvDataUri = `data:image/svg+xml;base64,${btoa(uvSvg)}`;
@@ -1054,6 +1066,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
         .jp-DirListing-item.jp-mod-selected
           .jp-DirListing-itemIcon[data-vscode-row-icon='file-type-log'] {
           background-image: url('${logSelectedDataUri}') !important;
+        }
+        /* ACC-ICONS-81-MESH-ICON: a selected mesh row paints the recolour so
+           every face stays readable on the band. The painter sets the base
+           artwork inline, so this rule must win with !important. */
+        .jp-DirListing-item.jp-mod-selected
+          .jp-DirListing-itemIcon[data-vscode-row-icon='file-type-mesh'] {
+          background-image: url('${meshSelectedDataUri}') !important;
         }
 
         /* File browser rows whose icon JupyterLab supplied and this extension
