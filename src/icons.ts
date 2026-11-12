@@ -127,6 +127,8 @@ export const extensionToIcon: IIconMapping = {
   LICENCE: 'file-type-license',
   license: 'file-type-license',
   licence: 'file-type-license',
+  // The exact-name lookup serves VERSION, which has no extension (ACC-ICONS-82)
+  version: 'file-type-text',
   webpack: 'file-type-webpack',
   rollup: 'file-type-rollup',
   vite: 'file-type-vite',

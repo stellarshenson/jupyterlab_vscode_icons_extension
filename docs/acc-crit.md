@@ -115,6 +115,15 @@ Which file gets which vscode-icons glyph in the file browser
   - log: 2026-11-11T12:59:15Z @kj amended text "The seven mesh extensions the advanced image viewer opens - .stl .ply .3mf .step .stp .obj .glb - paint one shared vscode-style cube on their file-browser rows; this icon replaces the viewer's grey cube, and tabs keep the viewer's icon" -> "The seven mesh extensions the advanced image viewer opens - .stl .ply .3mf .step .stp .obj .glb - paint one shared vscode-style cube on their file-browser rows and tabs, replacing the viewer's grey cube; the tab follows ACC-TABS-71, another extension's icon loses where this extension has one"
   - log: 2026-11-11T12:59:20Z @kj amended text "The seven mesh extensions the advanced image viewer opens - .stl .ply .3mf .step .stp .obj .glb - paint one shared vscode-style cube on their file-browser rows and tabs, replacing the viewer's grey cube; the tab follows ACC-TABS-71, another extension's icon loses where this extension has one" -> "The seven mesh extensions the advanced image viewer opens - .stl .ply .3mf .step .stp .obj .glb - paint one shared vscode-style cube on their file-browser rows and tabs, replacing the viewer's grey cube; the tab follows ACC-TABS-71-OURS-WIN, another extension's icon loses where this extension has one"
   - log: 2026-11-11T13:17:59Z @kj closed
+- [x] `ACC-ICONS-82-VERSION-TEXT` **VERSION file shows the txt icon** - MEDIUM; a file named VERSION shows the icon a .txt file shows: the custom TXT sheet on its row and tab under the default doc-icons setting, the same group toggle, and the plain file-type-text glyph when doc icons are off
+  - evidence: VERSION row and tab match notes.txt under defaults: same data-vscode-txt sheet artwork and registry:vscode-txt tab in every letter case; folders named VERSION keep the folder icon; doc icons off falls back to file-type-text; requirements.txt keeps python; verifier PASS, jest 228, pytest 27, full Galata 125/125; both review fixes mutation-proven
+  - test: open a folder holding VERSION and a .txt file and compare both rows and tabs
+  - test-tags: UNIT, FUNCTIONAL
+  - mechanism: 2026-11-11T23:37:20Z @kj vscode-txt registration claims VERSION by name pattern; the data-vscode-txt row override paints it like .txt; extensionToIcon maps version to file-type-text for the doc-icons-off fallback
+  - mechanism: 2026-11-11T22:47:27Z @kj extensionToIcon maps the lowercased name version to file-type-text; getIconForFile lowercases the filename before the exact-name lookup, so VERSION and Version match
+  - log: 2026-11-11T22:47:27Z @kj added
+  - log: 2026-11-11T23:37:19Z @kj amended text "a file named VERSION, in any letter case, paints the same file-type-text glyph as a .txt file on its file-browser row and its tab; no file type is registered for it" -> "a file named VERSION shows the icon a .txt file shows: the custom TXT sheet on its row and tab under the default doc-icons setting, the same group toggle, and the plain file-type-text glyph when doc icons are off"
+  - log: 2026-11-12T00:25:35Z @kj closed
 
 ## Settings and icon groups `CONFIG`
 

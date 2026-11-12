@@ -1695,14 +1695,20 @@ const plugin: JupyterFrontEndPlugin<void> = {
           ) {
             setOverride(item, 'data-vscode-powerpoint');
           } else if (
-            nameLower.endsWith('.txt') &&
-            !(fileType || '').startsWith('vscode-')
+            fileType !== 'directory' &&
+            (nameLower === 'version' ||
+              (nameLower.endsWith('.txt') &&
+                !(fileType || '').startsWith('vscode-')))
           ) {
             // DEF-TABS-23-2: a .txt this extension registered under its own
             // file type - requirements.txt takes file-type-python - was getting
             // the generic text sheet painted over that specific icon here. The
             // maintainer's answer, in his words: "python everywhere", so the
             // generic sheet yields to any vscode-* type this extension set.
+            // VERSION is the exception: its vscode-txt type is this sheet's
+            // own registration, not another icon to preserve (ACC-ICONS-82).
+            // Folders are not files: a directory named VERSION or *.txt keeps
+            // its folder icon (ACC-ICONS-82).
             setOverride(item, 'data-vscode-txt');
           } else if (
             nameLower.endsWith('.db') ||
@@ -3260,6 +3266,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           name: 'vscode-txt',
           displayName: 'Text File',
           extensions: ['.txt'],
+          pattern: '^[Vv][Ee][Rr][Ss][Ii][Oo][Nn]$',
           fileFormat: 'text',
           contentType: 'file',
           mimeTypes: ['text/plain'],

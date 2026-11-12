@@ -52,6 +52,15 @@ describe('getIconForFile', () => {
     expect(getIconForFile('APP.JS')).toBe(getIconForFile('app.js'));
   });
 
+  it('maps a VERSION file to the same icon as a .txt file, in any case', () => {
+    const text = getIconForFile('notes.txt');
+    expect(text).toBe('file-type-text');
+    for (const name of ['VERSION', 'Version', 'version']) {
+      expect(getIconForFile(name)).toBe('file-type-text');
+      expect(getIconForFile(name)).toBe(text);
+    }
+  });
+
   it('reads the last extension of a multi-part name', () => {
     expect(getIconForFile('babel.config.js')).toBe('file-type-js-official');
   });

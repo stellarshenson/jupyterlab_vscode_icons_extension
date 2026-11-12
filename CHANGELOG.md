@@ -2,6 +2,12 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.2.40] - 2026-11-12
+
+### Added
+
+- The `VERSION` file shows the same custom TXT sheet icon as a `.txt` file in the file browser and on its tab, in any letter case; folders named VERSION keep their folder icon
+
 ## [1.2.39] - 2026-11-11
 
 ### Added
