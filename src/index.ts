@@ -1470,7 +1470,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
         const packages = Promise.all(
           manifests.map(async manifest => {
             try {
-              const file = await app.serviceManager.contents.get(manifest.path);
+              const file = await app.serviceManager.contents.get(
+                manifest.path,
+                { type: 'file', format: 'text', content: true }
+              );
               const content = file.content as string;
               return await packageNamesFromManifest(
                 content,

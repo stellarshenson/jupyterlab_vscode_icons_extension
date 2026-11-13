@@ -848,6 +848,13 @@ Which file gets which glyph in the file browser and on tabs
   - log: 2026-11-13T09:19:31Z @kj added
   - log: 2026-11-13T09:19:45Z @kj edited test-tags added "MANUAL"
   - log: 2026-11-13T09:20:20Z @kj closed
+- [x] `DEF-ICONS-104-MANIFEST-TYPE` **Manifest read names no content type** - MINOR; the contents GET of a listed pyproject.toml or setup.py passes no type or format, so a contents manager that serves .py as a notebook returns a non-string content; the parse throws, the cache entry is dropped and the manifest is requested again on every listing pass; src/index.ts:1473
+  - evidence: src/index.ts requests the manifest with type file, format text, content true; manifest-requests.spec.ts and metadata-refresh.spec.ts pass, Galata 125 green on 2026-11-13; not executed under jupytext
+  - repro: by reading: src/index.ts:1473 casts file.content as string while the request names no type; not executed under jupytext, which is not installed on this machine
+  - test-tags: E2E
+  - root-cause: 2026-11-13T09:55:01Z @kj contents.get(manifest.path) left the model type to the contents manager while the next line assumes a text file
+  - log: 2026-11-13T09:55:01Z @kj added
+  - log: 2026-11-13T10:07:35Z @kj closed
 
 ## Settings and icon groups `CONFIG`
 
