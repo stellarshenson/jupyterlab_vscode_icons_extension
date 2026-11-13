@@ -84,10 +84,3 @@ export const applyJupytext1191Hotfix = (
     }
   }
 };
-
-export const removeJupytext1191Hotfix = (): void => {
-  const styleElement = document.getElementById(JUPYTEXT_1191_STYLE_ID);
-  if (styleElement) {
-    styleElement.remove();
-  }
-};

@@ -241,6 +241,22 @@ Warnings and errors from eslint, stylelint and prettier
   - log: 2026-10-14T07:49:47Z @kj closed: fixed at the root, not suppressed
   - log: 2026-10-23T06:32:17Z @kj coded PAGECONFIG-BASE
   - log: 2026-10-23T06:32:53Z @kj renamed code "PAGECONFIG-BASE" -> "PAGECONFIG"
+- [x] `DEF-LINT-102-DEAD-REMOVE` **removeJupytext1191Hotfix never called** - MINOR; src/hotfixes exports removeJupytext1191Hotfix; no caller in src or tests; dead code a reader must rule out
+  - evidence: function and re-export deleted; grep -rn removeJupytext1191Hotfix src ui-tests: no hit
+  - test-tags: MANUAL
+  - repro: grep -rn removeJupytext1191Hotfix src ui-tests: definition and re-export only
+  - root-cause: 2026-11-13T09:19:32Z @kj written with the hotfix as its undo, never wired to anything
+  - log: 2026-11-13T09:19:32Z @kj added
+  - log: 2026-11-13T09:19:45Z @kj edited test-tags added "MANUAL"
+  - log: 2026-11-13T09:20:20Z @kj closed
+- [x] `DEF-LINT-103-STRAY-SCRIPT` **test-icon.js debug script in repo root** - MINOR; test-icon.js prints one icon's JSON from node_modules; referenced by no script, test, Makefile or doc; excluded from lint by the **/*.js ignore
+  - evidence: test-icon.js deleted; git ls-files test-icon.js: empty
+  - test-tags: MANUAL
+  - repro: grep -rn test-icon . outside node_modules: no hit
+  - root-cause: 2026-11-13T09:19:32Z @kj one-off debug script committed with the first icon work
+  - log: 2026-11-13T09:19:32Z @kj added
+  - log: 2026-11-13T09:19:46Z @kj edited test-tags added "MANUAL"
+  - log: 2026-11-13T09:20:20Z @kj closed
 
 ## Document tab icons `TABS`
 
@@ -824,6 +840,14 @@ Which file gets which glyph in the file browser and on tabs
   - log: 2026-11-10T22:19:59Z @kj root-cause updated "2026-11-10T22:08:24Z @kj markRowIcons paints this extension icon over the foreign makefile icon on .mk rows and sets data-vscode-row-outline; the four 0.5px drop-shadows in --jp-ui-font-color1 fill the 1-2px transparent cogs; the 1.2.37 fallback extended that painted copy to Makefile" -> "makefileSvg pads the shared path (viewBox 19 7 90 114) against the good icon's tight box (23 11 82 106), and markRowIcons applies the contrast drop-shadow, whose ink fills the 1-2px transparent cogs; the 1.2.37 fallback made Makefile show it too"
   - log: 2026-11-10T22:48:51Z @kj closed
   - log: 2026-11-10T22:48:51Z @kj edited test-tags "MANUAL" -> "UNIT, FUNCTIONAL"
+- [x] `DEF-ICONS-101-README-COUNT` **README promises 1414 icons** - MINOR; README says 1414 file type icons covering virtually every language; the code maps about 190 extensions and names (160 extensions, 28 patterns); a user with .dart, .hs, .zig, .tex or .ex files gets no icon
+  - evidence: README.md states about 190 file extensions and names (160 extensions and 28 patterns counted in src/icons.ts and src/index.ts); grep 1414 README.md: no hit
+  - test-tags: MANUAL
+  - repro: open a folder with main.dart: row keeps JupyterLab's plain file glyph
+  - root-cause: 2026-11-13T09:19:31Z @kj README counts the icons of an older bundled set; only names in extensionToIcon (src/icons.ts) and fileTypeConfigs (src/index.ts) are painted
+  - log: 2026-11-13T09:19:31Z @kj added
+  - log: 2026-11-13T09:19:45Z @kj edited test-tags added "MANUAL"
+  - log: 2026-11-13T09:20:20Z @kj closed
 
 ## Settings and icon groups `CONFIG`
 

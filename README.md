@@ -13,13 +13,13 @@
 
 A shameless, unapologetic, and utterly brazen ripoff of the excellent VSCode file icons for JupyterLab. Because why should VS Code users have all the fun?
 
-This extension brings 1414 beautiful file type icons from the vscode-icons project directly into your JupyterLab file browser. We saw those pretty icons, we wanted them, and now you can have them too - no permission asked, no apologies given (well, we did use the MIT license, so it's all legally kosher)
+This extension brings beautiful file type icons from the vscode-icons project directly into your JupyterLab file browser. We saw those pretty icons, we wanted them, and now you can have them too - no permission asked, no apologies given (well, we did use the MIT license, so it's all legally kosher)
 
 ## Features
 
 ![VSCode Icons in JupyterLab](.resources/screenshot-icons.png)
 
-- 1414 file type icons covering virtually every language, framework, and config file you can think of
+- File type icons for about 190 file extensions and names - the common languages, web, data, documentation and config files; a file with no mapping keeps its JupyterLab icon
 - One hexagon family for C, C++, Objective-C++, Rust, CUDA and Java, with C# on its own green hexagon; `.hh`, `.hxx`, `.h++`, `.cu`, `.cuh` and `.mm` are mapped too
 - Automatic icon detection based on file extensions and names
 - Zero configuration required - just install and enjoy
@@ -52,7 +52,7 @@ That's it. Restart JupyterLab and watch your bland, iconless file browser transf
 
 ## Supported File Types
 
-The extension recognizes hundreds of file types including:
+The extension recognizes about 190 file extensions and names, including:
 
 - **Languages**: Python, JavaScript, TypeScript, Java, C/C++, Rust, Go, Ruby, PHP, R, Julia, and many more
 - **Web**: HTML, CSS, SCSS, Vue, Svelte, React components
@@ -61,7 +61,7 @@ The extension recognizes hundreds of file types including:
 - **Config**: Dockerfile, .gitignore, .env, Makefile, package.json
 - **Notebooks**: Jupyter notebooks (.ipynb)
 
-For the complete list of 1414 icons, see the [vscode-icons project](https://github.com/vscode-icons/vscode-icons)
+The mapped names are in `src/icons.ts` and `src/index.ts`; the artwork comes from the [vscode-icons project](https://github.com/vscode-icons/vscode-icons)
 
 ## Configuration
 
