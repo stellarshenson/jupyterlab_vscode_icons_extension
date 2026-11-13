@@ -29,9 +29,9 @@ def _annotate_listing_flags(cm, model):
     The flags ride on the listing the browser already fetches, so no second
     request and no client-side directory knowledge are needed. One scandir
     pass answers for the whole directory: each DirEntry reports whether it is
-    a link from the scan itself, and the executable test costs one stat and
-    one access call per regular file. A symlink pays the containment test
-    too, so a target outside the root is never answered for.
+    a link from the scan itself, and the executable test costs one stat per
+    entry and one access call per regular file. A symlink pays the containment
+    test too, so a target outside the root is never answered for.
     """
     if not isinstance(model, dict) or model.get('type') != 'directory':
         return model
@@ -53,7 +53,7 @@ def _annotate_listing_flags(cm, model):
             for entry in scanned:
                 is_link = entry.is_symlink()
                 executable = (
-                    entry.is_file()
+                    os.path.isfile(entry.path)
                     and (not is_link or _within_root(entry.path, root))
                     and os.access(entry.path, os.X_OK)
                 )

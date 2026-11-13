@@ -275,6 +275,13 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
         (self.root / 'dangling-link').symlink_to('missing-target')
         self.assertEqual(self.listing(), {'dangling-link': True})
 
+    def test_looping_link_keeps_the_flags_of_its_directory(self):
+        (self.root / 'file.txt').write_text('text')
+        (self.root / 'loop').symlink_to('loop')
+        model = self.manager.get('', type='directory', content=True)
+        flagged = {item['name']: 'symlink' in item for item in model['content']}
+        self.assertIs(flagged['file.txt'], True)
+
     def test_listings_that_resolve_outside_root_stay_unflagged(self):
         outside = self.root.with_name('root-sibling')
         outside.mkdir()

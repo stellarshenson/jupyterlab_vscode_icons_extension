@@ -115,7 +115,7 @@ export const extensionToIcon: IIconMapping = {
   'requirements.txt': 'file-type-python',
   'pyproject.toml': 'file-type-python',
   'setup.py': 'file-type-python',
-  Pipfile: 'file-type-python',
+  pipfile: 'file-type-python',
   'Cargo.toml': 'file-type-rust',
   'Cargo.lock': 'file-type-rust',
   Gemfile: 'file-type-ruby',
@@ -137,7 +137,7 @@ export const extensionToIcon: IIconMapping = {
   'gitlab-ci.yml': 'file-type-gitlab',
   '.travis.yml': 'file-type-travis',
   'circle.yml': 'file-type-circleci',
-  Jenkinsfile: 'file-type-jenkins',
+  jenkinsfile: 'file-type-jenkins',
 
   // Images
   png: 'file-type-image',

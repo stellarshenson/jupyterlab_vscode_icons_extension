@@ -43,7 +43,9 @@ describe('getIconForFile', () => {
     ['PART.STEP', 'file-type-mesh'],
     ['PART.STP', 'file-type-mesh'],
     ['PART.OBJ', 'file-type-mesh'],
-    ['PART.GLB', 'file-type-mesh']
+    ['PART.GLB', 'file-type-mesh'],
+    ['Pipfile', 'file-type-python'],
+    ['Jenkinsfile', 'file-type-jenkins']
   ])('maps %s to %s', (filename, expected) => {
     expect(getIconForFile(filename)).toBe(expected);
   });

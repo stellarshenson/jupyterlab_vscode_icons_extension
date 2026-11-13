@@ -32,7 +32,7 @@
     "enableDocIcons": {
       "type": "boolean",
       "title": "Documentation Icons",
-      "description": "Enable icons for documentation files (Markdown, RST, TXT, PDF)",
+      "description": "Enable icons for documentation files (Markdown, TXT, PDF)",
       "default": true
     },
     "enableImageIcons": {

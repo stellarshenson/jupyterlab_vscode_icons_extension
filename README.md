@@ -57,7 +57,7 @@ The extension recognizes about 190 file extensions and names, including:
 - **Languages**: Python, JavaScript, TypeScript, Java, C/C++, Rust, Go, Ruby, PHP, R, Julia, and many more
 - **Web**: HTML, CSS, SCSS, Vue, Svelte, React components
 - **Data**: JSON, YAML, CSV, XML, TOML
-- **Documentation**: Markdown, RST, PDF
+- **Documentation**: Markdown, PDF
 - **Config**: Dockerfile, .gitignore, .env, Makefile, package.json
 - **Notebooks**: Jupyter notebooks (.ipynb)
 
@@ -74,7 +74,7 @@ Customize which icon groups to display via JupyterLab Settings:
    - Web Development Icons (HTML, CSS, Vue, Svelte)
    - Data Format Icons (JSON, TOML, XML, CSV, ML models)
    - Configuration File Icons (Dockerfile, .gitignore, Makefile, package.json)
-   - Documentation Icons (Markdown, RST, PDF)
+   - Documentation Icons (Markdown, PDF)
    - Image File Icons (PNG, JPG, SVG)
    - Executable File Icons (play badge on files with the execute bit; off by default)
 4. Collapse Empty Tab Icon Space - remove the empty icon box JupyterLab keeps on a tab without an icon (on by default)

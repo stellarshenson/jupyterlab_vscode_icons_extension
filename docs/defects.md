@@ -855,6 +855,20 @@ Which file gets which glyph in the file browser and on tabs
   - root-cause: 2026-11-13T09:55:01Z @kj contents.get(manifest.path) left the model type to the contents manager while the next line assumes a text file
   - log: 2026-11-13T09:55:01Z @kj added
   - log: 2026-11-13T10:07:35Z @kj closed
+- [x] `DEF-ICONS-105-NAME-CASE` **Pipfile and Jenkinsfile show the generic file icon** - MINOR; extensionToIcon keys Pipfile and Jenkinsfile are capitalised while getIconForFile looks the name up in lower case, so neither key can match and both rows and tabs show the generic file icon; fix: keys in lower case; src/icons.ts:118 and :140
+  - evidence: keys pipfile and jenkinsfile in src/icons.ts; jest it.each rows Pipfile and Jenkinsfile pass, Jest 230 green on 2026-11-13
+  - repro: getIconForFile('Pipfile') and getIconForFile('Jenkinsfile') return default-file
+  - test-tags: UNIT
+  - root-cause: 2026-11-13T18:17:43Z @kj the exact-name lookup lowercases the file name; a key holding a capital letter is never read
+  - log: 2026-11-13T18:17:43Z @kj added
+  - log: 2026-11-13T18:23:30Z @kj closed
+- [x] `DEF-ICONS-106-RST-CLAIM` **RST icon stated but none exists** - MINOR; the enableDocIcons description in schema/plugin.json:35 and README.md:60 and :77 list RST, while a .rst row shows the JupyterLab file glyph; fix: RST removed from the three texts
+  - evidence: grep RST over README.md and schema/plugin.json returns nothing; build_test.py passed on 2026-11-13, Galata 125
+  - repro: list a .rst file with Documentation Icons on; the row shows the default file glyph
+  - test-tags: MANUAL
+  - root-cause: 2026-11-13T18:17:43Z @kj file-type-rst has no body in @iconify-json/vscode-icons 1.2.95, so the guard at src/index.ts:2916 leaves .rst unregistered; the texts were never corrected
+  - log: 2026-11-13T18:17:43Z @kj added
+  - log: 2026-11-13T18:23:30Z @kj closed
 
 ## Settings and icon groups `CONFIG`
 
@@ -1129,4 +1143,11 @@ Browser overlays identifying symbolic links
   - log: 2026-10-17T15:38:28Z @kj closed
   - log: 2026-10-23T06:32:17Z @kj coded HIDDEN-LINK
   - log: 2026-10-23T06:33:30Z @kj root-cause updated "2026-10-17T09:52:09Z @kj style/base.css raises opacity to 1 on a dotfile row that carries .vscode-symlink-badge, added for ACC-LINK-50 to keep the badge above 3:1" -> "style/base.css raises opacity to 1 on a dotfile row that carries .vscode-symlink-badge, added for ACC-LINK-50-DIMMED-BADGE to keep the badge above 3:1"
+- [x] `DEF-LINK-107-LOOP-LINK` **One failing link removes the flags of its directory** - MEDIUM; a directory holding a link that loops (ELOOP) or passes through a file (ENOTDIR) is listed with no symlink and no executable key on any entry, so every link and executable badge of that folder is missing; fix: os.path.isfile(entry.path); jupyterlab_vscode_icons_extension/handlers.py:56
+  - evidence: test_looping_link_keeps_the_flags_of_its_directory fails with entry.is_file() and passes with os.path.isfile(entry.path); pytest 28 green on 2026-11-13
+  - repro: ln -s loop loop beside file.txt, list the folder: file.txt has no symlink key
+  - test-tags: UNIT
+  - root-cause: 2026-11-13T18:17:43Z @kj DirEntry.is_file() raises OSError for a stat failure other than a missing target; the directory-wide except OSError then returns the model unflagged
+  - log: 2026-11-13T18:17:43Z @kj added
+  - log: 2026-11-13T18:23:30Z @kj closed
 
