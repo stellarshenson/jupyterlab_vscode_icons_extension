@@ -2,6 +2,18 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.2.45] - 2026-11-16
+
+### Changed
+
+- Ignore the PayPal donate link in the link check
+
+### Fixed
+
+- Reach the Pipfile and Jenkinsfile icons, keep listing flags beside a failing link
+- Request the python manifest as a text file
+- State the real icon coverage in the README and remove dead code
+
 ## [1.2.40] - 2026-11-12
 
 ### Added
