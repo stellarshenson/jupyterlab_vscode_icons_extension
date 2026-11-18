@@ -84,13 +84,21 @@ def _flag_listed_entries(cm, log=None):
     a root_dir that is a real directory and the path mapping local managers
     provide. The wrapper goes on the instance, which leaves every isinstance
     check and attribute reader on the original object working.
+
+    The wrapper is replaceable: a platform reload re-runs this function on the
+    same manager, so the marker records both the callable wrapped and the
+    wrapper installed. When the installed wrapper is still the recorded one,
+    the recorded original is restored and wrapped afresh, which leaves exactly
+    one wrapper closed over the current module code. A wrapper another
+    extension layered above ours is kept and becomes the new original. A
+    1.2.46 boolean marker migrates by reading the "original" closure freevar
+    of this extension's wrapper on cm.get, identified by the manager it also
+    closes over as "cm"; any other callable is wrapped once as it is.
     """
-    if getattr(cm, '_vscode_listed_flags', False):
-        return
     root = getattr(cm, 'root_dir', None)
-    original = getattr(cm, 'get', None)
+    current = getattr(cm, 'get', None)
     if (not isinstance(root, str) or not root or not os.path.isdir(root)
-            or not callable(original)
+            or not callable(current)
             or not callable(getattr(cm, '_get_os_path', None))):
         # Silent otherwise: the badges simply never appear, and neither the
         # user nor the next debugger can tell that from a directory of links.
@@ -101,6 +109,26 @@ def _flag_listed_entries(cm, log=None):
                 type(cm).__name__
             )
         return
+    marker = getattr(cm, '_vscode_listed_flags', None)
+    if isinstance(marker, dict) and current is marker.get('wrapper'):
+        # Our wrapper is still the installed one, so the callable recorded
+        # beneath it is restored before the fresh wrap.
+        original = marker.get('original')
+    elif marker and not isinstance(marker, dict):
+        # 1.2.46 recorded only True and kept the callable it wrapped in the
+        # wrapper's "original" closure freevar. Only this extension's wrapper
+        # closes over the manager as "cm"; any other callable is wrapped once.
+        try:
+            closure = inspect.getclosurevars(current).nonlocals
+        except (TypeError, ValueError):
+            closure = {}
+        original = closure.get('original') if closure.get('cm') is cm else None
+    else:
+        # No marker, or a wrapper another extension layered after ours: the
+        # installed callable is the new original.
+        original = current
+    if not callable(original):
+        original = current
     if inspect.iscoroutinefunction(original):
         async def get(*args, **kwargs):
             model = await original(*args, **kwargs)
@@ -122,7 +150,7 @@ def _flag_listed_entries(cm, log=None):
             # expect a model rather than a future, so the scan stays inline.
             return _annotate_listing_flags(cm, original(*args, **kwargs))
     cm.get = get
-    cm._vscode_listed_flags = True
+    cm._vscode_listed_flags = {'original': original, 'wrapper': get}
 
 
 def _valid_manifest(source: str, kind: str) -> bool:

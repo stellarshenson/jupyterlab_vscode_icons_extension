@@ -310,6 +310,35 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
              'file-link.txt': (True, False), 'folder-link': (True, False)},
         )
 
+    @gen_test
+    async def test_async_replacement_migrates_a_legacy_wrapper(self):
+        self.file_and_folder_links()
+        manager = AsyncFileContentsManager(root_dir=str(self.root))
+        original = manager.get
+        cm = manager
+
+        async def legacy_get(*args, **kwargs):
+            return _annotate_listing_flags(cm, await original(*args, **kwargs))
+
+        manager.get = legacy_get
+        manager._vscode_listed_flags = True
+        _flag_listed_entries(manager)
+        first = manager.get
+        marker = manager._vscode_listed_flags
+        self.assertIsNot(first, legacy_get)
+        self.assertIs(marker['original'], original)
+        model = await manager.get('', type='directory', content=True)
+        self.assertEqual(
+            {item['name']: (item['symlink'], item['executable'])
+             for item in model['content']}['file-link.txt'],
+            (True, False),
+        )
+        _flag_listed_entries(manager)
+        self.assertIsNot(manager.get, first)
+        self.assertIs(manager._vscode_listed_flags['original'], original)
+        model = await manager.get('', type='directory', content=True)
+        self.assertIn('file.txt', {item['name'] for item in model['content']})
+
     def test_flag_listed_entries_skips_managers_without_a_local_filesystem(self):
         remote = ContentsManager()
         _flag_listed_entries(remote)
@@ -395,3 +424,136 @@ def test_normal_in_root_listing_is_unchanged(tmp_path):
     assert {item['name']: (item['symlink'], item['executable'])
             for item in model['content']} == {
         'file.txt': (False, False), 'folder': (False, False), 'script': (False, True)}
+
+
+def test_second_load_replaces_the_listing_wrapper(tmp_path):
+    root = tmp_path / 'root'
+    root.mkdir()
+    manager = _local_manager(root)
+    calls = []
+
+    def base_get(*args, **kwargs):
+        calls.append((args, kwargs))
+        return {'type': 'directory', 'path': '', 'content': []}
+
+    manager.get = base_get
+    _flag_listed_entries(manager)
+    first = manager.get
+    _flag_listed_entries(manager)
+    second = manager.get
+    assert second is not first
+    marker = manager._vscode_listed_flags
+    assert isinstance(marker, dict)
+    assert marker['original'] is base_get
+    assert marker['wrapper'] is second
+    second('', type='directory', content=True)
+    assert calls == [(('',), {'type': 'directory', 'content': True})]
+
+
+def test_legacy_boolean_marker_migrates_to_the_dict_form(tmp_path):
+    root = tmp_path / 'root'
+    root.mkdir()
+    manager = _local_manager(root)
+    calls = []
+
+    def base_get(*args, **kwargs):
+        calls.append((args, kwargs))
+        return {'type': 'directory', 'path': '', 'content': []}
+
+    original = base_get
+    cm = manager
+
+    def legacy_wrapper(*args, **kwargs):
+        return _annotate_listing_flags(cm, original(*args, **kwargs))
+
+    manager.get = legacy_wrapper
+    manager._vscode_listed_flags = True
+    _flag_listed_entries(manager)
+    marker = manager._vscode_listed_flags
+    assert isinstance(marker, dict)
+    assert marker['original'] is base_get
+    assert marker['wrapper'] is manager.get
+    manager.get('', type='directory', content=True)
+    assert calls == [(('',), {'type': 'directory', 'content': True})]
+
+
+def test_foreign_wrapper_above_ours_becomes_the_new_original(tmp_path):
+    root = tmp_path / 'root'
+    root.mkdir()
+    manager = _local_manager(root)
+    calls = []
+
+    def base_get(*args, **kwargs):
+        calls.append('base')
+        return {'type': 'directory', 'path': '', 'content': []}
+
+    manager.get = base_get
+    _flag_listed_entries(manager)
+    ours = manager.get
+
+    def foreign_wrapper(*args, **kwargs):
+        calls.append('foreign')
+        return ours(*args, **kwargs)
+
+    manager.get = foreign_wrapper
+    _flag_listed_entries(manager)
+    marker = manager._vscode_listed_flags
+    assert isinstance(marker, dict)
+    assert marker['original'] is foreign_wrapper
+    assert marker['wrapper'] is manager.get
+    manager.get('', type='directory', content=True)
+    assert calls == ['foreign', 'base']
+
+
+def test_replacement_flags_an_executable_through_a_symlinked_directory(tmp_path):
+    root = tmp_path / 'root'
+    root.mkdir()
+    volume = tmp_path / 'volume'
+    messages = volume / 'agentic-messages'
+    messages.mkdir(parents=True)
+    script = messages / 'agentmsg.py'
+    script.write_text('#!/usr/bin/env python\n')
+    script.chmod(0o755)
+    (root / '@volumes').symlink_to(volume, target_is_directory=True)
+    manager = _local_manager(root)
+
+    def base_get(path='', **kwargs):
+        return {'type': 'directory', 'path': path,
+                'content': [{'name': 'agentmsg.py'}]}
+
+    manager.get = base_get
+    _flag_listed_entries(manager)
+    first = manager.get
+    _flag_listed_entries(manager)
+    assert manager.get is not first
+    model = manager.get('@volumes/agentic-messages', type='directory', content=True)
+    assert {item['name']: item['executable'] for item in model['content']} == {
+        'agentmsg.py': True}
+
+
+def test_legacy_foreign_wrapper_named_original_is_kept(tmp_path):
+    root = tmp_path / 'root'
+    root.mkdir()
+    manager = _local_manager(root)
+    calls = []
+
+    def base_get(*args, **kwargs):
+        calls.append('base')
+        return {'type': 'directory', 'path': '', 'content': []}
+
+    manager.get = base_get
+    _flag_listed_entries(manager)
+    original = manager.get
+
+    def foreign_wrapper(*args, **kwargs):
+        calls.append('foreign')
+        return original(*args, **kwargs)
+
+    manager.get = foreign_wrapper
+    manager._vscode_listed_flags = True
+    _flag_listed_entries(manager)
+    marker = manager._vscode_listed_flags
+    assert marker['original'] is foreign_wrapper
+    assert marker['wrapper'] is manager.get
+    manager.get('', type='directory', content=True)
+    assert calls == ['foreign', 'base']

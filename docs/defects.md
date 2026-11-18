@@ -888,6 +888,11 @@ Which file gets which glyph in the file browser and on tabs
   - log: 2026-11-18T11:09:11Z @kj amended text "With enableExecutableIcons on, files under @volumes show no play badge; link badges are off there too, and the contents API returns no executable field. Cause: _within_root realpaths the model path, and the @volumes bind mount resolves to /mnt/hackathon-delaval, outside root_dir /home/lab/workspace, so handlers.py:48 drops the annotation." -> "With enableExecutableIcons on, files under @volumes show no play badge; link badges are off there too, and the contents API returns no executable field. Cause: _within_root realpaths the path, and the @volumes/shared entries are symlinks to /mnt/<name>, outside root_dir /home/lab/workspace, so handlers.py:48 drops the annotation."
   - log: 2026-11-18T11:09:11Z @kj owner decision: annotate listings through the @volumes symlinks; round 2 applies lexical containment
   - log: 2026-11-18T12:09:12Z @kj closed
+- [ ] `DEF-ICONS-109-RELOAD-WRAPPER` **Platform reload leaves stale badge wrapper** - MEDIUM; reload-jupyterlab re-imports the extension but the contents-manager wrapper from the first load stays, so listing fixes do not reach the live badge until a restart
+  - repro: load 1.2.46 in a running lab, run /galaxalab/bin/reload-jupyterlab, GET api/contents/@volumes/shared/hackathon-delaval/agentic-messages - no executable field
+  - test-tags: UNIT
+  - root-cause: 2026-11-18T12:45:35Z @kj _flag_listed_entries stores True on the contents manager and returns early while it is set (handlers.py:88); the reload re-runs setup_handlers but the first wrapper, closed over the old module, is kept
+  - log: 2026-11-18T12:45:35Z @kj added
 
 ## Settings and icon groups `CONFIG`
 

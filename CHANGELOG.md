@@ -2,6 +2,13 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.2.47] - 2026-11-18
+
+### Fixed
+
+- A platform reload replaces the badge wrapper an earlier load installed, so a listing change reaches the running lab without a restart; the 1.2.46 marker migrates by recovering this extension's own wrapper
+- A Galata test asserts the play badge on an executable file reached through a symlinked directory, and it fails against the previous handler
+
 ## [1.2.46] - 2026-11-18
 
 ### Fixed

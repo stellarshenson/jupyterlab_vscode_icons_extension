@@ -134,6 +134,20 @@ Which file gets which vscode-icons glyph in the file browser
   - log: 2026-11-18T11:09:11Z @kj amended text "A directory below the server root that is a mount point carries executable and symlink flags in its listing, so @volumes rows show the play and link badges; a path that leaves the root through a symlink stays unannotated; handlers.py:17-23" -> "A directory below the server root carries executable and symlink flags in its listing, symlinked directories included, so @volumes rows show the play and link badges; a path lexically outside the root stays unannotated; handlers.py:17-23"
   - log: 2026-11-18T12:09:12Z @kj edited test "pytest handlers case: the @volumes listing carries executable flags and a symlink escape does not" -> "pytest handlers case: the @volumes listing carries executable flags; a path lexically outside the root stays unannotated"
   - log: 2026-11-18T12:09:12Z @kj closed
+- [ ] `ACC-ICONS-84-RELOAD-WRAPPER` **Platform reload replaces the badge wrapper** - HIGH; a platform reload loads the changed listing code into the running server; the wrapper a previous load installed is replaced, including the boolean marker 1.2.46 left, so no restart is needed
+  - test: unit: a second load replaces the wrapper and migrates the 1.2.46 marker; live: reload, then agentmsg.py shows the play glyph
+  - test-tags: UNIT
+  - mechanism: 2026-11-18T12:47:40Z @kj handlers._flag_listed_entries restores the original get before wrapping again and records the original and the wrapper on the contents manager
+  - log: 2026-11-18T12:47:40Z @kj added
+- [ ] `ACC-ICONS-85-GLYPH-TEST` **Functional test asserts the play glyph** - MEDIUM; a functional test asserts the play glyph renders in the file browser on an executable file reached through a symlinked directory below the server root
+  - test: Galata spec asserts the vscode-exec-badge element on the executable row
+  - test-tags: FUNCTIONAL
+  - mechanism: 2026-11-18T12:47:40Z @kj the spec seeds a root with an executable behind a symlink to an outside directory, opens the folder in the browser and reads the row badge
+  - log: 2026-11-18T12:47:40Z @kj added
+- [ ] `ACC-ICONS-86-LIVE-GLYPH` **Running lab shows the play glyph after a reload** - MEDIUM; after a platform reload the running lab file browser shows the play glyph on agentmsg.py at @volumes/shared/hackathon-delaval/agentic-messages
+  - test: live: reload, then read the badge element in the running lab
+  - test-tags: MANUAL
+  - log: 2026-11-18T12:47:41Z @kj added
 
 ## Settings and icon groups `CONFIG`
 
