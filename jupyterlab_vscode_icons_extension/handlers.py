@@ -15,10 +15,17 @@ _executor = ThreadPoolExecutor(max_workers=2)
 
 
 def _within_root(path: str, root: str) -> bool:
-    """Compare resolved path components, rather than a shared string prefix."""
+    """Return whether path is under root, resolved or lexically.
+
+    The @volumes entries are symlinks to directories outside the root, so the
+    resolved and lexical forms disagree and either one being inside counts.
+    """
     try:
-        root = os.path.realpath(root)
-        return os.path.commonpath([os.path.realpath(path), root]) == root
+        real_root = os.path.realpath(root)
+        if os.path.commonpath([os.path.realpath(path), real_root]) == real_root:
+            return True
+        rel = os.path.relpath(os.path.abspath(path), os.path.abspath(root))
+        return rel != os.pardir and not rel.startswith(os.pardir + os.sep)
     except (OSError, ValueError):
         return False
 
@@ -30,8 +37,8 @@ def _annotate_listing_flags(cm, model):
     request and no client-side directory knowledge are needed. One scandir
     pass answers for the whole directory: each DirEntry reports whether it is
     a link from the scan itself, and the executable test costs one stat per
-    entry and one access call per regular file. A symlink pays the containment
-    test too, so a target outside the root is never answered for.
+    entry and one access call per regular file. A link is answered for by the
+    same path rule as the listing that holds it.
     """
     if not isinstance(model, dict) or model.get('type') != 'directory':
         return model

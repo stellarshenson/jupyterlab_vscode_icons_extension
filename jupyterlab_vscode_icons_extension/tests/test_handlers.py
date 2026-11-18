@@ -21,7 +21,9 @@ from tornado.testing import AsyncHTTPTestCase, gen_test
 from tornado.web import Application, HTTPError
 
 from jupyterlab_vscode_icons_extension.handlers import (
+    _annotate_listing_flags,
     _flag_listed_entries,
+    _within_root,
     setup_handlers,
 )
 
@@ -236,7 +238,7 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
         flags = {item['name']: item['executable'] for item in model['content']}
         self.assertEqual(
             flags,
-            {'script': True, 'plain': False, 'external-script': False},
+            {'script': True, 'plain': False, 'external-script': True},
         )
 
     def test_listing_flags_follow_visibility_rules(self):
@@ -282,7 +284,7 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
         flagged = {item['name']: 'symlink' in item for item in model['content']}
         self.assertIs(flagged['file.txt'], True)
 
-    def test_listings_that_resolve_outside_root_stay_unflagged(self):
+    def test_listing_below_a_link_to_an_outside_directory_is_annotated(self):
         outside = self.root.with_name('root-sibling')
         outside.mkdir()
         (outside / 'secret').write_text('secret')
@@ -290,8 +292,9 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
         (self.root / 'outside').symlink_to(outside, target_is_directory=True)
         model = self.manager.get('outside', type='directory', content=True)
         self.assertEqual(
-            {item['name']: 'symlink' in item for item in model['content']},
-            {'secret': False, 'secret-link': False},
+            {item['name']: (item['symlink'], item['executable'])
+             for item in model['content']},
+            {'secret': (False, False), 'secret-link': (True, False)},
         )
 
     @gen_test
@@ -324,3 +327,71 @@ class MetadataHandlerTests(AsyncHTTPTestCase):
         for endpoint in ('symlinks', 'executables'):
             with self.subTest(endpoint=endpoint):
                 self.assertEqual(self.request(endpoint).code, 404)
+
+
+def _local_manager(root):
+    """A manager stand-in for _annotate_listing_flags, mapping paths under root."""
+    return SimpleNamespace(
+        root_dir=str(root),
+        _get_os_path=lambda path: os.path.join(str(root), path),
+    )
+
+
+def test_in_root_symlink_to_an_outside_directory_is_annotated(tmp_path):
+    root = tmp_path / 'root'
+    root.mkdir()
+    outside = tmp_path / 'outside'
+    outside.mkdir()
+    (outside / 'secret').write_text('secret')
+    (outside / 'run').write_text('#!/bin/sh\n')
+    (outside / 'run').chmod(0o755)
+    (root / 'escape').symlink_to(outside, target_is_directory=True)
+    (root / 'escape-script').symlink_to(outside / 'run')
+    assert _within_root(str(root / 'escape'), str(root)) is True
+    manager = _local_manager(root)
+    escaped = _annotate_listing_flags(
+        manager, {'type': 'directory', 'path': 'escape', 'content': [{'name': 'secret'}]})
+    assert (escaped['content'][0]['symlink'], escaped['content'][0]['executable']) == (False, False)
+    entry = _annotate_listing_flags(
+        manager, {'type': 'directory', 'path': '', 'content': [{'name': 'escape-script'}]})
+    assert (entry['content'][0]['symlink'], entry['content'][0]['executable']) == (True, True)
+
+
+def test_in_root_symlink_that_stays_inside_is_accepted(tmp_path):
+    root = tmp_path / 'root'
+    root.mkdir()
+    (root / 'folder').mkdir()
+    (root / 'folder' / 'inner.txt').write_text('text')
+    (root / 'folder-link').symlink_to('folder', target_is_directory=True)
+    assert _within_root(str(root / 'folder-link'), str(root)) is True
+    model = _annotate_listing_flags(
+        _local_manager(root),
+        {'type': 'directory', 'path': 'folder-link', 'content': [{'name': 'inner.txt'}]},
+    )
+    assert (model['content'][0]['symlink'], model['content'][0]['executable']) == (False, False)
+
+
+def test_path_lexically_outside_the_root_is_refused(tmp_path):
+    root = tmp_path / 'root'
+    root.mkdir()
+    (tmp_path / 'root-sibling').mkdir()
+    assert _within_root(os.path.join(str(root), os.pardir, 'root-sibling'), str(root)) is False
+    assert _within_root(str(tmp_path / 'root-sibling' / 'file'), str(root)) is False
+    assert _within_root(str(root) + '-sibling', str(root)) is False
+
+
+def test_normal_in_root_listing_is_unchanged(tmp_path):
+    root = tmp_path / 'root'
+    root.mkdir()
+    (root / 'file.txt').write_text('text')
+    (root / 'folder').mkdir()
+    (root / 'script').write_text('#!/bin/sh\n')
+    (root / 'script').chmod(0o755)
+    model = _annotate_listing_flags(
+        _local_manager(root),
+        {'type': 'directory', 'path': '',
+         'content': [{'name': 'file.txt'}, {'name': 'folder'}, {'name': 'script'}]},
+    )
+    assert {item['name']: (item['symlink'], item['executable'])
+            for item in model['content']} == {
+        'file.txt': (False, False), 'folder': (False, False), 'script': (False, True)}

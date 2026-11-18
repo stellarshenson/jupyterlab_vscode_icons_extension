@@ -178,7 +178,23 @@ test.describe('a renamed file', () => {
       undefined,
       { timeout: 30000 }
     );
-    await waitPainted(page, 'renamed.jar');
+    await page.waitForFunction(
+      () => {
+        const label = [
+          ...document.querySelectorAll('.jp-DirListing-itemText')
+        ].find(n => n.textContent!.trim() === 'renamed.jar');
+        const item = label ? label.closest('.jp-DirListing-item') : null;
+        const host = item
+          ? item.querySelector('.jp-DirListing-itemIcon')
+          : null;
+        return (
+          !!host &&
+          host.getAttribute('data-vscode-row-icon') === 'file-type-jar'
+        );
+      },
+      undefined,
+      { timeout: 30000 }
+    );
     const after = await paintedByName(page);
     expect(after['renamed.jar'], JSON.stringify(after)).toBe('file-type-jar');
     expect(after['renamed.log'], JSON.stringify(after)).toBeUndefined();

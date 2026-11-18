@@ -119,6 +119,15 @@ Jest, the Playwright ui-tests and their output
   - log: 2026-10-14T11:29:34Z @kj closed: fixed: settleIcons helper added after each label wait, suite green 12/12
   - log: 2026-10-23T06:32:17Z @kj coded GALATA-ASSERTIONS
   - log: 2026-10-23T06:32:51Z @kj renamed code "GALATA-ASSERTIONS" -> "FRAME-EARLY"
+  - log: 2026-11-18T11:53:53Z @kj regressed as DEF-TEST-16-FRAME-EARLY-1
+- [x] `DEF-TEST-16-FRAME-EARLY-1` **Galata row assertions read a row icon one frame before JupyterLab sets it** - MAJOR; The file browser reuses row elements and resolves a row icon inside a requestAnimationFrame callback, while the label text is written synchronously in the same pass. A spec that waits only for the label can read the previous row's glyph, so the suite fails on a clean run.
+  - evidence: row-stability rename test now requires data-vscode-row-icon === file-type-jar; 4 passed on three consecutive runs (logs/volumes-badges-final-row-stability-1.log, -2.log, -3.log); full Galata 125/125 (logs/volumes-badges-final-full-galata.log)
+  - root-cause: 2026-11-18T11:54:05Z @kj row-stability waitPainted checks only data-vscode-row-icon presence; after the rename the reused row already carries file-type-log from renamed.log, so the wait passes before the MutationObserver repaint; the DEF-TEST-16 settle fix was applied only in file-browser-icons.spec.ts
+  - test-tags: E2E
+  - repro: run the full Galata suite under load: row-stability 'takes the icon of its new name' waits only for data-vscode-row-icon presence, which the reused row already carries from renamed.log, so it can read file-type-log instead of file-type-jar
+  - log: 2026-11-18T11:53:53Z @kj regression of DEF-TEST-16-FRAME-EARLY
+  - log: 2026-11-18T11:54:05Z @kj edited repro added "run the full Galata suite under load: row-stability 'takes the icon of its new name' waits only for data-vscode-row-icon presence, which the reused row already carries from renamed.log, so it can read file-type-log instead of file-type-jar"; test-tags added "E2E"
+  - log: 2026-11-18T12:09:12Z @kj closed
 - [x] `DEF-TEST-38-OVERSUBSCRIBED` **The galata suite oversubscribed its own lab server** - MEDIUM; playwright defaulted to a worker per core, so eight browsers drove the single test server; 'every row keeps its own glyph across navigation' timed out in three full runs while passing every time on its own, which made the suite unreliable as evidence
   - evidence: workers pinned to 2 in ui-tests/playwright.config.js; two consecutive full runs of 33 tests passed with no skips and no flake, at 1.6 minutes each
   - repro: run the full suite on an 8-core machine and watch row-stability
@@ -869,6 +878,16 @@ Which file gets which glyph in the file browser and on tabs
   - root-cause: 2026-11-13T18:17:43Z @kj file-type-rst has no body in @iconify-json/vscode-icons 1.2.95, so the guard at src/index.ts:2916 leaves .rst unregistered; the texts were never corrected
   - log: 2026-11-13T18:17:43Z @kj added
   - log: 2026-11-13T18:23:30Z @kj closed
+- [x] `DEF-ICONS-108-VOLUMES-MOUNT` **Executable badge missing under the @volumes mount** - MEDIUM; With enableExecutableIcons on, files under @volumes show no play badge; link badges are off there too, and the contents API returns no executable field. Cause: _within_root realpaths the path, and the @volumes/shared entries are symlinks to /mnt/<name>, outside root_dir /home/lab/workspace, so handlers.py:48 drops the annotation.
+  - evidence: live in-process probe through FileContentsManager(root_dir=/home/lab/workspace) answers agentmsg.py (0755) executable true; handler tests 26 passed including the symlink-policy cases; full Galata 125/125, jest 230, pytest 32, lint clean (logs/volumes-badges-live-probe2.log, logs/volumes-badges-final-full-galata.log)
+  - repro: enableExecutableIcons on; open @volumes/shared/hackathon-delaval/agentic-messages; the 755 agentmsg.py row shows no play badge; GET api/contents for that directory returns no executable field, while private/jupyterlab/jupyterlab_vscode_icons_extension returns executable false on every entry
+  - test-tags: UNIT
+  - root-cause: 2026-11-18T11:09:11Z @kj Measured 2026-11-18: @volumes/shared/<name> are symlinks to /mnt/<name> docker volumes; _within_root's realpath branch leaves the root and the mount-only fallback refuses the symlink component, so the live probe still shows no executable field; owner chose annotating through the symlinks
+  - root-cause: 2026-11-18T10:42:20Z @kj handlers.py:48 _within_root compares os.path.realpath; /home/lab/workspace/@volumes binds to /mnt/hackathon-delaval, so realpath leaves root_dir and _annotate_listing_flags returns the listing unannotated; confirmed through the live api/contents: no executable field under @volumes, executable false inside the root
+  - log: 2026-11-18T10:42:20Z @kj added
+  - log: 2026-11-18T11:09:11Z @kj amended text "With enableExecutableIcons on, files under @volumes show no play badge; link badges are off there too, and the contents API returns no executable field. Cause: _within_root realpaths the model path, and the @volumes bind mount resolves to /mnt/hackathon-delaval, outside root_dir /home/lab/workspace, so handlers.py:48 drops the annotation." -> "With enableExecutableIcons on, files under @volumes show no play badge; link badges are off there too, and the contents API returns no executable field. Cause: _within_root realpaths the path, and the @volumes/shared entries are symlinks to /mnt/<name>, outside root_dir /home/lab/workspace, so handlers.py:48 drops the annotation."
+  - log: 2026-11-18T11:09:11Z @kj owner decision: annotate listings through the @volumes symlinks; round 2 applies lexical containment
+  - log: 2026-11-18T12:09:12Z @kj closed
 
 ## Settings and icon groups `CONFIG`
 

@@ -124,6 +124,16 @@ Which file gets which vscode-icons glyph in the file browser
   - log: 2026-11-11T22:47:27Z @kj added
   - log: 2026-11-11T23:37:19Z @kj amended text "a file named VERSION, in any letter case, paints the same file-type-text glyph as a .txt file on its file-browser row and its tab; no file type is registered for it" -> "a file named VERSION shows the icon a .txt file shows: the custom TXT sheet on its row and tab under the default doc-icons setting, the same group toggle, and the plain file-type-text glyph when doc icons are off"
   - log: 2026-11-12T00:25:35Z @kj closed
+- [x] `ACC-ICONS-83-VOLUMES-BADGES` **Mounted volumes keep their listing badges** - MEDIUM; A directory below the server root carries executable and symlink flags in its listing, symlinked directories included, so @volumes rows show the play and link badges; a path lexically outside the root stays unannotated; handlers.py:17-23
+  - evidence: handler tests pin the policy: @volumes-style symlinked listings annotated, lexical .. refused; live probe executable true for agentmsg.py; full Galata 125/125, jest 230, pytest 32, lint clean (logs/volumes-badges-final-full-galata.log)
+  - test: pytest handlers case: the @volumes listing carries executable flags; a path lexically outside the root stays unannotated
+  - test-tags: UNIT
+  - mechanism: 2026-11-18T11:09:11Z @kj _annotate_listing_flags gates the listing on _within_root; realpath resolves the @volumes symlinks to /mnt/<name> outside the root and the listing is dropped; the fix accepts a path lexically under the root, following symlinks as the contents manager does
+  - mechanism: 2026-11-18T10:44:32Z @kj _annotate_listing_flags gates the listing on _within_root; realpath resolves a mount prefix outside the root and the listing is dropped; the fix keeps a lexical path under the root inside when no component is a symlink
+  - log: 2026-11-18T10:44:32Z @kj added
+  - log: 2026-11-18T11:09:11Z @kj amended text "A directory below the server root that is a mount point carries executable and symlink flags in its listing, so @volumes rows show the play and link badges; a path that leaves the root through a symlink stays unannotated; handlers.py:17-23" -> "A directory below the server root carries executable and symlink flags in its listing, symlinked directories included, so @volumes rows show the play and link badges; a path lexically outside the root stays unannotated; handlers.py:17-23"
+  - log: 2026-11-18T12:09:12Z @kj edited test "pytest handlers case: the @volumes listing carries executable flags and a symlink escape does not" -> "pytest handlers case: the @volumes listing carries executable flags; a path lexically outside the root stays unannotated"
+  - log: 2026-11-18T12:09:12Z @kj closed
 
 ## Settings and icon groups `CONFIG`
 

@@ -2,6 +2,13 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.2.46] - 2026-11-18
+
+### Fixed
+
+- Executable and link badges appear on files under `@volumes` and on any directory reached through a symlink below the server root; the listing annotation previously dropped those directories entirely
+- The row-stability rename test waits for the icon of the new name instead of any icon, so a full suite no longer fails on the reused row's old glyph under load
+
 ## [1.2.45] - 2026-11-16
 
 ### Changed
